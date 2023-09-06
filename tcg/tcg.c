@@ -1386,6 +1386,26 @@ TranslationBlock *tcg_tb_alloc(TCGContext *s)
     return tb;
 }
 
+#ifdef CONFIG_LATA
+void lata_prologue_init(TCGContext *s, CPUState *cpu)
+{
+    int ins_nr;
+
+    s->code_ptr = s->code_gen_ptr;  // rw
+    /* tcg_splitwx_to_rx(gen_code_buf); // rx */
+    tcg_qemu_tb_exec = (tcg_prologue_fn *)tcg_splitwx_to_rx(s->code_ptr);
+
+    ins_nr = lata_gen_prologue(cpu, s);
+    s->code_ptr += ins_nr;
+    ins_nr = lata_gen_epilogue(cpu, s);
+    s->code_ptr += ins_nr;
+    // s->code_gen_ptr = s->code_ptr; // tcg_region_prologue_set() will set this
+    // TODO: find out the effort of fuction.
+    tcg_region_prologue_set(s);
+
+}
+#endif
+
 void tcg_prologue_init(TCGContext *s)
 {
     size_t prologue_size;
@@ -1462,6 +1482,7 @@ void tcg_prologue_init(TCGContext *s)
      */
     tcg_debug_assert(tcg_code_gen_epilogue != NULL);
 #endif
+
 
     tcg_region_prologue_set(s);
 }

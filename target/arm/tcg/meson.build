@@ -40,7 +40,20 @@ arm_ss.add(files(
   'vec_helper.c',
 ))
 
-arm_ss.add(when: 'TARGET_AARCH64', if_true: files(
+if 'CONFIG_LATA' in config_host
+  arm_ss.add(when: 'TARGET_AARCH64', if_true: files(
+  'cpu64.c',
+  '../lata/translator/translate-a64.c',
+  'translate-sve.c',
+  'translate-sme.c',
+  'helper-a64.c',
+  'mte_helper.c',
+  'pauth_helper.c',
+  'sme_helper.c',
+  'sve_helper.c',
+))
+else
+  arm_ss.add(when: 'TARGET_AARCH64', if_true: files(
   'cpu64.c',
   'translate-a64.c',
   'translate-sve.c',
@@ -51,7 +64,7 @@ arm_ss.add(when: 'TARGET_AARCH64', if_true: files(
   'sme_helper.c',
   'sve_helper.c',
 ))
-
+endif
 arm_system_ss.add(files(
   'psci.c',
 ))

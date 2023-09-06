@@ -275,12 +275,33 @@ static int setjmp_gen_code(CPUArchState *env, TranslationBlock *tb,
     tcg_func_start(tcg_ctx);
 
     tcg_ctx->cpu = env_cpu(env);
+
+#ifdef CONFIG_LATA
+    tr_init(tb);
+#endif
+
     gen_intermediate_code(env_cpu(env), tb, max_insns, pc, host_pc);
     assert(tb->size != 0);
     tcg_ctx->cpu = NULL;
     *max_insns = tb->icount;
 
+#ifdef CONFIG_LATA
+    tcg_insn_unit *gen_code_buf;
+    gen_code_buf = tcg_ctx->code_gen_ptr;
+    int gen_code_size = tr_ir2_assemble(gen_code_buf) * 4;
+    tr_fini();
+
+    tcg_ctx->gen_insn_data =
+        tcg_malloc(sizeof(uint64_t) * tcg_ctx->gen_tb->icount * tcg_ctx->insn_start_words);
+    /* Initialize goto_tb jump offsets. */
+    tb->jmp_reset_offset[0] = TB_JMP_OFFSET_INVALID;
+    tb->jmp_reset_offset[1] = TB_JMP_OFFSET_INVALID;
+    tb->jmp_insn_offset[0] = TB_JMP_OFFSET_INVALID;
+    tb->jmp_insn_offset[1] = TB_JMP_OFFSET_INVALID;
+    return gen_code_size;
+#else
     return tcg_gen_code(tcg_ctx, tb, pc);
+#endif
 }
 
 /* Called with mmap_lock held for user mode emulation.  */

@@ -783,6 +783,10 @@ static inline void *tcg_malloc(int size)
     }
 }
 
+#ifdef CONFIG_LATA
+void lata_prologue_init(TCGContext *s, CPUState *cpu);
+#endif
+
 void tcg_init(size_t tb_size, int splitwx, unsigned max_cpus);
 void tcg_register_thread(void);
 void tcg_prologue_init(TCGContext *s);
@@ -1098,6 +1102,10 @@ static inline size_t tcg_current_code_size(TCGContext *s)
 #define TB_EXIT_IDX1      1
 #define TB_EXIT_IDXMAX    1
 #define TB_EXIT_REQUESTED 3
+
+#ifdef CONFIG_LATA
+#include "target/arm/lata/include/lata.h"
+#endif
 
 #ifdef CONFIG_TCG_INTERPRETER
 uintptr_t tcg_qemu_tb_exec(CPUArchState *env, const void *tb_ptr);

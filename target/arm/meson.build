@@ -36,3 +36,7 @@ endif
 
 target_arch += {'arm': arm_ss}
 target_softmmu_arch += {'arm': arm_system_ss}
+
+if 'CONFIG_LATA' in config_host
+  subdir('lata')
+endif

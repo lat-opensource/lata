@@ -266,6 +266,7 @@ use_containers="yes"
 gdb_bin=$(command -v "gdb-multiarch" || command -v "gdb")
 gdb_arches=""
 werror=""
+lata="no"
 
 # Don't accept a target_list environment variable.
 unset target_list
@@ -821,6 +822,11 @@ for opt do
   ;;
   --disable-containers) use_containers="no"
   ;;
+  --enable-lata) lata=yes
+  ;;
+  --disable-lata) lata=no
+  ;;
+
   --gdb=*) gdb_bin="$optarg"
   ;;
   # everything else has the same name in configure and meson
@@ -1798,6 +1804,13 @@ fi
 
 if test "$ccache_cpp2" = "yes"; then
   echo "export CCACHE_CPP2=y" >> $config_host_mak
+fi
+
+if test "$lata" = "yes" ; then
+  echo "CONFIG_LATA=y" >> $config_host_mak
+  if test "$debug" = "yes" ; then
+  echo "CONFIG_LATA_DEBUG=y" >> $config_host_mak
+  fi
 fi
 
 # tests/tcg configuration

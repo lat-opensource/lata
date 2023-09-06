@@ -3753,6 +3753,10 @@ foreach target : target_dirs
     endif
   endif
 
+  if 'CONFIG_LATA' in config_host
+    target_inc += include_directories('target/arm/lata/include')
+  endif 
+
   if 'TARGET_XML_FILES' in config_target
     gdbstub_xml = custom_target(target + '-gdbstub-xml.c',
                                 output: target + '-gdbstub-xml.c',
@@ -4315,6 +4319,8 @@ summary_info += {'libudev':           libudev}
 summary_info += {'FUSE lseek':        fuse_lseek.found()}
 summary_info += {'selinux':           selinux}
 summary_info += {'libdw':             libdw}
+summary_info += {'lata':              config_host.has_key('CONFIG_LATA')}
+
 summary(summary_info, bool_yn: true, section: 'Dependencies')
 
 if not supported_cpus.contains(cpu)

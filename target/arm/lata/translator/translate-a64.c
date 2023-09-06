@@ -18,11 +18,11 @@
  */
 #include "qemu/osdep.h"
 
-#include "translate.h"
-#include "translate-a64.h"
+#include "target/arm/tcg/translate.h"
+#include "target/arm/tcg/translate-a64.h"
 #include "qemu/log.h"
 #include "disas/disas.h"
-#include "arm_ldst.h"
+#include "target/arm/tcg/arm_ldst.h"
 #include "semihosting/semihost.h"
 #include "cpregs.h"
 
@@ -2347,13 +2347,16 @@ static bool trans_SVC(DisasContext *s, arg_i *a)
      * mandated, to ensure that single-stepping a system call
      * instruction works properly.
      */
+    //uint32_t syndrome = syn_aa64_svc(a->imm);
+    // if (s->fgt_svc) {
+    //     gen_exception_insn_el(s, 0, EXCP_UDEF, syndrome, 2);
+    //     return true;
+    // }
+    //gen_ss_advance(s);
+    //gen_exception_insn(s, 4, EXCP_SWI, syndrome);
+
     uint32_t syndrome = syn_aa64_svc(a->imm);
-    if (s->fgt_svc) {
-        gen_exception_insn_el(s, 0, EXCP_UDEF, syndrome, 2);
-        return true;
-    }
-    gen_ss_advance(s);
-    gen_exception_insn(s, 4, EXCP_SWI, syndrome);
+    translate_svc(s,EXCP_SWI, syndrome);
     return true;
 }
 
@@ -2805,14 +2808,15 @@ static bool trans_CAS(DisasContext *s, arg_CAS *a)
 
 static bool trans_LD_lit(DisasContext *s, arg_ldlit *a)
 {
-    bool iss_sf = ldst_iss_sf(a->sz, a->sign, false);
-    TCGv_i64 tcg_rt = cpu_reg(s, a->rt);
-    TCGv_i64 clean_addr = tcg_temp_new_i64();
-    MemOp memop = finalize_memop(s, a->sz + a->sign * MO_SIGN);
+    // bool iss_sf = ldst_iss_sf(a->sz, a->sign, false);
+    // TCGv_i64 tcg_rt = cpu_reg(s, a->rt);
+    // TCGv_i64 clean_addr = tcg_temp_new_i64();
+    // MemOp memop = finalize_memop(s, a->sz + a->sign * MO_SIGN);
 
-    gen_pc_plus_diff(s, clean_addr, a->imm);
-    do_gpr_ld(s, tcg_rt, clean_addr, memop,
-              false, true, a->rt, iss_sf, false);
+    //gen_pc_plus_diff(s, clean_addr, a->imm);
+    // do_gpr_ld(s, tcg_rt, clean_addr, memop,
+    //           false, true, a->rt, iss_sf, false);
+    translate_ldr_lit(a->rt, s->pc_curr + a->imm, a->sz + a->sign * MO_SIGN);
     return true;
 }
 
@@ -4150,7 +4154,8 @@ TRANS(ANDS_i, gen_rri_log, a, true, tcg_gen_andi_i64)
 static bool trans_MOVZ(DisasContext *s, arg_movw *a)
 {
     int pos = a->hw << 4;
-    tcg_gen_movi_i64(cpu_reg(s, a->rd), (uint64_t)a->imm << pos);
+    //tcg_gen_movi_i64(cpu_reg(s, a->rd), (uint64_t)a->imm << pos);
+    translate_movz(a->rd,(uint64_t)a->imm << pos);
     return true;
 }
 

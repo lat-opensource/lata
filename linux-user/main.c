@@ -60,6 +60,10 @@
 #include "semihosting/semihost.h"
 #endif
 
+#ifdef CONFIG_LATA
+#include "target/arm/lata/include/lata.h"
+#endif
+
 #ifndef AT_FLAGS_PRESERVE_ARGV0
 #define AT_FLAGS_PRESERVE_ARGV0_BIT 0
 #define AT_FLAGS_PRESERVE_ARGV0 (1 << AT_FLAGS_PRESERVE_ARGV0_BIT)
@@ -994,7 +998,25 @@ int main(int argc, char **argv, char **envp)
     /* Now that we've loaded the binary, GUEST_BASE is fixed.  Delay
        generating the prologue until now so that the prologue can take
        the real value of GUEST_BASE into account.  */
+
+#ifdef CONFIG_LATA
+    lata_tr_data_init();
+    lata_prologue_init(tcg_ctx,cpu);
+#else
     tcg_prologue_init(tcg_ctx);
+#endif
+
+#ifdef CONFIG_LATA_DEBUG
+    fprintf(stderr,"config_lata_debug is open.\n");
+    //long unsigned int result = 0;
+    //lata_tr_data_init();
+    //tr_init();
+    //IR2_OPND test_opnd = ra_alloc_itemp();
+    //result = ir2_assemble(la_xori(test_opnd, test_opnd, 1));
+    //tr_fini();
+    //printf("hello %lx \n", result);
+    //fprintf(stderr,"hello %lx\n", result);
+#endif
 
     target_cpu_copy_regs(env, regs);
 
