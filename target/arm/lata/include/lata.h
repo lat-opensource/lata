@@ -87,7 +87,15 @@ void lata_gen_call_helper_prologue(TCGContext *tcg_ctx);
 void lata_gen_call_helper_epilogue(TCGContext *tcg_ctx);
 
 IR2_OPND alloc_gpr_src(int i);
+IR2_OPND alloc_gpr_src_sp(int i);
 IR2_OPND alloc_gpr_dst(int i);
+IR2_OPND alloc_gpr_dst_sp(int i);
 void store_gpr_dst(int i, IR2_OPND opnd);
+void free_alloc_gpr(IR2_OPND opnd);
+
+IR2_OPND alloc_fpr_src(int i);
+IR2_OPND alloc_fpr_dst(int i);
+void store_fpr_dst(int i, IR2_OPND opnd);
+void free_alloc_fpr(IR2_OPND opnd);
 
 #endif

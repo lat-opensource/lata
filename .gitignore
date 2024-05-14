@@ -2,8 +2,6 @@
 /build/
 /.cache/
 /.vscode/
-/arm-qemu-build64-dbg/
-/arm-build64-dbg/
 *.pyc
 .sdk
 .stgit-*

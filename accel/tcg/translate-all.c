@@ -278,6 +278,11 @@ static int setjmp_gen_code(CPUArchState *env, TranslationBlock *tb,
 
 #ifdef CONFIG_LATA
     tr_init(tb);
+    /* Initialize goto_tb jump offsets. */
+    tb->jmp_reset_offset[0] = TB_JMP_OFFSET_INVALID;
+    tb->jmp_reset_offset[1] = TB_JMP_OFFSET_INVALID;
+    tb->jmp_insn_offset[0] = TB_JMP_OFFSET_INVALID;
+    tb->jmp_insn_offset[1] = TB_JMP_OFFSET_INVALID;
 #endif
 
     gen_intermediate_code(env_cpu(env), tb, max_insns, pc, host_pc);
@@ -293,11 +298,6 @@ static int setjmp_gen_code(CPUArchState *env, TranslationBlock *tb,
 
     tcg_ctx->gen_insn_data =
         tcg_malloc(sizeof(uint64_t) * tcg_ctx->gen_tb->icount * tcg_ctx->insn_start_words);
-    /* Initialize goto_tb jump offsets. */
-    tb->jmp_reset_offset[0] = TB_JMP_OFFSET_INVALID;
-    tb->jmp_reset_offset[1] = TB_JMP_OFFSET_INVALID;
-    tb->jmp_insn_offset[0] = TB_JMP_OFFSET_INVALID;
-    tb->jmp_insn_offset[1] = TB_JMP_OFFSET_INVALID;
     return gen_code_size;
 #else
     return tcg_gen_code(tcg_ctx, tb, pc);

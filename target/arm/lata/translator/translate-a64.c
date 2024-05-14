@@ -2355,8 +2355,22 @@ static bool trans_SVC(DisasContext *s, arg_i *a)
     //gen_ss_advance(s);
     //gen_exception_insn(s, 4, EXCP_SWI, syndrome);
 
-    uint32_t syndrome = syn_aa64_svc(a->imm);
-    translate_svc(s,EXCP_SWI, syndrome);
+    IR2_OPND t = ra_alloc_itemp();
+
+    li_d(t, s->base.pc_next);
+    la_st_d(t,env_ir2_opnd,env_offset_pc());
+    lata_gen_call_helper_prologue(tcg_ctx);
+    //CPUARMState *env, uint32_t excp,
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+
+    li_d(a1_ir2_opnd, EXCP_SWI);
+    li_d(a2_ir2_opnd, syn_aa64_svc(a->imm));
+    //li_d(a3_ir2_opnd, target_el);
+    li_d(t, (uint64_t)helper_exception_with_syndrome);
+    la_jirl(ra_ir2_opnd, t, 0);
+    s->base.is_jmp = DISAS_NORETURN;
+
+    free_alloc_gpr(t);
     return true;
 }
 
@@ -2816,7 +2830,22 @@ static bool trans_LD_lit(DisasContext *s, arg_ldlit *a)
     //gen_pc_plus_diff(s, clean_addr, a->imm);
     // do_gpr_ld(s, tcg_rt, clean_addr, memop,
     //           false, true, a->rt, iss_sf, false);
-    translate_ldr_lit(a->rt, s->pc_curr + a->imm, a->sz + a->sign * MO_SIGN);
+    IR2_OPND reg_d = alloc_gpr_dst(a->rt);
+    MemOp memop = a->sz + a->sign * MO_SIGN;
+    uint64_t addr = s->pc_curr + a->imm;
+    li_d(reg_d,addr);
+    switch(memop)
+    {
+        case MO_64:
+            //自带符号扩展
+            la_ld_d(reg_d,reg_d,0);
+            break;
+        default:
+            assert(0);
+            break;
+    }
+    store_gpr_dst(a->rt,reg_d);
+    free_alloc_gpr(reg_d);
     return true;
 }
 
@@ -4151,11 +4180,17 @@ TRANS(ANDS_i, gen_rri_log, a, true, tcg_gen_andi_i64)
  * Move wide (immediate)
  */
 
-static bool trans_MOVZ(DisasContext *s, arg_movw *a)
+static bool trans_MOVZ(DisasContext *s, arg_MOVZ *a)
 {
     int pos = a->hw << 4;
     //tcg_gen_movi_i64(cpu_reg(s, a->rd), (uint64_t)a->imm << pos);
-    translate_movz(a->rd,(uint64_t)a->imm << pos);
+
+    IR2_OPND reg_d = alloc_gpr_dst(a->rd);
+    li_d(reg_d,(uint64_t)a->imm << pos);
+    
+    store_gpr_dst(a->rd, reg_d);
+    free_alloc_gpr(reg_d);
+
     return true;
 }
 

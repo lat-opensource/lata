@@ -18,4 +18,33 @@ static inline int env_offset_fpr(int num)
     return offsetof(CPUARMState,vfp.zregs[num]);
 }
 
+static inline int env_offset_CF(void)
+{
+    return offsetof(CPUARMState,CF);
+}
+
+static inline int env_offset_VF(void)
+{
+    return offsetof(CPUARMState,VF);
+}
+
+static inline int env_offset_ZF(void)
+{
+    return offsetof(CPUARMState,ZF);
+}
+
+static inline int env_offset_NF(void)
+{
+    return offsetof(CPUARMState,NF);
+}
+
+static inline int env_offset_PSTATE(void)
+{
+    return offsetof(CPUARMState,pstate);
+}
+
+static inline int env_offset_Exclusive(void)
+{
+    return offsetof(CPUARMState,exclusive_addr);
+}
 #endif

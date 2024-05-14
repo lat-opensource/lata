@@ -7,8 +7,15 @@
 #include "qemu/log.h"
 #include "env.h"
 
+//sp
+//tp
+//zero---unused
+//a0-----goto_tb
+//s8-----env 
+//t0-t5--itemp
+//scr3---pstate
 const int arm_la_map[] = {
-    [armv8_x0] = la_a0,
+    [armv8_x0] = la_ra,
     [armv8_x1] = la_a1,
     [armv8_x2] = la_a2,
     [armv8_x3] = la_a3,
@@ -16,30 +23,65 @@ const int arm_la_map[] = {
     [armv8_x5] = la_a5,
     [armv8_x6] = la_a6,
     [armv8_x7] = la_a7,
-    [armv8_x8] = la_t8,
-    [armv8_x9] = -1,//la_t1,
-    [armv8_x10] = -1,//la_t2,
-    [armv8_x11] = -1,//la_t3,
-    [armv8_x12] = -1,//la_t4,
-    [armv8_x13] = la_t5,
-    [armv8_x14] = la_t6,
-    [armv8_x15] = la_t7,
-    [armv8_x16] = -1,//ra
-    [armv8_x17] = -1,//tp
-    [armv8_x18] = -1,//sp
-    [armv8_x19] = la_t0,
+    [armv8_x8] = la_fp,
+    [armv8_x9] = la_t8,
+    [armv8_x10] = la_t6,
+    [armv8_x11] = -1,
+    [armv8_x12] = -1,
+    [armv8_x13] = -1,
+    [armv8_x14] = -1,
+    [armv8_x15] = -1,
+    [armv8_x16] = -1,
+    [armv8_x17] = -1,
+    [armv8_x18] = -1,
+    [armv8_x19] = la_s6,
     [armv8_x20] = la_s0,
-    [armv8_x21] = la_s2,
+    [armv8_x21] = la_s1,
     [armv8_x22] = la_s2,
     [armv8_x23] = la_s3,
     [armv8_x24] = la_s4,
-    [armv8_x25] = la_s5,
-    [armv8_x26] = la_s6,
-    [armv8_x27] = la_s7,
-    [armv8_x28] = -1,//s8-env
-    [armv8_x29] = -1,//fp
-    [armv8_x30] = -1,//r21
-    [armv8_xzr] = la_zero
+    [armv8_x25] = -1,
+    [armv8_x26] = -1,
+    [armv8_x27] = -1,
+    [armv8_x28] = la_s7,
+    [armv8_x29] = la_t7,
+    [armv8_x30] = la_s5,
+    [armv8_xzr] = la_r21
+};
+
+const int arm_la_reverse_map[] = {
+    [la_zero] = -1,
+    [la_ra]  = armv8_x0,
+    [la_sp]  = -1,
+    [la_t7]  = armv8_x29,
+    [la_s0]  = armv8_x20,
+    [la_s1]  = armv8_x21,
+    [la_s8]  = -1,
+    [la_t8]  = armv8_x9,
+    [la_a2]  = armv8_x2,
+    [la_a3]  = armv8_x3,
+    [la_a4]  = armv8_x4,
+    [la_a5]  = armv8_x5,
+    [la_a6]  = armv8_x6,
+    [la_a7]  = armv8_x7,
+    [la_s2]  = armv8_x22,
+    [la_s3]  = armv8_x23,
+    [la_s4]  = armv8_x24,
+    [la_s5]  = armv8_x30,
+    [la_s6]  = armv8_x19,
+    [la_s7]  = armv8_x28,
+    [la_t4]  = -1,
+    [la_t5]  = -1,
+    [la_t6]  = armv8_x10,
+    [la_r21] = armv8_xzr,
+    [la_tp] = -1,
+    [la_a0] = -1,
+    [la_a1] = armv8_x1,
+    [la_t0] = -1,
+    [la_t1] = -1,
+    [la_t2] = -1,
+    [la_t3] = -1,
+    [la_fp] = armv8_x8 
 };
 
 const int arm_la_fmap[] = {
@@ -52,12 +94,12 @@ const int arm_la_fmap[] = {
     [armv8_v6] = 6,
     [armv8_v7] = 7,
     [armv8_v8] = 8,
-    [armv8_v9] = -1,//9,
-    [armv8_v10] = -1,//10,
-    [armv8_v11] = -1,//11,
-    [armv8_v12] = -1,//12,
-    [armv8_v13] = 13,
-    [armv8_v14] = 14,
+    [armv8_v9] = -1,
+    [armv8_v10] = -1,
+    [armv8_v11] = -1,
+    [armv8_v12] = -1,
+    [armv8_v13] = -1,
+    [armv8_v14] = -1,
     [armv8_v15] = 15,
     [armv8_v16] = 16,
     [armv8_v17] = 17,
@@ -77,6 +119,41 @@ const int arm_la_fmap[] = {
     [armv8_v31] = 31
 };
 
+const int arm_la_reverse_fmap[] = {
+    [0] = 0,
+    [1] = 1,
+    [2] = 2,
+    [3] = 3,
+    [4] = 4,
+    [5] = 5,
+    [6] = 6,
+    [7] = 7,
+    [8] = 8,
+    [9] = -1,
+    [10] = -1,
+    [11] = -1,
+    [12] = -1,
+    [13] = -1,
+    [14] = -1,
+    [15] = 15,
+    [16] = 16,
+    [17] = 17,
+    [18] = 18,
+    [19] = 19,
+    [20] = 20,
+    [21] = 21,
+    [22] = 22,
+    [23] = 23,
+    [24] = 24,
+    [25] = 25,
+    [26] = 26,
+    [27] = 27,
+    [28] = 28,
+    [29] = 29,
+    [30] = 30,
+    [31] = 31
+
+};
 
 void lata(void);
 __attribute__((constructor))
@@ -91,7 +168,7 @@ static __thread ENV lsenv_real;
 static __thread TRANSLATION_DATA tr_data_real;
 __thread TRANSLATION_DATA *tr_data;
 
-bool lata_dump = 1;
+bool lata_dump = 0;
 uint64_t context_switch_bt_to_native;
 uint64_t context_switch_native_to_bt_ret_0;
 uint64_t context_switch_native_to_bt;
@@ -223,7 +300,6 @@ void tr_fini(void)
 
 static void generate_context_switch_bt_to_native(CPUState *cs)
 {
-    //qemu_log(" fix generate bt -> native\n");
     la_addi_d(sp_ir2_opnd, sp_ir2_opnd, -256);
 
     /* save callee-saved LA registers. s0-s8 */
@@ -241,15 +317,13 @@ static void generate_context_switch_bt_to_native(CPUState *cs)
     la_st_d(fp_ir2_opnd, sp_ir2_opnd, FP_EXTRA_SPACE);
     la_st_d(ra_ir2_opnd, sp_ir2_opnd, RA_EXTRA_SPACE);
 
-    //IR2_OPND env_opnd = env_ir2_opnd;
-    IR2_OPND tc_ptr_opnd = ir2_opnd_new(IR2_OPND_GPR, la_r21);
-    
     /* set env_opnd */
-    la_or(env_ir2_opnd, a0_ir2_opnd, zero_ir2_opnd);
-    la_or(tc_ptr_opnd, a1_ir2_opnd, zero_ir2_opnd);
+    la_mov64(env_ir2_opnd, a0_ir2_opnd);
+    la_mov64(a0_ir2_opnd, a1_ir2_opnd);
 
-    /* load some regs. TODO: fix load regs */
-    for(int i = 1; i <= 31; ++i) {
+
+    /* load gpr and fpr */
+    for(int i = 0; i <= 31; ++i) {
         if(arm_la_map[i] > 0) {
             la_ld_d(ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]), env_ir2_opnd, env_offset_gpr(i));
         }
@@ -260,16 +334,23 @@ static void generate_context_switch_bt_to_native(CPUState *cs)
         }
     }
 
+    /* load pstate reg */
+    IR2_OPND pstate = ra_alloc_itemp();
+    la_ld_w(pstate, env_ir2_opnd, env_offset_PSTATE());
+    la_gr2scr(scr3_ir2_opnd,pstate);
+    ra_free_temp(pstate);
+
+    /* TODO: load fcsr */
+
     /* jmp to tb */
-    la_jirl(zero_ir2_opnd, tc_ptr_opnd, 0);
+    la_jirl(zero_ir2_opnd, a0_ir2_opnd, 0);
 
 }
 
 static void generate_context_switch_native_to_bt(CPUState *cs)
 {
-    qemu_log(" fix generate bt -> native\n");
-    
-    for(int i = 1; i <= 31; ++i) {
+    la_mov64(a0_ir2_opnd, zero_ir2_opnd);
+    for(int i = 0; i <= 31; ++i) {
         if(arm_la_map[i] > 0) {
             la_st_d(ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]), env_ir2_opnd, env_offset_gpr(i));
         }
@@ -280,6 +361,13 @@ static void generate_context_switch_native_to_bt(CPUState *cs)
         }
     }
 
+    /* store pstate reg */
+    IR2_OPND pstate = ra_alloc_itemp();
+    la_scr2gr(pstate,scr3_ir2_opnd);
+    la_st_w(pstate, env_ir2_opnd, env_offset_PSTATE());
+    ra_free_temp(pstate);
+    
+    /* TODO: store fcsr*/
 
     /* load callee-saved LA registers. s0-s8 */
     la_ld_d(s0_ir2_opnd, sp_ir2_opnd, S0_EXTRA_SPACE);
@@ -296,6 +384,10 @@ static void generate_context_switch_native_to_bt(CPUState *cs)
     la_ld_d(fp_ir2_opnd, sp_ir2_opnd, FP_EXTRA_SPACE);
     la_ld_d(ra_ir2_opnd, sp_ir2_opnd, RA_EXTRA_SPACE);
 
+    la_addi_d(sp_ir2_opnd, sp_ir2_opnd, 256);
+
+    /* TODO: clear fcsr*/
+
     la_jirl(zero_ir2_opnd, ra_ir2_opnd, 0);
 }
 
@@ -310,7 +402,7 @@ int lata_gen_prologue(CPUState *cs, TCGContext *tcg_ctx)
     context_switch_bt_to_native = (uint64_t)code_buf_rx;
 
     if (lata_dump)
-        qemu_log("[LATX] context_switch_bt_to_native = %p\n",
+        qemu_log("[LATA] context_switch_bt_to_native = %p\n",
                 (void *)context_switch_bt_to_native);
 
     tr_init(NULL);
@@ -332,7 +424,7 @@ int lata_gen_epilogue(CPUState *cs, TCGContext *tcg_ctx)
     context_switch_native_to_bt = (uint64_t)code_buf_rx + 4;
 
     if (lata_dump)
-        qemu_log("[LATX] context_switch_native_to_bt = %p\n",
+        qemu_log("[LATA] context_switch_native_to_bt = %p\n",
                 (void *)context_switch_native_to_bt);
 
     tr_init(NULL);
@@ -435,7 +527,7 @@ static void label_dispose(void)
 int tr_ir2_assemble(const void *code_start_addr)
 {
     if (lata_dump) {
-        qemu_log("[LATX] Assemble IR2.\n");
+        qemu_log("[LATA] Assemble IR2.\n");
     }
 
     /* 1. assign temp register to physical register */
@@ -473,7 +565,7 @@ int tr_ir2_assemble(const void *code_start_addr)
 
 void lata_gen_call_helper_prologue(TCGContext *tcg_ctx)
 {
-    for(int i = 1; i <= 31; ++i) {
+    for(int i = 0; i <= 31; ++i) {
         if(arm_la_map[i] > 0) {
             la_st_d(ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]), env_ir2_opnd, env_offset_gpr(i));
         }
@@ -488,7 +580,7 @@ void lata_gen_call_helper_prologue(TCGContext *tcg_ctx)
 
 void lata_gen_call_helper_epilogue(TCGContext *tcg_ctx)
 {
-    for(int i = 1; i <= 31; ++i) {
+    for(int i = 0; i <= 31; ++i) {
         if(arm_la_map[i] > 0) {
             la_ld_d(ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]), env_ir2_opnd, env_offset_gpr(i));
         }
@@ -501,7 +593,23 @@ void lata_gen_call_helper_epilogue(TCGContext *tcg_ctx)
 
 }
 
+// gpr 
 IR2_OPND alloc_gpr_src(int i) {
+    if(i==31){
+        IR2_OPND t = ra_alloc_itemp();
+        li_d(t, 0);
+        return t;
+    }
+    if (arm_la_map[i] >= 0) {
+        return ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]);
+    } else {
+        IR2_OPND t = ra_alloc_itemp();
+        la_ld_d(t, env_ir2_opnd, env_offset_gpr(i));
+        return t;
+    }
+}
+
+IR2_OPND alloc_gpr_src_sp(int i) {
     if (arm_la_map[i] >= 0) {
         return ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]);
     } else {
@@ -512,6 +620,18 @@ IR2_OPND alloc_gpr_src(int i) {
 }
 
 IR2_OPND alloc_gpr_dst(int i) {
+    if(i==31){
+        IR2_OPND t = ra_alloc_itemp();
+        return t;
+    }
+    if (arm_la_map[i] >= 0) {
+        return ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]);
+    } else {
+        return ra_alloc_itemp();
+    }
+}
+
+IR2_OPND alloc_gpr_dst_sp(int i) {
     if (arm_la_map[i] >= 0) {
         return ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]);
     } else {
@@ -522,26 +642,42 @@ IR2_OPND alloc_gpr_dst(int i) {
 void store_gpr_dst(int i, IR2_OPND opnd) {
     if (arm_la_map[i] < 0) {
         la_st_d(opnd, env_ir2_opnd, env_offset_gpr(i));
+    }   
+}
+
+void free_alloc_gpr(IR2_OPND opnd) {
+    if (arm_la_reverse_map[opnd.val] == -1) {
+        ra_free_temp(opnd);
     }
 }
 
-// IR2_OPND alloc_fpr_src(int i) {
-//     if (rv_la_fmap[i] >= 0) {
-//         return ir2_opnd_new(IR2_OPND_FPR, rv_la_map[i]);
-//     } else {
-//         IR2_OPND t = ra_alloc_ftemp();
-//         la_fld_d(t, env_ir2_opnd, env_offset_fpr(i));
-//         return t;
-//     }
-// }
+// fpr
+IR2_OPND alloc_fpr_src(int i) {
+    if (arm_la_fmap[i] >= 0) {
+        return ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]);
+    } else {
+        IR2_OPND t = ra_alloc_ftemp();
+        la_vld(t, env_ir2_opnd, env_offset_fpr(i));
+        return t;
+    }
+}
 
-// IR2_OPND alloc_fpr_dst(int i) {
-//     if (rv_la_fmap[i] >= 0) {
-//         return ir2_opnd_new(IR2_OPND_FPR, rv_la_map[i]);
-//     } else {
-//         IR2_OPND t = ra_alloc_ftemp();
-//         la_fld_d(t, env_ir2_opnd, env_offset_fpr(i));
-//         return t;
-//     }
-// }
+IR2_OPND alloc_fpr_dst(int i) {
+    if (arm_la_fmap[i] >= 0) {
+        return ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]);
+    } else {
+        return ra_alloc_ftemp();
+    }
+}
 
+void store_fpr_dst(int i, IR2_OPND opnd) {
+    if (arm_la_fmap[i] < 0) {
+        la_vst(opnd, env_ir2_opnd, env_offset_fpr(i));
+    }
+}
+
+void free_alloc_fpr(IR2_OPND opnd) {
+    if (arm_la_reverse_fmap[opnd.val] == -1) {
+        ra_free_temp(opnd);
+    }
+}
