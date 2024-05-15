@@ -487,6 +487,22 @@ static inline bool use_goto_tb(DisasContext *s, uint64_t dest)
 
 static void gen_goto_tb(DisasContext *s, int n, int64_t diff)
 {
+#ifdef CONFIG_LATA
+    target_ulong dest = s->base.pc_next;
+     
+     IR2_OPND ir2_opnd_addr;
+     li_d(a0_ir2_opnd, dest);
+     la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_pc());
+     
+     li_d(a0_ir2_opnd, 0); // do not link
+     // li_d(a0_ir2_opnd, (uint64_t)ctx->base.tb | 0);
+
+    int64_t curr_ins_pos = (unsigned long)s->base.tb->tc.ptr + (lsenv->tr_data->real_ir2_inst_num << 2);
+    int64_t exit_offset = context_switch_native_to_bt_ret_0 - curr_ins_pos;
+
+    ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, exit_offset >> 2);
+    la_b(ir2_opnd_addr);
+#else
     if (use_goto_tb(s, s->pc_curr + diff)) {
         /*
          * For pcrel, the pc must always be up-to-date on entry to
@@ -514,6 +530,7 @@ static void gen_goto_tb(DisasContext *s, int n, int64_t diff)
             s->base.is_jmp = DISAS_NORETURN;
         }
     }
+#endif
 }
 
 /*
