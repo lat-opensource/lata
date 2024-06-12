@@ -1001,6 +1001,7 @@ int main(int argc, char **argv, char **envp)
 
 #ifdef CONFIG_LATA
     lata_tr_data_init();
+    env->pstate = 0x40000000;
     lata_prologue_init(tcg_ctx,cpu);
 #else
     tcg_prologue_init(tcg_ctx);

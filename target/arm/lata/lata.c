@@ -13,7 +13,7 @@
 //a0-----goto_tb
 //s8-----env 
 //t0-t5--itemp
-//scr3---pstate
+//FLAG---pstate
 const int arm_la_map[] = {
     [armv8_x0] = la_ra,
     [armv8_x1] = la_a1,
@@ -337,7 +337,7 @@ static void generate_context_switch_bt_to_native(CPUState *cs)
     /* load pstate reg */
     IR2_OPND pstate = ra_alloc_itemp();
     la_ld_w(pstate, env_ir2_opnd, env_offset_PSTATE());
-    la_gr2scr(scr3_ir2_opnd,pstate);
+    la_armmtflag(pstate, 0x39);
     ra_free_temp(pstate);
 
     /* TODO: load fcsr */
@@ -363,7 +363,7 @@ static void generate_context_switch_native_to_bt(CPUState *cs)
 
     /* store pstate reg */
     IR2_OPND pstate = ra_alloc_itemp();
-    la_scr2gr(pstate,scr3_ir2_opnd);
+    la_armmfflag(pstate, 0x39);
     la_st_w(pstate, env_ir2_opnd, env_offset_PSTATE());
     ra_free_temp(pstate);
     
@@ -593,7 +593,7 @@ void lata_gen_call_helper_epilogue(TCGContext *tcg_ctx)
 
 }
 
-// gpr 
+/* gpr同时为src和dst, 使用alloc_gpr_src,并且需要store回去 */
 IR2_OPND alloc_gpr_src(int i) {
     if(i==31){
         return ir2_opnd_new(IR2_OPND_GPR, la_zero);

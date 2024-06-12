@@ -1538,6 +1538,12 @@ static inline unsigned int aarch64_pstate_mode(unsigned int el, bool handler)
  * interprocessing, so we don't attempt to sync with the cpsr state used by
  * the 32 bit decoder.
  */
+#ifdef CONFIG_LATA
+static inline uint32_t pstate_read(CPUARMState *env)
+{
+    return env->pstate | env->daif;
+}
+#else
 static inline uint32_t pstate_read(CPUARMState *env)
 {
     int ZF;
@@ -1545,8 +1551,18 @@ static inline uint32_t pstate_read(CPUARMState *env)
     ZF = (env->ZF == 0);
     return (env->NF & 0x80000000) | (ZF << 30)
         | (env->CF << 29) | ((env->VF & 0x80000000) >> 3)
-        | env->pstate | env->daif | (env->btype << 10);
+        | env->pstate | env->daif;
 }
+// static inline uint32_t pstate_read(CPUARMState *env)
+// {
+//     int ZF;
+
+//     ZF = (env->ZF == 0);
+//     return (env->NF & 0x80000000) | (ZF << 30)
+//         | (env->CF << 29) | ((env->VF & 0x80000000) >> 3)
+//         | env->pstate | env->daif | (env->btype << 10);
+// }
+#endif
 
 static inline void pstate_write(CPUARMState *env, uint32_t val)
 {
