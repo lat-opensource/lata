@@ -596,9 +596,7 @@ void lata_gen_call_helper_epilogue(TCGContext *tcg_ctx)
 // gpr 
 IR2_OPND alloc_gpr_src(int i) {
     if(i==31){
-        IR2_OPND t = ra_alloc_itemp();
-        li_d(t, 0);
-        return t;
+        return ir2_opnd_new(IR2_OPND_GPR, la_zero);
     }
     if (arm_la_map[i] >= 0) {
         return ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]);
@@ -621,8 +619,7 @@ IR2_OPND alloc_gpr_src_sp(int i) {
 
 IR2_OPND alloc_gpr_dst(int i) {
     if(i==31){
-        IR2_OPND t = ra_alloc_itemp();
-        return t;
+        return ir2_opnd_new(IR2_OPND_GPR, la_zero);
     }
     if (arm_la_map[i] >= 0) {
         return ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]);
@@ -639,14 +636,16 @@ IR2_OPND alloc_gpr_dst_sp(int i) {
     }
 }
 
+/* la_zero作为目的寄存器不需要写回 */
 void store_gpr_dst(int i, IR2_OPND opnd) {
-    if (arm_la_map[i] < 0) {
+    if (arm_la_map[i] < 0 && opnd.val != 0) {
         la_st_d(opnd, env_ir2_opnd, env_offset_gpr(i));
     }   
 }
 
+/* la_zero不会被映射，但也不是临时寄存器 */
 void free_alloc_gpr(IR2_OPND opnd) {
-    if (arm_la_reverse_map[opnd.val] == -1) {
+    if (arm_la_reverse_map[opnd.val] == -1 && opnd.val != 0) {
         ra_free_temp(opnd);
     }
 }
