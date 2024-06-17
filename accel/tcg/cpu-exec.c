@@ -620,6 +620,21 @@ void cpu_exec_step_atomic(CPUState *cpu)
 
 void tb_set_jmp_target(TranslationBlock *tb, int n, uintptr_t addr)
 {
+// #ifdef CONFIG_LATA
+//     uintptr_t b_addr = (uintptr_t)(tb->tc.ptr + tb->jmp_reset_offset[n]) - 0x4 ;
+//     uint b_ins = *(uint *)b_addr;
+//     if ((b_ins & 0xfc000000) == 0x50000000){
+
+//         long offset = ((uintptr_t)addr - b_addr) >> 2;
+//         b_ins &= 0xfc000000;
+//         b_ins |= (offset & 0xffff) << 10;
+//         b_ins |= (offset >> 16) & 0x3ff;
+//         *(uint *)(b_addr) = b_ins;
+
+//     } else {
+//         assert(0);
+//     }
+// #else
     /*
      * Get the rx view of the structure, from which we find the
      * executable code address, and tb_target_set_jmp_target can
@@ -632,6 +647,7 @@ void tb_set_jmp_target(TranslationBlock *tb, int n, uintptr_t addr)
 
     tb->jmp_target_addr[n] = addr;
     tb_target_set_jmp_target(c_tb, n, jmp_rx, jmp_rw);
+// #endif
 }
 
 static inline void tb_add_jump(TranslationBlock *tb, int n,

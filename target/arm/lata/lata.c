@@ -475,16 +475,20 @@ static void label_dispose(void)
             /* ctx->jmp_insn_offset point to tb->jmp_target_arg */
             int label_id_0 = tb->jmp_reset_offset[0];
             if (label_id_0 != TB_JMP_OFFSET_INVALID) {
+                tb->jmp_insn_offset[0] =
+                    (label_num_to_ir2_num[label_id_0] << 2);
                 tb->jmp_reset_offset[0] =
                     (label_num_to_ir2_num[label_id_0] << 2) + B_STUB_SIZE;
-                tb->jmp_target_addr[0] = (label_num_to_ir2_num[label_id_0] << 2);
+                // tb->jmp_target_addr[0] = (label_num_to_ir2_num[label_id_0] << 2);
             }
 
             int label_id_1 = tb->jmp_reset_offset[1];
             if (label_id_1 != TB_JMP_OFFSET_INVALID) {
+                tb->jmp_insn_offset[1] =
+                    (label_num_to_ir2_num[label_id_1] << 2);
                 tb->jmp_reset_offset[1] =
                     (label_num_to_ir2_num[label_id_1] << 2) + B_STUB_SIZE;
-                tb->jmp_target_addr[1] = (label_num_to_ir2_num[label_id_1] << 2);
+                // tb->jmp_target_addr[1] = (label_num_to_ir2_num[label_id_1] << 2);
             }
         }
     }
@@ -565,6 +569,12 @@ int tr_ir2_assemble(const void *code_start_addr)
 
 void lata_gen_call_helper_prologue(TCGContext *tcg_ctx)
 {
+    /* store pstate reg */
+    IR2_OPND pstate = ra_alloc_itemp();
+    la_armmfflag(pstate, 0x39);
+    la_st_w(pstate, env_ir2_opnd, env_offset_PSTATE());
+    ra_free_temp(pstate);
+
     for(int i = 0; i <= 31; ++i) {
         if(arm_la_map[i] > 0) {
             la_st_d(ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]), env_ir2_opnd, env_offset_gpr(i));
@@ -580,6 +590,12 @@ void lata_gen_call_helper_prologue(TCGContext *tcg_ctx)
 
 void lata_gen_call_helper_epilogue(TCGContext *tcg_ctx)
 {
+    /* load pstate reg */
+    IR2_OPND pstate = ra_alloc_itemp();
+    la_ld_w(pstate, env_ir2_opnd, env_offset_PSTATE());
+    la_armmtflag(pstate, 0x39);
+    ra_free_temp(pstate);
+
     for(int i = 0; i <= 31; ++i) {
         if(arm_la_map[i] > 0) {
             la_ld_d(ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]), env_ir2_opnd, env_offset_gpr(i));

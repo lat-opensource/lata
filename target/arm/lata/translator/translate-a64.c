@@ -504,20 +504,106 @@ static void gen_goto_tb_indirect(DisasContext *s, int rn)
     free_alloc_gpr(reg_n);
 }
 
+static inline void li_arm_addr(IR2_OPND opnd2, int64_t value){
+
+    uint32_t hi32, lo32;
+
+    lo32 = value & 0xffffffff;
+    //hi32 = value >> 32;
+
+    la_lu12i_w(opnd2, lo32 >> 12);
+    la_ori(opnd2, opnd2, lo32 & 0xfff);
+};
+
+static inline void li_tb(IR2_OPND opnd2, int64_t value){
+
+    uint32_t hi32, lo32;
+
+    lo32 = value & 0xffffffff;
+    hi32 = value >> 32;
+
+    la_lu12i_w(opnd2, lo32 >> 12);
+    la_ori(opnd2, opnd2, lo32 & 0xfff);
+    la_lu32i_d(opnd2, hi32 & 0xfffff);
+};
+
+static void helper_tb_link_debug(vaddr pc, CPUARMState *env, 
+                                    const TranslationBlock *tb){
+        CPUState *cpu = env_cpu(env);
+        if (qemu_log_in_addr_range(pc)) {
+        // qemu_log_mask(CPU_LOG_EXEC,
+        //               "Trace %d: [ /%016" VADDR_PRIx "/%08x/%08x] %s\n",
+        //               cpu->cpu_index,   pc,
+        //               tb->flags, tb->cflags, lookup_symbol(pc));
+        qemu_log_mask(CPU_LOG_EXEC,
+                      "Trace %d: %p [%08" PRIx64
+                      "/%016" VADDR_PRIx "/%08x/%08x] %s\n",
+                      cpu->cpu_index, tb->tc.ptr, tb->cs_base, pc,
+                      tb->flags, tb->cflags, lookup_symbol(pc));
+
+        if (qemu_loglevel_mask(CPU_LOG_TB_CPU)) {
+            FILE *logfile = qemu_log_trylock();
+            if (logfile) {
+                int flags = 0;
+
+                if (qemu_loglevel_mask(CPU_LOG_TB_FPU)) {
+                    flags |= CPU_DUMP_FPU;
+                }
+
+                if (qemu_loglevel_mask(CPU_LOG_TB_VPU)) {
+                    flags |= CPU_DUMP_VPU;
+                }
+                cpu_dump_state(cpu, logfile, flags);
+                qemu_log_unlock(logfile);
+            }
+        }
+    }
+}
+
+static void tb_link_debug(target_ulong pc, TranslationBlock *tb){
+    IR2_OPND temp = ra_alloc_itemp();
+
+    li_d(temp, pc);
+    la_st_d(temp, env_ir2_opnd, env_offset_pc());
+    lata_gen_call_helper_prologue(tcg_ctx);
+
+    li_d(a0_ir2_opnd, pc);
+    la_mov64(a1_ir2_opnd, env_ir2_opnd);
+    li_d(a2_ir2_opnd, (uint64_t)tb);
+
+    li_d(temp, (uint64_t)helper_tb_link_debug);
+    la_jirl(ra_ir2_opnd, temp, 0);
+
+    lata_gen_call_helper_epilogue(tcg_ctx);
+    free_alloc_gpr(temp);
+}
+
 static void gen_goto_tb(DisasContext *s, int n, int64_t diff)
 {
 #ifdef CONFIG_LATA
     target_ulong dest = s->pc_curr + diff;
      
-     IR2_OPND ir2_opnd_addr;
-     li_d(a0_ir2_opnd, dest);
-     la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_pc());
+    IR2_OPND goto_label = ir2_opnd_new_type(IR2_OPND_LABEL);
+    IR2_OPND ir2_opnd_addr;
+    TranslationBlock *tb = lsenv->tr_data->curr_tb;
+    
+    // tb_link_debug(dest, tb);
+    la_label(goto_label);
+    tb->jmp_reset_offset[n] = ir2_opnd_label_id(&goto_label);
+    ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, 1);
+    la_b(ir2_opnd_addr); // nop
+
+    li_d(a0_ir2_opnd, dest);
+    la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_pc());
      
-     li_d(a0_ir2_opnd, 0); // do not link
-     // li_d(a0_ir2_opnd, (uint64_t)ctx->base.tb | 0);
+    if (qemu_loglevel_mask(CPU_LOG_TB_NOCHAIN)) {
+        li_d(a0_ir2_opnd, 0); // do not link
+    } else {
+        li_tb(a0_ir2_opnd, (uint64_t)tb | n);
+    }
 
     int64_t curr_ins_pos = (unsigned long)s->base.tb->tc.ptr + (lsenv->tr_data->real_ir2_inst_num << 2);
-    int64_t exit_offset = context_switch_native_to_bt_ret_0 - curr_ins_pos;
+    int64_t exit_offset = context_switch_native_to_bt - curr_ins_pos;
 
     ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, exit_offset >> 2);
     la_b(ir2_opnd_addr);
