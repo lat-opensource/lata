@@ -47,4 +47,7 @@ static inline int env_offset_Exclusive(void)
 {
     return offsetof(CPUARMState,exclusive_addr);
 }
+
+#define env_offset(item) offsetof(CPUARMState, item)
+
 #endif

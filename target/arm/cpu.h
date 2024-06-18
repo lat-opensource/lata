@@ -290,6 +290,11 @@ typedef struct CPUArchState {
 
     uint64_t elr_el[4]; /* AArch64 exception link regs  */
     uint64_t sp_el[4]; /* AArch64 banked stack pointers */
+    
+#ifdef CONFIG_LATA
+    long jr_cnt;
+    long jr_hit;
+#endif
 
     /* System control coprocessor (cp15) */
     struct {
