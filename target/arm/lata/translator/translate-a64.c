@@ -5607,52 +5607,67 @@ static void disas_cond_select(DisasContext *s, uint32_t insn)
 static void handle_clz(DisasContext *s, unsigned int sf,
                        unsigned int rn, unsigned int rd)
 {
-    TCGv_i64 tcg_rd, tcg_rn;
-    tcg_rd = cpu_reg(s, rd);
-    tcg_rn = cpu_reg(s, rn);
+    IR2_OPND reg_d = alloc_gpr_dst(rd);
+    IR2_OPND reg_n = alloc_gpr_src(rn);
 
     if (sf) {
-        tcg_gen_clzi_i64(tcg_rd, tcg_rn, 64);
+        la_clz_d(reg_d, reg_n);
     } else {
-        TCGv_i32 tcg_tmp32 = tcg_temp_new_i32();
-        tcg_gen_extrl_i64_i32(tcg_tmp32, tcg_rn);
-        tcg_gen_clzi_i32(tcg_tmp32, tcg_tmp32, 32);
-        tcg_gen_extu_i32_i64(tcg_rd, tcg_tmp32);
+        la_clz_w(reg_d, reg_n);
     }
+    
+    store_gpr_dst(rd, reg_d);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(reg_d);
 }
 
 static void handle_cls(DisasContext *s, unsigned int sf,
                        unsigned int rn, unsigned int rd)
 {
-    TCGv_i64 tcg_rd, tcg_rn;
-    tcg_rd = cpu_reg(s, rd);
-    tcg_rn = cpu_reg(s, rn);
+    IR2_OPND reg_d = alloc_gpr_dst(rd);
+    IR2_OPND reg_n = alloc_gpr_src(rn);
+    IR2_OPND zero_label = ir2_opnd_new_type(IR2_OPND_LABEL);
+    IR2_OPND exit_label = ir2_opnd_new_type(IR2_OPND_LABEL);
 
     if (sf) {
-        tcg_gen_clrsb_i64(tcg_rd, tcg_rn);
+        la_bstrpick_d(reg_d, reg_n, 63, 63);
+        la_beqz(reg_d, zero_label);
+        la_clo_d(reg_d, reg_n);
+        la_b(exit_label);
+        la_label(zero_label);
+        la_clz_d(reg_d, reg_n);
+        la_label(exit_label);
     } else {
-        TCGv_i32 tcg_tmp32 = tcg_temp_new_i32();
-        tcg_gen_extrl_i64_i32(tcg_tmp32, tcg_rn);
-        tcg_gen_clrsb_i32(tcg_tmp32, tcg_tmp32);
-        tcg_gen_extu_i32_i64(tcg_rd, tcg_tmp32);
+        la_bstrpick_d(reg_d, reg_n, 31, 31);
+        la_beqz(reg_d, zero_label);
+        la_clo_w(reg_d, reg_n);
+        la_b(exit_label);
+        la_label(zero_label);
+        la_clz_w(reg_d, reg_n);
+        la_label(exit_label);
     }
+    la_addi_d(reg_d, reg_d, -1);
+    
+    store_gpr_dst(rd, reg_d);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(reg_d);
 }
 
 static void handle_rbit(DisasContext *s, unsigned int sf,
                         unsigned int rn, unsigned int rd)
 {
-    TCGv_i64 tcg_rd, tcg_rn;
-    tcg_rd = cpu_reg(s, rd);
-    tcg_rn = cpu_reg(s, rn);
+    IR2_OPND reg_d = alloc_gpr_dst(rd);
+    IR2_OPND reg_n = alloc_gpr_src(rn);
 
     if (sf) {
-        gen_helper_rbit64(tcg_rd, tcg_rn);
+        la_bitrev_d(reg_d, reg_n);
     } else {
-        TCGv_i32 tcg_tmp32 = tcg_temp_new_i32();
-        tcg_gen_extrl_i64_i32(tcg_tmp32, tcg_rn);
-        gen_helper_rbit(tcg_tmp32, tcg_tmp32);
-        tcg_gen_extu_i32_i64(tcg_rd, tcg_tmp32);
+        la_bitrev_w(reg_d, reg_n);
+        la_bstrpick_d(reg_d, reg_d, 31, 0);
     }
+    store_gpr_dst(rd, reg_d);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(reg_d);
 }
 
 /* REV with sf==1, opcode==3 ("REV64") */
@@ -5663,7 +5678,15 @@ static void handle_rev64(DisasContext *s, unsigned int sf,
         unallocated_encoding(s);
         return;
     }
-    tcg_gen_bswap64_i64(cpu_reg(s, rd), cpu_reg(s, rn));
+
+    IR2_OPND reg_d = alloc_gpr_dst(rd);
+    IR2_OPND reg_n = alloc_gpr_src(rn);
+
+    la_revb_d(reg_d, reg_n);
+
+    store_gpr_dst(rd, reg_d);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(reg_d);
 }
 
 /* REV with sf==0, opcode==2
@@ -5672,31 +5695,36 @@ static void handle_rev64(DisasContext *s, unsigned int sf,
 static void handle_rev32(DisasContext *s, unsigned int sf,
                          unsigned int rn, unsigned int rd)
 {
-    TCGv_i64 tcg_rd = cpu_reg(s, rd);
-    TCGv_i64 tcg_rn = cpu_reg(s, rn);
+    IR2_OPND reg_d = alloc_gpr_dst(rd);
+    IR2_OPND reg_n = alloc_gpr_src(rn);
 
-    if (sf) {
-        tcg_gen_bswap64_i64(tcg_rd, tcg_rn);
-        tcg_gen_rotri_i64(tcg_rd, tcg_rd, 32);
-    } else {
-        tcg_gen_bswap32_i64(tcg_rd, tcg_rn, TCG_BSWAP_OZ);
+    la_revb_2w(reg_d, reg_n);
+    if (!sf) {
+        la_bstrpick_d(reg_d, reg_d, 31, 0);
     }
+
+    store_gpr_dst(rd, reg_d);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(reg_d);
 }
 
 /* REV16 (opcode==1) */
 static void handle_rev16(DisasContext *s, unsigned int sf,
                          unsigned int rn, unsigned int rd)
 {
-    TCGv_i64 tcg_rd = cpu_reg(s, rd);
-    TCGv_i64 tcg_tmp = tcg_temp_new_i64();
-    TCGv_i64 tcg_rn = read_cpu_reg(s, rn, sf);
-    TCGv_i64 mask = tcg_constant_i64(sf ? 0x00ff00ff00ff00ffull : 0x00ff00ff);
+    IR2_OPND reg_d = alloc_gpr_dst(rd);
+    IR2_OPND reg_n = alloc_gpr_src(rn);
 
-    tcg_gen_shri_i64(tcg_tmp, tcg_rn, 8);
-    tcg_gen_and_i64(tcg_rd, tcg_rn, mask);
-    tcg_gen_and_i64(tcg_tmp, tcg_tmp, mask);
-    tcg_gen_shli_i64(tcg_rd, tcg_rd, 8);
-    tcg_gen_or_i64(tcg_rd, tcg_rd, tcg_tmp);
+    if (sf) {
+        la_revb_4h(reg_d, reg_n);
+    }else{
+        la_revb_2h(reg_d, reg_n);
+        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    }
+
+    store_gpr_dst(rd, reg_d);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(reg_d);
 }
 
 /* Data-processing (1 source)
@@ -6215,7 +6243,6 @@ static void disas_data_proc_reg(DisasContext *s, uint32_t insn)
 
     case 0x6: /* Data-processing */
         if (op0) {    /* (1 source) */
-            assert(0);      
             disas_data_proc_1src(s, insn);
         } else {      /* (2 source) */
             disas_data_proc_2src(s, insn);
