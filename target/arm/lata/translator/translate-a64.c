@@ -2896,15 +2896,158 @@ static bool ldst_iss_sf(int size, bool sign, bool ext)
     }
 }
 
+static void lata_load_exclusive(DisasContext *s, int rt, int rt2, int rn,
+                               int size, bool is_pair)
+{
+    s->is_ldex = true;
+    IR2_OPND reg_n = alloc_gpr_src_sp(rn);
+    IR2_OPND reg_t = alloc_gpr_dst(rt);
+    IR2_OPND reg_t2;
+    g_assert(size <= 3);
+    if (is_pair) {
+        g_assert(size >= 2);
+        reg_t2 = alloc_gpr_dst(rt2);
+        if (size == 2) {
+            if (s->be_data == MO_LE) {
+                la_ll_d(reg_t, reg_n, 0);
+                la_bstrpick_d(reg_t2, reg_t, 63, 32);
+                la_bstrpick_d(reg_t, reg_t, 31, 0);
+            } else {
+                la_ll_d(reg_t2, reg_n, 0);
+                la_bstrpick_d(reg_t, reg_t2, 63, 32);
+                la_bstrpick_d(reg_t2, reg_t2, 31, 0);
+            }
+        } else {
+            assert(0);
+            /* FIX ME: LL-SC粒度是针对缓存行的，连续的两个SC，前者一定会造成后者失效？ */
+            if (s->be_data == MO_LE) {
+                la_ll_d(reg_t, reg_n, 0);
+                la_ll_d(reg_t2, reg_n, 8);
+            } else {
+                la_ll_d(reg_t2, reg_n, 0);
+                la_ll_d(reg_t, reg_n, 8);
+            }
+        }
+        store_fpr_dst(rt2, reg_t2);
+        free_alloc_gpr(reg_t2);
+    } else {
+        if(size == 2){
+            la_ll_w(reg_t, reg_n, 0);
+        }else{
+            la_ll_d(reg_t, reg_n, 0);
+        }
+    }
+    store_gpr_dst(rt, reg_t);
+    free_alloc_gpr(reg_t);
+    free_alloc_gpr(reg_n);
+}
+
+static void lata_store_exclusive(DisasContext *s, int rs, int rt, int rt2,
+                                int rn, int size, int is_pair)
+{
+    /* if (env->exclusive_addr == addr && env->exclusive_val == [addr]
+     *     && (!is_pair || env->exclusive_high == [addr + datasize])) {
+     *     [addr] = {Rt};
+     *     if (is_pair) {
+     *         [addr + datasize] = {Rt2};
+     *     }
+     *     {Rd} = 0;
+     * } else {
+     *     {Rd} = 1;
+     * }
+     * env->exclusive_addr = -1;
+     */
+
+    /*
+     * The write, and any associated faults, only happen if the virtual
+     * and physical addresses pass the exclusive monitor check.  These
+     * faults are exceedingly unlikely, because normally the guest uses
+     * the exact same address register for the load_exclusive, and we
+     * would have recognized these faults there.
+     *
+     * It is possible to trigger an alignment fault pre-LSE2, e.g. with an
+     * unaligned 4-byte write within the range of an aligned 8-byte load.
+     * With LSE2, the store would need to cross a 16-byte boundary when the
+     * load did not, which would mean the store is outside the range
+     * recorded for the monitor, which would have failed a corrected monitor
+     * check above.  For now, we assume no size change and retain the
+     * MO_ALIGN to let tcg know what we checked in the load_exclusive.
+     *
+     * It is possible to trigger an MTE fault, by performing the load with
+     * a virtual address with a valid tag and performing the store with the
+     * same virtual address and a different invalid tag.
+     */
+    // memop = size + is_pair;
+    // if (memop == MO_128 || !dc_isar_feature(aa64_lse2, s)) {
+    //     memop |= MO_ALIGN;
+    // }
+    // memop = finalize_memop(s, memop);
+    // gen_mte_check1(s, cpu_reg_sp(s, rn), true, rn != 31, memop);
+
+    assert(!(rs == rn && rn != 31));
+
+    IR2_OPND reg_s = alloc_gpr_dst(rs);
+    IR2_OPND reg_n = alloc_gpr_src_sp(rn);
+    IR2_OPND reg_t = alloc_gpr_src(rt);
+    IR2_OPND reg_t2;
+    if (is_pair) {
+        assert(rs != rt && rs != rt2);
+        reg_t2 = alloc_gpr_src(rt2);
+        if (size == 2) {
+            if (s->be_data == MO_LE) {
+                la_bstrpick_d(reg_s, reg_t, 31, 0);
+                la_bstrins_d(reg_s, reg_t2, 63, 32);
+                la_sc_d(reg_s, reg_n, 0);
+            } else {
+                la_bstrpick_d(reg_s, reg_t2, 31, 0);
+                la_bstrins_d(reg_s, reg_t, 63, 32);
+                la_sc_d(reg_s, reg_n, 0);
+            }
+        } else {
+            assert(0);
+            /* FIX ME: LL-SC粒度是针对缓存行的，连续的两个SC，前者一定会造成后者失效？ */
+            if (s->be_data == MO_LE) {
+                la_or(reg_s, reg_t, zero_ir2_opnd);
+                la_sc_d(reg_s, reg_n, 0);
+                la_or(reg_s, reg_t2, zero_ir2_opnd);
+                la_sc_d(reg_s, reg_n, 8);
+            } else {
+                la_or(reg_s, reg_t2, zero_ir2_opnd);
+                la_sc_d(reg_s, reg_n, 0);
+                la_or(reg_s, reg_t, zero_ir2_opnd);
+                la_sc_d(reg_s, reg_n, 8);
+            }
+        }
+        free_alloc_gpr(reg_t2);
+    } else {
+        assert(rs != rt);
+        la_or(reg_s, reg_t, zero_ir2_opnd);
+        if(size == 2){
+            la_sc_w(reg_s, reg_n, 0);
+        }else{
+            la_sc_d(reg_s, reg_n, 0);
+        }
+    }
+
+    la_xori(reg_s, reg_s, 1); /* 龙芯的SC返回值和arm相反 */
+    store_gpr_dst(rs, reg_s);
+    free_alloc_gpr(reg_s);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(reg_t);
+}
+
 static bool trans_STXR(DisasContext *s, arg_stxr *a)
 {
     if (a->rn == 31) {
         gen_check_sp_alignment(s);
     }
     if (a->lasr) {
-        tcg_gen_mb(TCG_MO_ALL | TCG_BAR_STRL);
+        bool parallel = tcg_ctx->gen_tb->cflags & CF_PARALLEL;
+        if (parallel) {
+            la_dbar(0);
+        }
     }
-    gen_store_exclusive(s, a->rs, a->rt, a->rt2, a->rn, a->sz, false);
+    lata_store_exclusive(s, a->rs, a->rt, a->rt2, a->rn, a->sz, false);
     return true;
 }
 
@@ -2913,9 +3056,12 @@ static bool trans_LDXR(DisasContext *s, arg_stxr *a)
     if (a->rn == 31) {
         gen_check_sp_alignment(s);
     }
-    gen_load_exclusive(s, a->rt, a->rt2, a->rn, a->sz, false);
+    lata_load_exclusive(s, a->rt, a->rt2, a->rn, a->sz, false);
     if (a->lasr) {
-        tcg_gen_mb(TCG_MO_ALL | TCG_BAR_LDAQ);
+        bool parallel = tcg_ctx->gen_tb->cflags & CF_PARALLEL;
+        if (parallel) {
+            la_dbar(0);
+        }
     }
     return true;
 }
