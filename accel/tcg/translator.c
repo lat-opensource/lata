@@ -46,7 +46,7 @@ bool translator_io_start(DisasContextBase *db)
     }
     return true;
 }
-
+#ifndef CONFIG_LATA
 static TCGOp *gen_tb_start(uint32_t cflags)
 {
     TCGv_i32 count = tcg_temp_new_i32();
@@ -116,7 +116,7 @@ static void gen_tb_end(const TranslationBlock *tb, uint32_t cflags,
         tcg_gen_exit_tb(tb, TB_EXIT_REQUESTED);
     }
 }
-
+#endif
 bool translator_use_goto_tb(DisasContextBase *db, vaddr dest)
 {
     /* Suppress goto_tb if requested. */
@@ -133,7 +133,9 @@ void translator_loop(CPUState *cpu, TranslationBlock *tb, int *max_insns,
                      DisasContextBase *db)
 {
     uint32_t cflags = tb_cflags(tb);
+#ifndef CONFIG_LATA
     TCGOp *icount_start_insn;
+#endif
     bool plugin_enabled;
 
     /* Initialize DisasContext */
@@ -151,7 +153,9 @@ void translator_loop(CPUState *cpu, TranslationBlock *tb, int *max_insns,
     tcg_debug_assert(db->is_jmp == DISAS_NEXT);  /* no early exit */
 
     /* Start translating.  */
+#ifndef CONFIG_LATA
     icount_start_insn = gen_tb_start(cflags);
+#endif
     ops->tb_start(db, cpu);
     tcg_debug_assert(db->is_jmp == DISAS_NEXT);  /* no early exit */
 
@@ -208,7 +212,9 @@ void translator_loop(CPUState *cpu, TranslationBlock *tb, int *max_insns,
 
     /* Emit code to exit the TB, as indicated by db->is_jmp.  */
     ops->tb_stop(db, cpu);
+#ifndef CONFIG_LATA
     gen_tb_end(tb, cflags, icount_start_insn, db->num_insns);
+#endif
 
     if (plugin_enabled) {
         plugin_gen_tb_end(cpu);
