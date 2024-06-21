@@ -3022,7 +3022,7 @@ static bool trans_STP(DisasContext *s, arg_ldstpair *a)
         return true;
     }
 
-    IR2_OPND reg_n = (a->rn == 31) ? alloc_gpr_src_sp(a->rn) : alloc_gpr_src(a->rn);
+    IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
     IR2_OPND reg_t2 = alloc_gpr_src(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
@@ -4744,7 +4744,7 @@ static bool trans_MOVN(DisasContext *s, arg_movw *a)
 static bool trans_MOVK(DisasContext *s, arg_movw *a)
 {
     int pos = a->hw << 4;
-    IR2_OPND reg_d = alloc_gpr_dst(a->rd);    
+    IR2_OPND reg_d = alloc_gpr_src(a->rd);    
     IR2_OPND temp = ra_alloc_itemp();
 
     li_d(temp, a->imm);
