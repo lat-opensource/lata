@@ -173,6 +173,28 @@ static void gen_pc_plus_diff(DisasContext *s, TCGv_i64 dest, target_long diff)
     }
 }
 
+void lata_gen_exit_tb_ret_0(DisasContext *s);
+void lata_gen_exit_tb_ret_0(DisasContext *s)
+{
+    IR2_OPND ir2_opnd_addr;
+
+    int64_t curr_ins_pos = (unsigned long)s->base.tb->tc.ptr + 
+                            (lsenv->tr_data->real_ir2_inst_num << 2);
+    int64_t exit_offset = context_switch_native_to_bt_ret_0 - curr_ins_pos;
+
+    ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, exit_offset >> 2);
+    la_b(ir2_opnd_addr);
+}
+
+void lata_gen_a64_update_pc(DisasContext *s, target_long diff);
+void lata_gen_a64_update_pc(DisasContext *s, target_long diff)
+{
+    target_ulong dest = s->pc_curr + diff;
+
+    li_d(a0_ir2_opnd, dest);
+    la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_pc());
+}
+
 void gen_a64_update_pc(DisasContext *s, target_long diff)
 {
     gen_pc_plus_diff(s, cpu_pc, diff);
@@ -487,7 +509,6 @@ static inline bool use_goto_tb(DisasContext *s, uint64_t dest)
 
 static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
 {
-    IR2_OPND ir2_opnd_addr;
     IR2_OPND reg_n = alloc_gpr_src(rn);
 
     la_or(a0_ir2_opnd, zero_ir2_opnd, reg_n);
@@ -527,11 +548,13 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
     /* do not link, but context_switch_native_to_bt_ret_0 will do this */
     // li_d(a0_ir2_opnd, 0); 
 
-    int64_t curr_ins_pos = (unsigned long)s->base.tb->tc.ptr + (lsenv->tr_data->real_ir2_inst_num << 2);
-    int64_t exit_offset = context_switch_native_to_bt_ret_0 - curr_ins_pos;
+    // IR2_OPND ir2_opnd_addr;
+    // int64_t curr_ins_pos = (unsigned long)s->base.tb->tc.ptr + (lsenv->tr_data->real_ir2_inst_num << 2);
+    // int64_t exit_offset = context_switch_native_to_bt_ret_0 - curr_ins_pos;
 
-    ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, exit_offset >> 2);
-    la_b(ir2_opnd_addr);
+    // ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, exit_offset >> 2);
+    // la_b(ir2_opnd_addr);
+    lata_gen_exit_tb_ret_0(s);
 
     free_alloc_gpr(reg_n);
 }
@@ -613,7 +636,6 @@ static void tb_link_debug(target_ulong pc, TranslationBlock *tb){
 static void gen_goto_tb(DisasContext *s, int n, int64_t diff)
 {
 #ifdef CONFIG_LATA
-    target_ulong dest = s->pc_curr + diff;
      
     IR2_OPND goto_label = ir2_opnd_new_type(IR2_OPND_LABEL);
     IR2_OPND ir2_opnd_addr;
@@ -625,9 +647,11 @@ static void gen_goto_tb(DisasContext *s, int n, int64_t diff)
     ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, 1);
     la_b(ir2_opnd_addr); // nop
 
-    li_d(a0_ir2_opnd, dest);
-    la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_pc());
-     
+    // target_ulong dest = s->pc_curr + diff;
+    // li_d(a0_ir2_opnd, dest);
+    // la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_pc());
+    lata_gen_a64_update_pc(s, diff);
+
     if (qemu_loglevel_mask(CPU_LOG_TB_NOCHAIN)) {
         li_d(a0_ir2_opnd, 0); // do not link
     } else {
@@ -2206,24 +2230,24 @@ static bool trans_MSR_i_SVCR(DisasContext *s, arg_MSR_i_SVCR *a)
     return true;
 }
 
-static void gen_get_nzcv(TCGv_i64 tcg_rt)
-{
-    TCGv_i32 tmp = tcg_temp_new_i32();
-    TCGv_i32 nzcv = tcg_temp_new_i32();
+// static void gen_get_nzcv(TCGv_i64 tcg_rt)
+// {
+//     TCGv_i32 tmp = tcg_temp_new_i32();
+//     TCGv_i32 nzcv = tcg_temp_new_i32();
 
-    /* build bit 31, N */
-    tcg_gen_andi_i32(nzcv, cpu_NF, (1U << 31));
-    /* build bit 30, Z */
-    tcg_gen_setcondi_i32(TCG_COND_EQ, tmp, cpu_ZF, 0);
-    tcg_gen_deposit_i32(nzcv, nzcv, tmp, 30, 1);
-    /* build bit 29, C */
-    tcg_gen_deposit_i32(nzcv, nzcv, cpu_CF, 29, 1);
-    /* build bit 28, V */
-    tcg_gen_shri_i32(tmp, cpu_VF, 31);
-    tcg_gen_deposit_i32(nzcv, nzcv, tmp, 28, 1);
-    /* generate result */
-    tcg_gen_extu_i32_i64(tcg_rt, nzcv);
-}
+//     /* build bit 31, N */
+//     tcg_gen_andi_i32(nzcv, cpu_NF, (1U << 31));
+//     /* build bit 30, Z */
+//     tcg_gen_setcondi_i32(TCG_COND_EQ, tmp, cpu_ZF, 0);
+//     tcg_gen_deposit_i32(nzcv, nzcv, tmp, 30, 1);
+//     /* build bit 29, C */
+//     tcg_gen_deposit_i32(nzcv, nzcv, cpu_CF, 29, 1);
+//     /* build bit 28, V */
+//     tcg_gen_shri_i32(tmp, cpu_VF, 31);
+//     tcg_gen_deposit_i32(nzcv, nzcv, tmp, 28, 1);
+//     /* generate result */
+//     tcg_gen_extu_i32_i64(tcg_rt, nzcv);
+// }
 
 static void gen_set_nzcv(TCGv_i64 tcg_rt)
 {
@@ -2290,6 +2314,7 @@ static void handle_sys(DisasContext *s, bool isread,
         /* Unknown register; this might be a guest error or a QEMU
          * unimplemented feature.
          */
+        assert(0);
         qemu_log_mask(LOG_UNIMP, "%s access to unsupported AArch64 "
                       "system register op0:%d op1:%d crn:%d crm:%d op2:%d\n",
                       isread ? "read" : "write", op0, op1, crn, crm, op2);
@@ -2299,6 +2324,7 @@ static void handle_sys(DisasContext *s, bool isread,
 
     /* Check access permissions */
     if (!cp_access_ok(s->current_el, ri, isread)) {
+        assert(0);
         gen_sysreg_undef(s, isread, op0, op1, op2, crn, crm, rt);
         return;
     }
@@ -2307,6 +2333,7 @@ static void handle_sys(DisasContext *s, bool isread,
         /* Emit code to perform further access permissions checks at
          * runtime; this may result in an exception.
          */
+        assert(0);
         uint32_t syndrome;
 
         syndrome = syn_aa64_sysregtrap(op0, op1, op2, crn, crm, rt, isread);
@@ -2321,9 +2348,11 @@ static void handle_sys(DisasContext *s, bool isread,
          * The readfn or writefn might raise an exception;
          * synchronize the CPU state in case it does.
          */
+        assert(0);
         gen_a64_update_pc(s, 0);
     }
 
+    IR2_OPND reg_t;
     /* Handle special cases first */
     switch (ri->type & ARM_CP_SPECIAL_MASK) {
     case 0:
@@ -2331,14 +2360,23 @@ static void handle_sys(DisasContext *s, bool isread,
     case ARM_CP_NOP:
         return;
     case ARM_CP_NZCV:
-        tcg_rt = cpu_reg(s, rt);
+        assert(0);
+        // tcg_rt = cpu_reg(s, rt);
         if (isread) {
-            gen_get_nzcv(tcg_rt);
+            // gen_get_nzcv(tcg_rt);
+            reg_t = alloc_gpr_dst(rt);
+            la_armmfflag(reg_t, 0x39);
+            
+            store_gpr_dst(rt, reg_t);
         } else {
-            gen_set_nzcv(tcg_rt);
+            reg_t = alloc_gpr_src(rt);
+            la_armmtflag(reg_t, 0x39);
+            // gen_set_nzcv(tcg_rt);
         }
+        free_alloc_gpr(reg_t);
         return;
     case ARM_CP_CURRENTEL:
+        assert(0);
         /* Reads as current EL value from pstate, which is
          * guaranteed to be constant by the tb flags.
          */
@@ -2346,6 +2384,7 @@ static void handle_sys(DisasContext *s, bool isread,
         tcg_gen_movi_i64(tcg_rt, s->current_el << 2);
         return;
     case ARM_CP_DC_ZVA:
+        assert(0);
         /* Writes clear the aligned block of memory which rt points into. */
         if (s->mte_active[0]) {
             int desc = 0;
@@ -2364,6 +2403,7 @@ static void handle_sys(DisasContext *s, bool isread,
         return;
     case ARM_CP_DC_GVA:
         {
+            assert(0);
             TCGv_i64 clean_addr, tag;
 
             /*
@@ -2384,6 +2424,7 @@ static void handle_sys(DisasContext *s, bool isread,
         return;
     case ARM_CP_DC_GZVA:
         {
+            assert(0);
             TCGv_i64 clean_addr, tag;
 
             /* For DC_GZVA, we can rely on DC_ZVA for the proper fault. */
@@ -2403,14 +2444,18 @@ static void handle_sys(DisasContext *s, bool isread,
         g_assert_not_reached();
     }
     if ((ri->type & ARM_CP_FPU) && !fp_access_check_only(s)) {
+        assert(0);
         return;
     } else if ((ri->type & ARM_CP_SVE) && !sve_access_check(s)) {
+        assert(0);
         return;
     } else if ((ri->type & ARM_CP_SME) && !sme_access_check(s)) {
+        assert(0);
         return;
     }
 
     if (ri->type & ARM_CP_IO) {
+        assert(0);
         /* I/O operations must end the TB here (whether read or write) */
         need_exit_tb = translator_io_start(&s->base);
     }
@@ -2418,28 +2463,40 @@ static void handle_sys(DisasContext *s, bool isread,
     tcg_rt = cpu_reg(s, rt);
 
     if (isread) {
+        reg_t = alloc_gpr_dst(rt);
         if (ri->type & ARM_CP_CONST) {
-            tcg_gen_movi_i64(tcg_rt, ri->resetvalue);
+            // tcg_gen_movi_i64(tcg_rt, ri->resetvalue);
+            li_d(reg_t, ri->resetvalue);
         } else if (ri->readfn) {
+            assert(0);
             if (!tcg_ri) {
                 tcg_ri = gen_lookup_cp_reg(key);
             }
             gen_helper_get_cp_reg64(tcg_rt, cpu_env, tcg_ri);
         } else {
-            tcg_gen_ld_i64(tcg_rt, cpu_env, ri->fieldoffset);
+            // tcg_gen_ld_i64(tcg_rt, cpu_env, ri->fieldoffset);
+            la_ld_d(reg_t, env_ir2_opnd, ri->fieldoffset);
         }
+        store_gpr_dst(rt, reg_t);
+        free_alloc_gpr(reg_t);
     } else {
+        reg_t = alloc_gpr_src(rt);
         if (ri->type & ARM_CP_CONST) {
             /* If not forbidden by access permissions, treat as WI */
+            assert(0); /* 需要释放reg_t */
             return;
         } else if (ri->writefn) {
+            assert(0);
             if (!tcg_ri) {
                 tcg_ri = gen_lookup_cp_reg(key);
             }
             gen_helper_set_cp_reg64(cpu_env, tcg_ri, tcg_rt);
         } else {
-            tcg_gen_st_i64(tcg_rt, cpu_env, ri->fieldoffset);
+            // tcg_gen_st_i64(tcg_rt, cpu_env, ri->fieldoffset);
+            la_st_d(reg_t, env_ir2_opnd, ri->fieldoffset);
         }
+
+        free_alloc_gpr(reg_t);
     }
 
     if (!isread && !(ri->type & ARM_CP_SUPPRESS_TB_END)) {
@@ -2447,7 +2504,25 @@ static void handle_sys(DisasContext *s, bool isread,
          * A write to any coprocessor register that ends a TB
          * must rebuild the hflags for the next TB.
          */
-        gen_rebuild_hflags(s);
+        // gen_rebuild_hflags(s);
+
+        IR2_OPND temp = ra_alloc_itemp();
+        lata_gen_call_helper_prologue(tcg_ctx);
+
+        /* void HELPER(rebuild_hflags_a64)(CPUARMState *env, int el) */
+        la_mov64(a0_ir2_opnd, env_ir2_opnd);
+        li_d(a1_ir2_opnd, s->current_el);
+
+        li_d(temp, (uint64_t)helper_rebuild_hflags_a64);
+        la_jirl(ra_ir2_opnd, temp, 0);
+
+        /* 可以优化一下？
+        因为是在tb的结束之前调用helper, 
+        所以这里恢复翻译态寄存器和离开tb时保存翻译态寄存器存在冗余。
+        */
+        lata_gen_call_helper_epilogue(tcg_ctx);
+
+        free_alloc_gpr(temp);
         /*
          * We default to ending the TB on a coprocessor register write,
          * but allow this to be suppressed by the register definition
@@ -14827,10 +14902,12 @@ static void aarch64_tr_tb_stop(DisasContextBase *dcbase, CPUState *cpu)
             break;
         default:
         case DISAS_UPDATE_EXIT:
-            gen_a64_update_pc(dc, 4);
+            // gen_a64_update_pc(dc, 4);
+            lata_gen_a64_update_pc(dc, 4);
             /* fall through */
         case DISAS_EXIT:
-            tcg_gen_exit_tb(NULL, 0);
+            // tcg_gen_exit_tb(NULL, 0);
+            lata_gen_exit_tb_ret_0(dc);
             break;
         case DISAS_UPDATE_NOCHAIN:
             gen_a64_update_pc(dc, 4);
