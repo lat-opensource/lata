@@ -561,7 +561,7 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
 
 static inline void li_arm_addr(IR2_OPND opnd2, int64_t value){
 
-    uint32_t hi32, lo32;
+    uint32_t /* hi32 ,*/ lo32;
 
     lo32 = value & 0xffffffff;
     //hi32 = value >> 32;
@@ -4585,7 +4585,7 @@ static bool trans_ADD_i(DisasContext *s, arg_ADD_i *a)
             la_ori(temp, zero_ir2_opnd, a->imm);
             break;
         case 1:
-            la_lu12i_w(temp, a->imm);
+            la_lu12i_w(temp, a->imm >> 12);
             break;
         default:
             assert(0);
@@ -4614,7 +4614,7 @@ static bool trans_SUB_i(DisasContext *s, arg_SUB_i *a)
             la_ori(temp, zero_ir2_opnd, a->imm);
             break;
         case 1:
-            la_lu12i_w(temp, a->imm);
+            la_lu12i_w(temp, a->imm >> 12);
             break;
         default:
             assert(0);
@@ -4643,7 +4643,7 @@ static bool trans_ADDS_i(DisasContext *s, arg_ADDS_i *a)
             la_ori(temp, zero_ir2_opnd, a->imm);
             break;
         case 1:
-            la_lu12i_w(temp, a->imm);
+            la_lu12i_w(temp, a->imm >> 12);
             break;
         default:
             assert(0);
@@ -4673,7 +4673,7 @@ static bool trans_SUBS_i(DisasContext *s, arg_SUBS_i *a)
             la_ori(temp, zero_ir2_opnd, a->imm);
             break;
         case 1:
-            la_lu12i_w(temp, a->imm);
+            la_lu12i_w(temp, a->imm >> 12);
             break;
         default:
             assert(0);
