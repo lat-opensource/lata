@@ -1494,7 +1494,7 @@ static void ext_and_shift_reg(IR2_OPND *dst, IR2_OPND *src,
 
     if (shift) {
         //tcg_gen_shli_i64(tcg_out, tcg_out, shift);  
-        la_slli_d(*dst,*src,shift);
+        la_slli_d(*dst,*dst,shift);
     }
 }
 
@@ -3770,7 +3770,7 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
 
 static bool trans_STR(DisasContext *s, arg_ldst *a)
 {
-    IR2_OPND reg_t = alloc_gpr_dst(a->rt);
+    IR2_OPND reg_t = alloc_gpr_src(a->rt);
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_m = alloc_gpr_src(a->rm);
     IR2_OPND temp = ra_alloc_itemp();
