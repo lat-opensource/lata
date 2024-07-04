@@ -4953,7 +4953,8 @@ static bool trans_MOVN(DisasContext *s, arg_movw *a)
 
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);    
 
-    li_d(reg_d, ~(a->imm << pos));
+    uint64_t imm = a->imm;
+    li_d(reg_d, ~(imm << pos));
     if(!a->sf){
         la_bstrpick_d(reg_d, reg_d, 31, 0);
     }
