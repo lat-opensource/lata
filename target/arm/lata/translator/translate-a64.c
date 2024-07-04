@@ -2292,6 +2292,31 @@ static void gen_sysreg_undef(DisasContext *s, bool isread,
     gen_exception_insn(s, 0, EXCP_UDEF, syndrome);
 }
 
+static void lata_helper_get_sysReg(DisasContext *ctx, uint32_t key, int rt)
+{
+    IR2_OPND temp = ra_alloc_itemp();
+    li_d(temp, ctx->base.pc_next);
+    la_st_d(temp, env_ir2_opnd, env_offset_pc());
+    lata_gen_call_helper_prologue(tcg_ctx);
+
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    li_d(a1_ir2_opnd, key);
+    li_d(temp, (uint64_t)helper_lookup_cp_reg);
+    la_jirl(ra_ir2_opnd, temp, 0);
+
+    la_mov64(a1_ir2_opnd, a0_ir2_opnd);
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    li_d(temp, (uint64_t)helper_get_cp_reg64);
+    la_jirl(ra_ir2_opnd, temp, 0);
+    
+    la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_gpr(rt));
+
+    lata_gen_call_helper_epilogue(tcg_ctx);
+    free_alloc_gpr(temp);
+    
+    return ;
+}
+
 /* MRS - move from system register
  * MSR (register) - move to system register
  * SYS
@@ -2467,17 +2492,18 @@ static void handle_sys(DisasContext *s, bool isread,
         if (ri->type & ARM_CP_CONST) {
             // tcg_gen_movi_i64(tcg_rt, ri->resetvalue);
             li_d(reg_t, ri->resetvalue);
-        } else if (ri->readfn) {
-            assert(0);
-            if (!tcg_ri) {
-                tcg_ri = gen_lookup_cp_reg(key);
-            }
-            gen_helper_get_cp_reg64(tcg_rt, cpu_env, tcg_ri);
+            store_gpr_dst(rt, reg_t);
+        } else if (ri->readfn) {    
+            // if (!tcg_ri) {
+            //     tcg_ri = gen_lookup_cp_reg(key);
+            // }
+            // gen_helper_get_cp_reg64(tcg_rt, cpu_env, tcg_ri);
+            lata_helper_get_sysReg(s, key, rt);
         } else {
             // tcg_gen_ld_i64(tcg_rt, cpu_env, ri->fieldoffset);
             la_ld_d(reg_t, env_ir2_opnd, ri->fieldoffset);
+            store_gpr_dst(rt, reg_t);
         }
-        store_gpr_dst(rt, reg_t);
         free_alloc_gpr(reg_t);
     } else {
         reg_t = alloc_gpr_src(rt);
@@ -2506,23 +2532,6 @@ static void handle_sys(DisasContext *s, bool isread,
          */
         // gen_rebuild_hflags(s);
 
-        IR2_OPND temp = ra_alloc_itemp();
-        lata_gen_call_helper_prologue(tcg_ctx);
-
-        /* void HELPER(rebuild_hflags_a64)(CPUARMState *env, int el) */
-        la_mov64(a0_ir2_opnd, env_ir2_opnd);
-        li_d(a1_ir2_opnd, s->current_el);
-
-        li_d(temp, (uint64_t)helper_rebuild_hflags_a64);
-        la_jirl(ra_ir2_opnd, temp, 0);
-
-        /* 可以优化一下？
-        因为是在tb的结束之前调用helper, 
-        所以这里恢复翻译态寄存器和离开tb时保存翻译态寄存器存在冗余。
-        */
-        lata_gen_call_helper_epilogue(tcg_ctx);
-
-        free_alloc_gpr(temp);
         /*
          * We default to ending the TB on a coprocessor register write,
          * but allow this to be suppressed by the register definition
