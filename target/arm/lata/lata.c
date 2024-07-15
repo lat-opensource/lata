@@ -321,26 +321,34 @@ static void generate_context_switch_bt_to_native(CPUState *cs)
     la_mov64(env_ir2_opnd, a0_ir2_opnd);
     la_mov64(a0_ir2_opnd, a1_ir2_opnd);
 
+    /* set pstate reg */
+    la_ld_w(a7_ir2_opnd, env_ir2_opnd, env_offset_PSTATE());
+    la_armmtflag(a7_ir2_opnd, 0x39);
+
+    /* set fcsr, rm set by FPSCR[23:22], others was cleared */
+    li_d(a5_ir2_opnd, env_offset_FPSCR());
+    la_ldx_d(a7_ir2_opnd, env_ir2_opnd, a5_ir2_opnd);
+    la_bstrpick_d(a7_ir2_opnd, a7_ir2_opnd, 23, 22);
+    li_d(a6_ir2_opnd, 2 << 6 | 1 << 4 | 3 << 2 | 0);
+    la_slli_d(a7_ir2_opnd, a7_ir2_opnd, 1);
+    la_srl_d(a7_ir2_opnd, a6_ir2_opnd, a7_ir2_opnd);
+    la_andi(a7_ir2_opnd, a7_ir2_opnd, 0x3);
+    la_slli_d(a7_ir2_opnd, a7_ir2_opnd, 8);
+    la_movgr2fcsr(fcsr_ir2_opnd, a7_ir2_opnd);
+
 
     /* load gpr and fpr */
+    for(int i = 0; i <= 31; ++i) {
+        if(arm_la_fmap[i] >= 0) {
+            li_d(a7_ir2_opnd, env_offset_fpr(i));
+            la_vldx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, a7_ir2_opnd);
+        }
+    }
     for(int i = 0; i <= 31; ++i) {
         if(arm_la_map[i] > 0) {
             la_ld_d(ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]), env_ir2_opnd, env_offset_gpr(i));
         }
     }
-    for(int i = 0; i <= 31; ++i) {
-        if(arm_la_fmap[i] >= 0) {
-            la_fld_d(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, env_offset_fpr(i));
-        }
-    }
-
-    /* load pstate reg */
-    IR2_OPND pstate = ra_alloc_itemp();
-    la_ld_w(pstate, env_ir2_opnd, env_offset_PSTATE());
-    la_armmtflag(pstate, 0x39);
-    ra_free_temp(pstate);
-
-    /* TODO: load fcsr */
 
     /* jmp to tb */
     la_jirl(zero_ir2_opnd, a0_ir2_opnd, 0);
@@ -357,17 +365,25 @@ static void generate_context_switch_native_to_bt(CPUState *cs)
     }
     for(int i = 0; i <= 31; ++i) {
         if(arm_la_fmap[i] >= 0) {
-            la_fst_d(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, env_offset_fpr(i));
+            li_d(t0_ir2_opnd, env_offset_fpr(i));
+            la_vstx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, t0_ir2_opnd);
         }
     }
 
     /* store pstate reg */
-    IR2_OPND pstate = ra_alloc_itemp();
-    la_armmfflag(pstate, 0x39);
-    la_st_w(pstate, env_ir2_opnd, env_offset_PSTATE());
-    ra_free_temp(pstate);
+    la_armmfflag(t0_ir2_opnd, 0x39);
+    la_st_w(t0_ir2_opnd, env_ir2_opnd, env_offset_PSTATE());
     
-    /* TODO: store fcsr*/
+    /* store fcsr(rouding mode) to vfp.xregs[ARM_VFP_FPSCR] */
+    la_movfcsr2gr(t0_ir2_opnd, fcsr3_ir2_opnd);
+    li_d(t1_ir2_opnd, 2 << 6 | 1 << 4 | 3 << 2 | 0);
+    la_srli_d(t0_ir2_opnd, t0_ir2_opnd, 7);
+    la_srl_d(t0_ir2_opnd, t1_ir2_opnd, t0_ir2_opnd);
+    la_andi(t0_ir2_opnd, t0_ir2_opnd, 0x3);
+    li_d(t2_ir2_opnd, env_offset_FPSCR());
+    la_ldx_d(t1_ir2_opnd, env_ir2_opnd, t2_ir2_opnd);
+    la_bstrins_d(t1_ir2_opnd, t0_ir2_opnd, 23, 22);
+    la_stx_d(t1_ir2_opnd, env_ir2_opnd, t2_ir2_opnd);
 
     /* load callee-saved LA registers. s0-s8 */
     la_ld_d(s0_ir2_opnd, sp_ir2_opnd, S0_EXTRA_SPACE);
@@ -387,6 +403,7 @@ static void generate_context_switch_native_to_bt(CPUState *cs)
     la_addi_d(sp_ir2_opnd, sp_ir2_opnd, 256);
 
     /* TODO: clear fcsr*/
+    la_movgr2fcsr(fcsr_ir2_opnd, zero_ir2_opnd);
 
     la_jirl(zero_ir2_opnd, ra_ir2_opnd, 0);
 }
@@ -569,44 +586,67 @@ int tr_ir2_assemble(const void *code_start_addr)
 
 void lata_gen_call_helper_prologue(TCGContext *tcg_ctx)
 {
-    /* store pstate reg */
-    IR2_OPND pstate = ra_alloc_itemp();
-    la_armmfflag(pstate, 0x39);
-    la_st_w(pstate, env_ir2_opnd, env_offset_PSTATE());
-    ra_free_temp(pstate);
-
     for(int i = 0; i <= 31; ++i) {
         if(arm_la_map[i] > 0) {
             la_st_d(ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]), env_ir2_opnd, env_offset_gpr(i));
         }
     }
+
     for(int i = 0; i <= 31; ++i) {
         if(arm_la_fmap[i] >= 0) {
-            la_fst_d(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, env_offset_fpr(i));
+            li_d(t0_ir2_opnd, env_offset_fpr(i));
+            la_vstx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, t0_ir2_opnd);
         }
     }
 
+    /* store pstate reg */
+    la_armmfflag(t0_ir2_opnd, 0x39);
+    la_st_w(t0_ir2_opnd, env_ir2_opnd, env_offset_PSTATE());
+    
+    /* store fcsr(rouding mode) to vfp.xregs[ARM_VFP_FPSCR] */
+    la_movfcsr2gr(t0_ir2_opnd, fcsr3_ir2_opnd);
+    li_d(t1_ir2_opnd, 2 << 6 | 1 << 4 | 3 << 2 | 0);
+    la_srli_d(t0_ir2_opnd, t0_ir2_opnd, 7);
+    la_srl_d(t0_ir2_opnd, t1_ir2_opnd, t0_ir2_opnd);
+    la_andi(t0_ir2_opnd, t0_ir2_opnd, 0x3);
+    li_d(t2_ir2_opnd, env_offset_FPSCR());
+    la_ldx_d(t1_ir2_opnd, env_ir2_opnd, t2_ir2_opnd);
+    la_bstrins_d(t1_ir2_opnd, t0_ir2_opnd, 23, 22);
+    la_stx_d(t1_ir2_opnd, env_ir2_opnd, t2_ir2_opnd);
+
+    /* clear fcsr */
+    la_movgr2fcsr(fcsr_ir2_opnd, zero_ir2_opnd);
 }
 
 void lata_gen_call_helper_epilogue(TCGContext *tcg_ctx)
 {
-    /* load pstate reg */
-    IR2_OPND pstate = ra_alloc_itemp();
-    la_ld_w(pstate, env_ir2_opnd, env_offset_PSTATE());
-    la_armmtflag(pstate, 0x39);
-    ra_free_temp(pstate);
+    /* set pstate reg */
+    la_ld_w(a7_ir2_opnd, env_ir2_opnd, env_offset_PSTATE());
+    la_armmtflag(a7_ir2_opnd, 0x39);
+
+    /* set fcsr, rm set by FPSCR[23:22], others was cleared */
+    li_d(a5_ir2_opnd, env_offset_FPSCR());
+    la_ldx_d(a7_ir2_opnd, env_ir2_opnd, a5_ir2_opnd);
+    la_bstrpick_d(a7_ir2_opnd, a7_ir2_opnd, 23, 22);
+    li_d(a6_ir2_opnd, 2 << 6 | 1 << 4 | 3 << 2 | 0);
+    la_slli_d(a7_ir2_opnd, a7_ir2_opnd, 1);
+    la_srl_d(a7_ir2_opnd, a6_ir2_opnd, a7_ir2_opnd);
+    la_andi(a7_ir2_opnd, a7_ir2_opnd, 0x3);
+    la_slli_d(a7_ir2_opnd, a7_ir2_opnd, 8);
+    la_movgr2fcsr(fcsr_ir2_opnd, a7_ir2_opnd);
+
+    for(int i = 0; i <= 31; ++i) {
+        if(arm_la_fmap[i] >= 0) {
+            li_d(a7_ir2_opnd, env_offset_fpr(i));
+            la_vldx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, a7_ir2_opnd);
+        }
+    }
 
     for(int i = 0; i <= 31; ++i) {
         if(arm_la_map[i] > 0) {
             la_ld_d(ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]), env_ir2_opnd, env_offset_gpr(i));
         }
     }
-    for(int i = 0; i <= 31; ++i) {
-        if(arm_la_fmap[i] >= 0) {
-            la_fld_d(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, env_offset_fpr(i));
-        }
-    }
-
 }
 
 /* gpr同时为src和dst, 使用alloc_gpr_src,并且需要store回去 */
@@ -672,7 +712,12 @@ IR2_OPND alloc_fpr_src(int i) {
         return ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]);
     } else {
         IR2_OPND t = ra_alloc_ftemp();
-        la_vld(t, env_ir2_opnd, env_offset_fpr(i));
+        IR2_OPND offset = ra_alloc_itemp();
+
+        li_d(offset, env_offset_fpr(i));
+        la_vldx(t, env_ir2_opnd, offset);
+
+        ra_free_temp(offset);
         return t;
     }
 }
@@ -687,7 +732,12 @@ IR2_OPND alloc_fpr_dst(int i) {
 
 void store_fpr_dst(int i, IR2_OPND opnd) {
     if (arm_la_fmap[i] < 0) {
-        la_vst(opnd, env_ir2_opnd, env_offset_fpr(i));
+        IR2_OPND offset = ra_alloc_itemp();
+
+        li_d(offset, env_offset_fpr(i));
+        la_vstx(opnd, env_ir2_opnd, offset);
+
+        ra_free_temp(offset);
     }
 }
 

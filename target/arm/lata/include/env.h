@@ -43,6 +43,11 @@ static inline int env_offset_PSTATE(void)
     return offsetof(CPUARMState,pstate);
 }
 
+static inline int env_offset_FPSCR(void)
+{
+    return offsetof(CPUARMState, vfp.xregs[ARM_VFP_FPSCR]);
+}
+
 static inline int env_offset_Exclusive(void)
 {
     return offsetof(CPUARMState,exclusive_addr);
