@@ -158,7 +158,7 @@ const int arm_la_reverse_fmap[] = {
 void lata(void);
 __attribute__((constructor))
 void lata(void){
-    printf("lata enabled\n");
+    // printf("lata enabled\n");
 }
 
 __thread ENV *lsenv;

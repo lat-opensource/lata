@@ -255,6 +255,27 @@ static void gen_a64_set_pc(DisasContext *s, TCGv_i64 src)
     s->pc_save = -1;
 }
 
+static void lata_unallocated_encoding(DisasContext *s){
+    IR2_OPND temp = ra_alloc_itemp();
+
+    li_d(temp, s->pc_curr);
+    la_st_d(temp, env_ir2_opnd, env_offset_pc());
+    lata_gen_call_helper_prologue(tcg_ctx);
+
+    //CPUARMState *env, uint32_t excp, uint32_t syndrome
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    li_d(a1_ir2_opnd, EXCP_UDEF);
+    li_d(a2_ir2_opnd, syn_uncategorized());
+
+    li_d(temp, (uint64_t)helper_exception_with_syndrome);
+    la_jirl(ra_ir2_opnd, temp, 0);
+
+    s->base.is_jmp = DISAS_NORETURN;
+
+    free_alloc_gpr(temp);
+    return;
+}
+
 /*
  * Handle MTE and/or TBI.
  *
@@ -276,6 +297,37 @@ TCGv_i64 clean_data_tbi(DisasContext *s, TCGv_i64 addr)
     tcg_gen_mov_i64(clean, addr);
 #endif
     return clean;
+}
+
+static void lata_clean_data_tbi(DisasContext *s, IR2_OPND *dst, IR2_OPND *src, int tbi)
+{
+    if (tbi == 0) {
+        /* Load unmodified address */
+        la_mov64(*dst, *src);
+    } else if (!regime_has_2_ranges(s->mmu_idx)) {
+        /* Force tag byte to all zero */
+        la_bstrpick_d(*dst, *src, 56, 0);
+    } else {
+        /* Sign-extend from bit 55.  */
+        la_slli_d(*dst, *src, 8);
+        la_srai_d(*dst, *dst, 8);
+
+        switch (tbi) {
+        case 1:
+            /* tbi0 but !tbi1: only use the extension if positive */
+            la_and(*dst, *dst, *src);
+            break;
+        case 2:
+            /* !tbi0 but tbi1: only use the extension if negative */
+            la_or(*dst, *dst, *src);
+            break;
+        case 3:
+            /* tbi0 and tbi1: always use the extension */
+            break;
+        default:
+            g_assert_not_reached();
+        }
+    }
 }
 
 /* Insert a zero tag into src, with the result at dst. */
@@ -1991,8 +2043,16 @@ static bool trans_AUTIBSP(DisasContext *s, arg_AUTIBSP *a)
 
 static bool trans_CLREX(DisasContext *s, arg_CLREX *a)
 {
+    assert(0);
     tcg_gen_movi_i64(cpu_exclusive_addr, -1);
     return true;
+}
+
+static void lata_gen_mb(void){
+    bool parallel = tcg_ctx->gen_tb->cflags & CF_PARALLEL;
+    if (parallel) {
+        la_dbar(0);
+    }
 }
 
 static bool trans_DSB_DMB(DisasContext *s, arg_DSB_DMB *a)
@@ -2011,12 +2071,13 @@ static bool trans_DSB_DMB(DisasContext *s, arg_DSB_DMB *a)
     //     bar = TCG_BAR_SC | TCG_MO_ALL;
     //     break;
     // }
-    la_dbar(0);
+    lata_gen_mb();
     return true;
 }
 
 static bool trans_ISB(DisasContext *s, arg_ISB *a)
 {
+    assert(0);
     /*
      * We need to break the TB after this insn to execute
      * self-modifying code correctly and also to take
@@ -2294,7 +2355,65 @@ static void lata_helper_get_sysReg(DisasContext *ctx, uint32_t key, int rt)
 
     lata_gen_call_helper_epilogue(tcg_ctx);
     free_alloc_gpr(temp);
+
+    return ;
+}
+
+static void lata_helper_set_sysReg(DisasContext *ctx, uint32_t key, int rt)
+{
+    IR2_OPND temp = ra_alloc_itemp();
+    li_d(temp, ctx->base.pc_next);
+    la_st_d(temp, env_ir2_opnd, env_offset_pc());
+    lata_gen_call_helper_prologue(tcg_ctx);
+
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    li_d(a1_ir2_opnd, key);
+    li_d(temp, (uint64_t)helper_lookup_cp_reg);
+    la_jirl(ra_ir2_opnd, temp, 0);
+
+    la_mov64(a1_ir2_opnd, a0_ir2_opnd);
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    la_ld_d(a2_ir2_opnd, env_ir2_opnd, env_offset_gpr(rt));
+    li_d(temp, (uint64_t)helper_set_cp_reg64);
+    la_jirl(ra_ir2_opnd, temp, 0);
+
+    lata_gen_call_helper_epilogue(tcg_ctx);
+    free_alloc_gpr(temp);
+    return ;
+}
+
+
+static void lata_helper_dc_zva(DisasContext *s, int rt)
+{
+    IR2_OPND temp = ra_alloc_itemp();
+    li_d(temp, s->base.pc_next);
+    la_st_d(temp, env_ir2_opnd, env_offset_pc());
+    lata_gen_call_helper_prologue(tcg_ctx);
     
+    if (s->mte_active[0]) {
+        assert(0);
+        // int desc = 0;
+
+        // desc = FIELD_DP32(desc, MTEDESC, MIDX, get_mem_index(s));
+        // desc = FIELD_DP32(desc, MTEDESC, TBI, s->tbid);
+        // desc = FIELD_DP32(desc, MTEDESC, TCMA, s->tcma);
+
+        // tcg_rt = tcg_temp_new_i64();
+        // gen_helper_mte_check_zva(tcg_rt, cpu_env,
+                                //  tcg_constant_i32(desc), cpu_reg(s, rt));
+    } else {
+        // tcg_rt = clean_data_tbi(s, cpu_reg(s, rt));
+        la_ld_d(temp, env_ir2_opnd, env_offset_gpr(rt));
+        lata_clean_data_tbi(s, &temp, &temp, s->tbid);
+    }
+
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    la_mov64(a1_ir2_opnd, temp);
+    li_d(temp, (uint64_t)helper_dc_zva);
+    la_jirl(ra_ir2_opnd, temp, 0);
+
+    lata_gen_call_helper_epilogue(tcg_ctx);
+    free_alloc_gpr(temp);
     return ;
 }
 
@@ -2366,7 +2485,6 @@ static void handle_sys(DisasContext *s, bool isread,
     case ARM_CP_NOP:
         return;
     case ARM_CP_NZCV:
-        assert(0);
         // tcg_rt = cpu_reg(s, rt);
         if (isread) {
             // gen_get_nzcv(tcg_rt);
@@ -2390,22 +2508,10 @@ static void handle_sys(DisasContext *s, bool isread,
         tcg_gen_movi_i64(tcg_rt, s->current_el << 2);
         return;
     case ARM_CP_DC_ZVA:
-        assert(0);
         /* Writes clear the aligned block of memory which rt points into. */
-        if (s->mte_active[0]) {
-            int desc = 0;
 
-            desc = FIELD_DP32(desc, MTEDESC, MIDX, get_mem_index(s));
-            desc = FIELD_DP32(desc, MTEDESC, TBI, s->tbid);
-            desc = FIELD_DP32(desc, MTEDESC, TCMA, s->tcma);
-
-            tcg_rt = tcg_temp_new_i64();
-            gen_helper_mte_check_zva(tcg_rt, cpu_env,
-                                     tcg_constant_i32(desc), cpu_reg(s, rt));
-        } else {
-            tcg_rt = clean_data_tbi(s, cpu_reg(s, rt));
-        }
-        gen_helper_dc_zva(cpu_env, tcg_rt);
+        // gen_helper_dc_zva(cpu_env, tcg_rt);
+        lata_helper_dc_zva(s, rt);
         return;
     case ARM_CP_DC_GVA:
         {
@@ -2493,11 +2599,11 @@ static void handle_sys(DisasContext *s, bool isread,
             assert(0); /* 需要释放reg_t */
             return;
         } else if (ri->writefn) {
-            assert(0);
-            if (!tcg_ri) {
-                tcg_ri = gen_lookup_cp_reg(key);
-            }
-            gen_helper_set_cp_reg64(cpu_env, tcg_ri, tcg_rt);
+            // if (!tcg_ri) {
+            //     tcg_ri = gen_lookup_cp_reg(key);
+            // }
+            // gen_helper_set_cp_reg64(cpu_env, tcg_ri, tcg_rt);
+            lata_helper_set_sysReg(s, key, rt);
         } else {
             // tcg_gen_st_i64(tcg_rt, cpu_env, ri->fieldoffset);
             la_st_d(reg_t, env_ir2_opnd, ri->fieldoffset);
@@ -3032,10 +3138,7 @@ static bool trans_STXR(DisasContext *s, arg_stxr *a)
         gen_check_sp_alignment(s);
     }
     if (a->lasr) {
-        bool parallel = tcg_ctx->gen_tb->cflags & CF_PARALLEL;
-        if (parallel) {
-            la_dbar(0);
-        }
+        lata_gen_mb();
     }
     lata_store_exclusive(s, a->rs, a->rt, a->rt2, a->rn, a->sz, false);
     return true;
@@ -3048,20 +3151,15 @@ static bool trans_LDXR(DisasContext *s, arg_stxr *a)
     }
     lata_load_exclusive(s, a->rt, a->rt2, a->rn, a->sz, false);
     if (a->lasr) {
-        bool parallel = tcg_ctx->gen_tb->cflags & CF_PARALLEL;
-        if (parallel) {
-            la_dbar(0);
-        }
+        lata_gen_mb();
     }
     return true;
 }
 
 static bool trans_STLR(DisasContext *s, arg_stlr *a)
 {
-    TCGv_i64 clean_addr;
-    MemOp memop;
     bool iss_sf = ldst_iss_sf(a->sz, false, false);
-
+    int offset;
     /*
      * StoreLORelease is the same as Store-Release for QEMU, but
      * needs the feature-test.
@@ -3073,12 +3171,30 @@ static bool trans_STLR(DisasContext *s, arg_stlr *a)
     if (a->rn == 31) {
         gen_check_sp_alignment(s);
     }
-    tcg_gen_mb(TCG_MO_ALL | TCG_BAR_STRL);
-    memop = check_ordered_align(s, a->rn, 0, true, a->sz);
-    clean_addr = gen_mte_check1(s, cpu_reg_sp(s, a->rn),
-                                true, a->rn != 31, memop);
-    do_gpr_st(s, cpu_reg(s, a->rt), clean_addr, memop, true, a->rt,
-              iss_sf, a->lasr);
+    lata_gen_mb();
+    IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
+    IR2_OPND reg_t = alloc_gpr_src(a->rt);
+    if(a->lasr){ /* no offset */
+        offset = 0;
+        if(iss_sf){
+            la_st_d(reg_t, reg_n, offset);
+        }else{
+            la_st_w(reg_t, reg_n, offset);
+        }
+    }else{ /* pre-index */
+        assert(0);
+        offset = - (1 << a->sz);
+        la_addi_d(reg_n, reg_n, offset);
+        if(iss_sf){
+            la_st_d(reg_t, reg_n, 0);
+        }else{
+            la_st_w(reg_t, reg_n, 0);
+        }
+        store_gpr_dst(a->rn, reg_n);
+    }
+
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(reg_t);
     return true;
 }
 
@@ -3380,7 +3496,6 @@ static bool trans_STP_v(DisasContext *s, arg_ldstpair *a)
 
 static bool trans_LDP_v(DisasContext *s, arg_ldstpair *a)
 {
-    assert(0);
     /*3 classes: Post-index , Pre-index and Signed offset
     *     
     *               Post-index      Pre-index       Signed offset
@@ -3406,10 +3521,16 @@ static bool trans_LDP_v(DisasContext *s, arg_ldstpair *a)
         case 4:
             la_fld_s(vreg_t, temp, 0);
             la_fld_s(vreg_t2, temp, dbytes);
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
+            la_vinsgr2vr_d(vreg_t2, zero_ir2_opnd, 1);
             break;
         case 8:
             la_fld_d(vreg_t, temp, 0);
             la_fld_d(vreg_t2, temp, dbytes);
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
+            la_vinsgr2vr_d(vreg_t2, zero_ir2_opnd, 1);
             break;
         case 16:
             la_vld(vreg_t, temp, 0);
@@ -5332,7 +5453,11 @@ static void shift_reg_imm(IR2_OPND *dst, IR2_OPND *src, int sf,
         la_slli_d(*dst, *src, shift_i);
         break;
     case A64_SHIFT_TYPE_LSR:
-        la_srli_d(*dst, *src, shift_i);
+        if(!sf){
+            la_srli_w(*dst, *src, shift_i);
+        }else{
+            la_srli_d(*dst, *src, shift_i);
+        }
         break;
     case A64_SHIFT_TYPE_ASR:
         if (!sf) {
@@ -11863,15 +11988,15 @@ static void disas_simd_3same_logic(DisasContext *s, uint32_t insn)
 static void handle_simd_3same_pair(DisasContext *s, int is_q, int u, int opcode,
                                    int size, int rn, int rm, int rd)
 {
-    TCGv_ptr fpst;
-    int pass;
+    // TCGv_ptr fpst;
+    // int pass;
 
     /* Floating point operations need fpst */
     if (opcode >= 0x58) {
         assert(0);
-        fpst = fpstatus_ptr(FPST_FPCR);
+        // fpst = fpstatus_ptr(FPST_FPCR);
     } else {
-        fpst = NULL;
+        // fpst = NULL;
     }
 
     if (!fp_access_check(s)) {
@@ -15121,7 +15246,8 @@ static void disas_a64_legacy(DisasContext *s, uint32_t insn)
         disas_data_proc_simd_fp(s, insn);
         break;
     default:
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
+        // unallocated_encoding(s);
         break;
     }
 }

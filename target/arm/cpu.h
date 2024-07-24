@@ -1571,6 +1571,9 @@ static inline uint32_t pstate_read(CPUARMState *env)
 
 static inline void pstate_write(CPUARMState *env, uint32_t val)
 {
+#ifdef CONFIG_LATA
+    env->pstate = val;
+#else
     env->ZF = (~val) & PSTATE_Z;
     env->NF = val;
     env->CF = (val >> 29) & 1;
@@ -1578,6 +1581,7 @@ static inline void pstate_write(CPUARMState *env, uint32_t val)
     env->daif = val & PSTATE_DAIF;
     env->btype = (val >> 10) & 3;
     env->pstate = val & ~CACHED_PSTATE_BITS;
+#endif
 }
 
 /* Return the current CPSR value.  */
