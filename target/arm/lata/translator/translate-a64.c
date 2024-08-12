@@ -909,13 +909,13 @@ static void gen_gvec_fn3(DisasContext *s, bool is_q, int rd, int rn, int rm,
 }
 
 /* Expand a 4-operand AdvSIMD vector operation using an expander function.  */
-static void gen_gvec_fn4(DisasContext *s, bool is_q, int rd, int rn, int rm,
-                         int rx, GVecGen4Fn *gvec_fn, int vece)
-{
-    gvec_fn(vece, vec_full_reg_offset(s, rd), vec_full_reg_offset(s, rn),
-            vec_full_reg_offset(s, rm), vec_full_reg_offset(s, rx),
-            is_q ? 16 : 8, vec_full_reg_size(s));
-}
+// static void gen_gvec_fn4(DisasContext *s, bool is_q, int rd, int rn, int rm,
+//                          int rx, GVecGen4Fn *gvec_fn, int vece)
+// {
+//     gvec_fn(vece, vec_full_reg_offset(s, rd), vec_full_reg_offset(s, rn),
+//             vec_full_reg_offset(s, rm), vec_full_reg_offset(s, rx),
+//             is_q ? 16 : 8, vec_full_reg_size(s));
+// }
 
 /* Expand a 2-operand operation using an out-of-line helper.  */
 static void gen_gvec_op2_ool(DisasContext *s, bool is_q, int rd,
@@ -11946,9 +11946,10 @@ static void disas_simd_3same_logic(DisasContext *s, uint32_t insn)
         return;
     }
 
-    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_d = alloc_fpr_src(rd); // BSL, BIT, BIF结果受到目的寄存器影响
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND vtemp = ra_alloc_ftemp();
 
     switch (size + 4 * is_u) {
     case 0: /* AND */
@@ -11960,29 +11961,32 @@ static void disas_simd_3same_logic(DisasContext *s, uint32_t insn)
             LA先对第一个寄存器取反再相与，ARM先对第二个寄存器取反再相与;
         */
         la_vandn_v(vreg_d, vreg_m, vreg_n);
-        return;
+        break;
     case 2: /* ORR */
         la_vor_v(vreg_d, vreg_n, vreg_m);
-        return;
+        break;
     case 3: /* ORN */
         la_vorn_v(vreg_d, vreg_n, vreg_m);
-        return;
+        break;
     case 4: /* EOR */
         la_vxor_v(vreg_d, vreg_n, vreg_m);
-        return;
+        break;
 
     case 5: /* BSL bitwise select */
-        assert(0);
-        gen_gvec_fn4(s, is_q, rd, rd, rn, rm, tcg_gen_gvec_bitsel, 0);
-        return;
+        la_vxor_v(vtemp, vreg_m, vreg_n);
+        la_vand_v(vtemp, vtemp, vreg_d);
+        la_vxor_v(vreg_d, vreg_m, vtemp);
+        break;
     case 6: /* BIT, bitwise insert if true */
-        assert(0);
-        gen_gvec_fn4(s, is_q, rd, rm, rn, rd, tcg_gen_gvec_bitsel, 0);
-        return;
+        la_vxor_v(vtemp, vreg_d, vreg_n);
+        la_vand_v(vtemp, vtemp, vreg_m);
+        la_vxor_v(vreg_d, vreg_d, vtemp);
+        break;
     case 7: /* BIF, bitwise insert if false */
-        assert(0);
-        gen_gvec_fn4(s, is_q, rd, rm, rd, rn, tcg_gen_gvec_bitsel, 0);
-        return;
+        la_vxor_v(vtemp, vreg_d, vreg_n);
+        la_vandn_v(vtemp, vreg_m, vtemp);
+        la_vxor_v(vreg_d, vreg_d, vtemp);
+        break;
 
     default:
         g_assert_not_reached();
@@ -11996,6 +12000,7 @@ static void disas_simd_3same_logic(DisasContext *s, uint32_t insn)
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
     free_alloc_fpr(vreg_m);
+    free_alloc_fpr(vtemp);
 }
 
 /* Pairwise op subgroup of C3.6.16.
