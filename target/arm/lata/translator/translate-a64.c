@@ -12238,7 +12238,8 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
         break;
     default:
         if (size == 3 && !is_q) {
-            unallocated_encoding(s);
+            // unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
@@ -12384,16 +12385,87 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
         }
         goto do_gvec_end;
     case 0x06: /* CMGT, CMHI */
-        cond = u ? TCG_COND_GTU : TCG_COND_GT;
-        goto do_gvec_cmp;
+        if(u){ /* CMHI */
+            switch (size)
+            {
+            case 0:
+                la_vslt_bu(vreg_d, vreg_m, vreg_n);
+                break;
+            case 1:
+                la_vslt_hu(vreg_d, vreg_m, vreg_n);
+                break;
+            case 2:
+                la_vslt_wu(vreg_d, vreg_m, vreg_n);
+                break;
+            case 3:
+                la_vslt_du(vreg_d, vreg_m, vreg_n);
+                break;
+            default:
+                assert(0);
+            }
+        }else{ /* CMGT */
+            switch (size)
+            {
+            case 0:
+                la_vslt_b(vreg_d, vreg_m, vreg_n);
+                break;
+            case 1:
+                la_vslt_h(vreg_d, vreg_m, vreg_n);
+                break;
+            case 2:
+                la_vslt_w(vreg_d, vreg_m, vreg_n);
+                break;
+            case 3:
+                la_vslt_d(vreg_d, vreg_m, vreg_n);
+                break;
+            default:
+                assert(0);
+            }
+        }
+        goto do_gvec_end;
     case 0x07: /* CMGE, CMHS */
-        cond = u ? TCG_COND_GEU : TCG_COND_GE;
-    do_gvec_cmp:
-        tcg_gen_gvec_cmp(cond, size, vec_full_reg_offset(s, rd),
-                         vec_full_reg_offset(s, rn),
-                         vec_full_reg_offset(s, rm),
-                         is_q ? 16 : 8, vec_full_reg_size(s));
+        if(u){ /* CMHS */
+            switch (size)
+            {
+            case 0:
+                la_vsle_bu(vreg_d, vreg_m, vreg_n);
+                break;
+            case 1:
+                la_vsle_hu(vreg_d, vreg_m, vreg_n);
+                break;
+            case 2:
+                la_vsle_wu(vreg_d, vreg_m, vreg_n);
+                break;
+            case 3:
+                la_vsle_du(vreg_d, vreg_m, vreg_n);
+                break;
+            default:
+                assert(0);
+            }
+        }else{ /* CMGE */
+            switch (size)
+            {
+            case 0:
+                la_vsle_b(vreg_d, vreg_m, vreg_n);
+                break;
+            case 1:
+                la_vsle_h(vreg_d, vreg_m, vreg_n);
+                break;
+            case 2:
+                la_vsle_w(vreg_d, vreg_m, vreg_n);
+                break;
+            case 3:
+                la_vsle_d(vreg_d, vreg_m, vreg_n);
+                break;
+            default:
+                assert(0);
+            }
+        }
     do_gvec_end:
+        if(!is_q){
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        }
         store_fpr_dst(rd, vreg_d);
         free_alloc_fpr(vreg_d);
         free_alloc_fpr(vreg_n);
