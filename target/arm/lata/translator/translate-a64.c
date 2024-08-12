@@ -1066,59 +1066,59 @@ static void gen_sub(IR2_OPND* dst, IR2_OPND* src1, IR2_OPND *src2, int sf){
     }
 }
 
-/* dest = T0 + T1 + CF; do not compute flags. */
-static void gen_adc(int sf, TCGv_i64 dest, TCGv_i64 t0, TCGv_i64 t1)
-{
-    TCGv_i64 flag = tcg_temp_new_i64();
-    tcg_gen_extu_i32_i64(flag, cpu_CF);
-    tcg_gen_add_i64(dest, t0, t1);
-    tcg_gen_add_i64(dest, dest, flag);
+// /* dest = T0 + T1 + CF; do not compute flags. */
+// static void gen_adc(int sf, TCGv_i64 dest, TCGv_i64 t0, TCGv_i64 t1)
+// {
+//     TCGv_i64 flag = tcg_temp_new_i64();
+//     tcg_gen_extu_i32_i64(flag, cpu_CF);
+//     tcg_gen_add_i64(dest, t0, t1);
+//     tcg_gen_add_i64(dest, dest, flag);
 
-    if (!sf) {
-        tcg_gen_ext32u_i64(dest, dest);
-    }
-}
+//     if (!sf) {
+//         tcg_gen_ext32u_i64(dest, dest);
+//     }
+// }
 
-/* dest = T0 + T1 + CF; compute C, N, V and Z flags. */
-static void gen_adc_CC(int sf, TCGv_i64 dest, TCGv_i64 t0, TCGv_i64 t1)
-{
-    if (sf) {
-        TCGv_i64 result = tcg_temp_new_i64();
-        TCGv_i64 cf_64 = tcg_temp_new_i64();
-        TCGv_i64 vf_64 = tcg_temp_new_i64();
-        TCGv_i64 tmp = tcg_temp_new_i64();
-        TCGv_i64 zero = tcg_constant_i64(0);
+// /* dest = T0 + T1 + CF; compute C, N, V and Z flags. */
+// static void gen_adc_CC(int sf, TCGv_i64 dest, TCGv_i64 t0, TCGv_i64 t1)
+// {
+//     if (sf) {
+//         TCGv_i64 result = tcg_temp_new_i64();
+//         TCGv_i64 cf_64 = tcg_temp_new_i64();
+//         TCGv_i64 vf_64 = tcg_temp_new_i64();
+//         TCGv_i64 tmp = tcg_temp_new_i64();
+//         TCGv_i64 zero = tcg_constant_i64(0);
 
-        tcg_gen_extu_i32_i64(cf_64, cpu_CF);
-        tcg_gen_add2_i64(result, cf_64, t0, zero, cf_64, zero);
-        tcg_gen_add2_i64(result, cf_64, result, cf_64, t1, zero);
-        tcg_gen_extrl_i64_i32(cpu_CF, cf_64);
-        gen_set_NZ64(result);
+//         tcg_gen_extu_i32_i64(cf_64, cpu_CF);
+//         tcg_gen_add2_i64(result, cf_64, t0, zero, cf_64, zero);
+//         tcg_gen_add2_i64(result, cf_64, result, cf_64, t1, zero);
+//         tcg_gen_extrl_i64_i32(cpu_CF, cf_64);
+//         gen_set_NZ64(result);
 
-        tcg_gen_xor_i64(vf_64, result, t0);
-        tcg_gen_xor_i64(tmp, t0, t1);
-        tcg_gen_andc_i64(vf_64, vf_64, tmp);
-        tcg_gen_extrh_i64_i32(cpu_VF, vf_64);
+//         tcg_gen_xor_i64(vf_64, result, t0);
+//         tcg_gen_xor_i64(tmp, t0, t1);
+//         tcg_gen_andc_i64(vf_64, vf_64, tmp);
+//         tcg_gen_extrh_i64_i32(cpu_VF, vf_64);
 
-        tcg_gen_mov_i64(dest, result);
-    } else {
-        TCGv_i32 t0_32 = tcg_temp_new_i32();
-        TCGv_i32 t1_32 = tcg_temp_new_i32();
-        TCGv_i32 tmp = tcg_temp_new_i32();
-        TCGv_i32 zero = tcg_constant_i32(0);
+//         tcg_gen_mov_i64(dest, result);
+//     } else {
+//         TCGv_i32 t0_32 = tcg_temp_new_i32();
+//         TCGv_i32 t1_32 = tcg_temp_new_i32();
+//         TCGv_i32 tmp = tcg_temp_new_i32();
+//         TCGv_i32 zero = tcg_constant_i32(0);
 
-        tcg_gen_extrl_i64_i32(t0_32, t0);
-        tcg_gen_extrl_i64_i32(t1_32, t1);
-        tcg_gen_add2_i32(cpu_NF, cpu_CF, t0_32, zero, cpu_CF, zero);
-        tcg_gen_add2_i32(cpu_NF, cpu_CF, cpu_NF, cpu_CF, t1_32, zero);
+//         tcg_gen_extrl_i64_i32(t0_32, t0);
+//         tcg_gen_extrl_i64_i32(t1_32, t1);
+//         tcg_gen_add2_i32(cpu_NF, cpu_CF, t0_32, zero, cpu_CF, zero);
+//         tcg_gen_add2_i32(cpu_NF, cpu_CF, cpu_NF, cpu_CF, t1_32, zero);
 
-        tcg_gen_mov_i32(cpu_ZF, cpu_NF);
-        tcg_gen_xor_i32(cpu_VF, cpu_NF, t0_32);
-        tcg_gen_xor_i32(tmp, t0_32, t1_32);
-        tcg_gen_andc_i32(cpu_VF, cpu_VF, tmp);
-        tcg_gen_extu_i32_i64(dest, cpu_NF);
-    }
-}
+//         tcg_gen_mov_i32(cpu_ZF, cpu_NF);
+//         tcg_gen_xor_i32(cpu_VF, cpu_NF, t0_32);
+//         tcg_gen_xor_i32(tmp, t0_32, t1_32);
+//         tcg_gen_andc_i32(cpu_VF, cpu_VF, tmp);
+//         tcg_gen_extu_i32_i64(dest, cpu_NF);
+//     }
+// }
 
 /*
  * Load/Store generators
@@ -5855,7 +5855,6 @@ static void disas_data_proc_3src(DisasContext *s, uint32_t insn)
 static void disas_adc_sbc(DisasContext *s, uint32_t insn)
 {
     unsigned int sf, op, setflags, rm, rn, rd;
-    TCGv_i64 tcg_y, tcg_rn, tcg_rd;
 
     sf = extract32(insn, 31, 1);
     op = extract32(insn, 30, 1);
@@ -5864,21 +5863,41 @@ static void disas_adc_sbc(DisasContext *s, uint32_t insn)
     rn = extract32(insn, 5, 5);
     rd = extract32(insn, 0, 5);
 
-    tcg_rd = cpu_reg(s, rd);
-    tcg_rn = cpu_reg(s, rn);
+    IR2_OPND reg_n = alloc_gpr_src(rn);
+    IR2_OPND reg_m = alloc_gpr_src(rm);
+    IR2_OPND reg_d = alloc_gpr_dst(rd);
+    IR2_OPND temp = ra_alloc_itemp();
+    IR2_OPND temp2 = ra_alloc_itemp();
 
     if (op) {
-        tcg_y = tcg_temp_new_i64();
-        tcg_gen_not_i64(tcg_y, cpu_reg(s, rm));
+        la_orn(temp, zero_ir2_opnd, reg_m);
     } else {
-        tcg_y = cpu_reg(s, rm);
+        la_or(temp, zero_ir2_opnd, reg_m);
     }
 
-    if (setflags) {
-        gen_adc_CC(sf, tcg_rd, tcg_rn, tcg_y);
-    } else {
-        gen_adc(sf, tcg_rd, tcg_rn, tcg_y);
+    if(sf){
+        la_adc_d(temp2, reg_n, temp);
+    }else{
+        la_adc_w(temp2, reg_n, temp);
+        la_bstrpick_d(temp2, temp2, 31, 0);
     }
+
+    if(setflags){
+        if(sf){
+            la_x86adc_d(reg_n, temp);
+        }else{
+            la_x86adc_w(reg_n, temp);
+        }
+    }
+    
+    la_or(reg_d, zero_ir2_opnd, temp2);
+
+    free_alloc_gpr(reg_d);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(reg_m);
+    free_alloc_gpr(temp);
+    free_alloc_gpr(temp2);
+    store_gpr_dst(rd, reg_d);
 }
 
 /*
@@ -6705,7 +6724,6 @@ static void disas_data_proc_reg(DisasContext *s, uint32_t insn)
     case 0x0:
         switch (op3) {
         case 0x00: /* Add/subtract (with carry) */
-            assert(0);
             disas_adc_sbc(s, insn);
             break;
 
