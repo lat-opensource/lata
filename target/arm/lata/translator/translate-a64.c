@@ -12208,7 +12208,7 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
     int rn = extract32(insn, 5, 5);
     int rd = extract32(insn, 0, 5);
     int pass;
-    TCGCond cond;
+    // TCGCond cond;
 
     switch (opcode) {
     case 0x13: /* MUL, PMUL */
@@ -13308,7 +13308,8 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
     case 0x9: /* CMEQ, CMLE */
     case 0xb: /* ABS, NEG */
         if (size == 3 && !is_q) {
-            unallocated_encoding(s);
+            // unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
@@ -13517,7 +13518,6 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
 
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
-    IR2_OPND vtemp = ra_alloc_ftemp();
     switch (opcode) {
     case 0x5:
         if (u && size == 0) { /* NOT */
@@ -13526,55 +13526,115 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
         }
         break;
     case 0x8: /* CMGT, CMGE */
-        if (u) {
-            gen_gvec_fn2(s, is_q, rd, rn, gen_gvec_cge0, size);
-        } else {
-            gen_gvec_fn2(s, is_q, rd, rn, gen_gvec_cgt0, size);
-        }
-        return;
-    case 0x9: /* CMEQ, CMLE */
-        la_vinsgr2vr_d(vtemp, zero_ir2_opnd, 0);
-        la_vinsgr2vr_d(vtemp, zero_ir2_opnd, 1);
         switch (size)
         {
         case 0:
             if(u){
-                la_vsle_b(vreg_d, vreg_n, vtemp);
+                la_vslti_b(vreg_d, vreg_n, 0);
             }else{
-                la_vseq_b(vreg_d, vreg_n, vtemp);
+                la_vslei_b(vreg_d, vreg_n, 0);
             }
             break;
         case 1:
             if(u){
-                la_vsle_h(vreg_d, vreg_n, vtemp);
+                la_vslti_h(vreg_d, vreg_n, 0);
             }else{
-                la_vseq_h(vreg_d, vreg_n, vtemp);
+                la_vslei_h(vreg_d, vreg_n, 0);
             }
             break;
         case 2:
             if(u){
-                la_vsle_w(vreg_d, vreg_n, vtemp);
+                la_vslti_w(vreg_d, vreg_n, 0);
             }else{
-                la_vseq_w(vreg_d, vreg_n, vtemp);
+                la_vslei_w(vreg_d, vreg_n, 0);
             }
             break;
         case 3:
             if(u){
-                la_vsle_d(vreg_d, vreg_n, vtemp);
+                la_vslti_d(vreg_d, vreg_n, 0);
             }else{
-                la_vseq_d(vreg_d, vreg_n, vtemp);
+                la_vslei_d(vreg_d, vreg_n, 0);
             }
             break;
         default:
             break;
         }
+        la_vnori_b(vreg_d, vreg_d, 0);
+        if(!is_q){
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        }
         store_fpr_dst(rd, vreg_d);
         free_alloc_fpr(vreg_d);
         free_alloc_fpr(vreg_n);
-        free_alloc_fpr(vtemp);
+        return;
+    case 0x9: /* CMEQ, CMLE */
+        switch (size)
+        {
+        case 0:
+            if(u){
+                la_vslei_b(vreg_d, vreg_n, 0);
+            }else{
+                la_vseqi_b(vreg_d, vreg_n, 0);
+            }
+            break;
+        case 1:
+            if(u){
+                la_vslei_h(vreg_d, vreg_n, 0);
+            }else{
+                la_vseqi_h(vreg_d, vreg_n, 0);
+            }
+            break;
+        case 2:
+            if(u){
+                la_vslei_w(vreg_d, vreg_n, 0);
+            }else{
+                la_vseqi_w(vreg_d, vreg_n, 0);
+            }
+            break;
+        case 3:
+            if(u){
+                la_vslei_d(vreg_d, vreg_n, 0);
+            }else{
+                la_vseqi_d(vreg_d, vreg_n, 0);
+            }
+            break;
+        default:
+            break;
+        }
+        if(!is_q){
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        }
+        store_fpr_dst(rd, vreg_d);
+        free_alloc_fpr(vreg_d);
+        free_alloc_fpr(vreg_n);
         return;
     case 0xa: /* CMLT */
-        gen_gvec_fn2(s, is_q, rd, rn, gen_gvec_clt0, size);
+        switch (size)
+        {
+        case 0:
+            la_vslti_b(vreg_d, vreg_n, 0);
+            break;
+        case 1:
+            la_vslti_h(vreg_d, vreg_n, 0);
+            break;
+        case 2:
+            la_vslti_w(vreg_d, vreg_n, 0);
+            break;
+        case 3:
+            la_vslti_d(vreg_d, vreg_n, 0);
+            break;
+        default:
+            break;
+        }
+        if(!is_q){
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        }
+        store_fpr_dst(rd, vreg_d);
+        free_alloc_fpr(vreg_d);
+        free_alloc_fpr(vreg_n);
         return;
     case 0xb:
         if (u) { /* ABS, NEG */
@@ -14960,7 +15020,8 @@ static void disas_crypto_three_reg_sha512(DisasContext *s, uint32_t insn)
     }
 
     if (!feature) {
-        unallocated_encoding(s);
+        // unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -15219,7 +15280,8 @@ static void disas_data_proc_simd(DisasContext *s, uint32_t insn)
     if (fn) {
         fn(s, insn);
     } else {
-        unallocated_encoding(s);
+        // unallocated_encoding(s);
+        lata_unallocated_encoding(s);
     }
 }
 
