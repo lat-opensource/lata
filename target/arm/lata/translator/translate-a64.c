@@ -5157,6 +5157,9 @@ static bool trans_EOR_i(DisasContext *s, arg_EOR_i *a) {
     li_d(temp, imm);
     la_xor(reg_d, reg_n, temp);
 
+    if(!a->sf){
+        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    }
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_d);
