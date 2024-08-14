@@ -12360,28 +12360,45 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
             gen_gvec_op3_qc(s, is_q, rd, rn, rm, fns[size - 1][u]);
         }
         return;
-    case 0x11:
-        if (!u) { /* CMTST */
-            gen_gvec_fn3(s, is_q, rd, rn, rm, gen_gvec_cmtst, size);
-            return;
-        }
-        /* else CMEQ */
-        switch (size)
-        {
-        case 0:
-            la_vseq_b(vreg_d, vreg_n, vreg_m);
-            break;
-        case 1:
-            la_vseq_h(vreg_d, vreg_n, vreg_m);
-            break;
-        case 2:
-            la_vseq_w(vreg_d, vreg_n, vreg_m);
-            break;
-        case 3:
-            la_vseq_d(vreg_d, vreg_n, vreg_m);
-            break;
-        default:
-            assert(0);
+    case 0x11: /* CMEQ, CMTST */
+        if(u){ /* CMEQ */
+            switch (size)
+            {
+            case 0:
+                la_vseq_b(vreg_d, vreg_n, vreg_m);
+                break;
+            case 1:
+                la_vseq_h(vreg_d, vreg_n, vreg_m);
+                break;
+            case 2:
+                la_vseq_w(vreg_d, vreg_n, vreg_m);
+                break;
+            case 3:
+                la_vseq_d(vreg_d, vreg_n, vreg_m);
+                break;
+            default:
+                assert(0);
+            }
+        }else{ /* CMTST */
+            la_vand_v(vreg_d, vreg_n, vreg_m);
+            switch (size)
+            {
+            case 0:
+                la_vseqi_b(vreg_d, vreg_d, 0);
+                break;
+            case 1:
+                la_vseqi_h(vreg_d, vreg_d, 0);
+                break;
+            case 2:
+                la_vseqi_w(vreg_d, vreg_d, 0);
+                break;
+            case 3:
+                la_vseqi_d(vreg_d, vreg_d, 0);
+                break;
+            default:
+                assert(0);
+            }
+            la_vnori_b(vreg_d, vreg_d, 0);
         }
         goto do_gvec_end;
     case 0x06: /* CMGT, CMHI */
