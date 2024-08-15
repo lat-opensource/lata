@@ -5160,6 +5160,7 @@ static bool trans_EOR_i(DisasContext *s, arg_EOR_i *a) {
     if(!a->sf){
         la_bstrpick_d(reg_d, reg_d, 31, 0);
     }
+
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_d);
@@ -5404,41 +5405,35 @@ static bool trans_BFM(DisasContext *s, arg_BFM *a)
 
 static bool trans_EXTR(DisasContext *s, arg_extract *a)
 {
-    TCGv_i64 tcg_rd, tcg_rm, tcg_rn;
-
-    tcg_rd = cpu_reg(s, a->rd);
-
+    IR2_OPND reg_d = alloc_gpr_dst(a->rd);
+    IR2_OPND reg_m = alloc_gpr_src(a->rm);
+    IR2_OPND reg_n = alloc_gpr_src(a->rn);
+    IR2_OPND temp = ra_alloc_itemp();
     if (unlikely(a->imm == 0)) {
         /*
          * tcg shl_i32/shl_i64 is undefined for 32/64 bit shifts,
          * so an extract from bit 0 is a special case.
          */
-        if (a->sf) {
-            tcg_gen_mov_i64(tcg_rd, cpu_reg(s, a->rm));
-        } else {
-            tcg_gen_ext32u_i64(tcg_rd, cpu_reg(s, a->rm));
+        la_or(reg_d, reg_m, zero_ir2_opnd);
+        if(!a->sf){
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
         }
     } else {
-        tcg_rm = cpu_reg(s, a->rm);
-        tcg_rn = cpu_reg(s, a->rn);
-
-        if (a->sf) {
-            /* Specialization to ROR happens in EXTRACT2.  */
-            tcg_gen_extract2_i64(tcg_rd, tcg_rm, tcg_rn, a->imm);
-        } else {
-            TCGv_i32 t0 = tcg_temp_new_i32();
-
-            tcg_gen_extrl_i64_i32(t0, tcg_rm);
-            if (a->rm == a->rn) {
-                tcg_gen_rotri_i32(t0, t0, a->imm);
-            } else {
-                TCGv_i32 t1 = tcg_temp_new_i32();
-                tcg_gen_extrl_i64_i32(t1, tcg_rn);
-                tcg_gen_extract2_i32(t0, t0, t1, a->imm);
-            }
-            tcg_gen_extu_i32_i64(tcg_rd, t0);
+        if(!a->sf){
+            la_srli_w(temp, reg_m, a->imm);
+            la_bstrins_w(temp, reg_n, 31, 32 - a->imm);
+            la_bstrpick_d(reg_d, temp, 31, 0);
+        }else{
+            la_srli_d(temp, reg_m, a->imm);
+            la_bstrins_d(temp, reg_n, 63, 64 - a->imm);
+            la_or(reg_d, temp, zero_ir2_opnd);
         }
     }
+    store_gpr_dst(a->rd, reg_d);
+    free_alloc_gpr(reg_d);
+    free_alloc_gpr(reg_m);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(temp);
     return true;
 }
 
@@ -8163,23 +8158,6 @@ static void disas_data_proc_fp(DisasContext *s, uint32_t insn)
     }
 }
 
-static void do_ext64(DisasContext *s, TCGv_i64 tcg_left, TCGv_i64 tcg_right,
-                     int pos)
-{
-    /* Extract 64 bits from the middle of two concatenated 64 bit
-     * vector register slices left:right. The extracted bits start
-     * at 'pos' bits into the right (least significant) side.
-     * We return the result in tcg_right, and guarantee not to
-     * trash tcg_left.
-     */
-    TCGv_i64 tcg_tmp = tcg_temp_new_i64();
-    assert(pos > 0 && pos < 64);
-
-    tcg_gen_shri_i64(tcg_right, tcg_right, pos);
-    tcg_gen_shli_i64(tcg_tmp, tcg_left, 64 - pos);
-    tcg_gen_or_i64(tcg_right, tcg_right, tcg_tmp);
-}
-
 /* EXT
  *   31  30 29         24 23 22  21 20  16 15  14  11 10  9    5 4    0
  * +---+---+-------------+-----+---+------+---+------+---+------+------+
@@ -8194,11 +8172,9 @@ static void disas_simd_ext(DisasContext *s, uint32_t insn)
     int rm = extract32(insn, 16, 5);
     int rn = extract32(insn, 5, 5);
     int rd = extract32(insn, 0, 5);
-    int pos = imm4 << 3;
-    TCGv_i64 tcg_resl, tcg_resh;
 
     if (op2 != 0 || (!is_q && extract32(imm4, 3, 1))) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -8206,50 +8182,44 @@ static void disas_simd_ext(DisasContext *s, uint32_t insn)
         return;
     }
 
-    tcg_resh = tcg_temp_new_i64();
-    tcg_resl = tcg_temp_new_i64();
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vtemp1 = ra_alloc_ftemp();
 
     /* Vd gets bits starting at pos bits into Vm:Vn. This is
      * either extracting 128 bits from a 128:128 concatenation, or
      * extracting 64 bits from a 64:64 concatenation.
      */
-    if (!is_q) {
-        read_vec_element(s, tcg_resl, rn, 0, MO_64);
-        if (pos != 0) {
-            read_vec_element(s, tcg_resh, rm, 0, MO_64);
-            do_ext64(s, tcg_resh, tcg_resl, pos);
+    if(!is_q){
+        if(imm4 == 0){
+            la_vori_b(vreg_d, vreg_n, 0);
+        }else{
+            la_vori_b(vtemp, vreg_n, 0);
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vtemp, zero_ir2_opnd, 1);
+            la_vbsrl_v(vtemp, vtemp, imm4);
+            la_vbsll_v(vtemp1, vreg_m, 0x8 - imm4);
+            la_vor_v(vreg_d, vtemp, vtemp1);
         }
-    } else {
-        TCGv_i64 tcg_hh;
-        typedef struct {
-            int reg;
-            int elt;
-        } EltPosns;
-        EltPosns eltposns[] = { {rn, 0}, {rn, 1}, {rm, 0}, {rm, 1} };
-        EltPosns *elt = eltposns;
-
-        if (pos >= 64) {
-            elt++;
-            pos -= 64;
-        }
-
-        read_vec_element(s, tcg_resl, elt->reg, elt->elt, MO_64);
-        elt++;
-        read_vec_element(s, tcg_resh, elt->reg, elt->elt, MO_64);
-        elt++;
-        if (pos != 0) {
-            do_ext64(s, tcg_resh, tcg_resl, pos);
-            tcg_hh = tcg_temp_new_i64();
-            read_vec_element(s, tcg_hh, elt->reg, elt->elt, MO_64);
-            do_ext64(s, tcg_hh, tcg_resh, pos);
+        /* 高64位清零 */
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    }else{
+        if(imm4 == 0){
+            la_vori_b(vreg_d, vreg_n, 0);
+        }else{
+            la_vbsrl_v(vtemp, vreg_n, imm4);
+            la_vbsll_v(vtemp1, vreg_m, 0x10 - imm4);
+            la_vor_v(vreg_d, vtemp, vtemp1);
         }
     }
-
-    write_vec_element(s, tcg_resl, rd, 0, MO_64);
-    if (is_q) {
-        write_vec_element(s, tcg_resh, rd, 1, MO_64);
-    }
-    clear_vec_high(s, is_q, rd);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_m);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vtemp);
+    free_alloc_fpr(vtemp1);
 }
 
 /* TBL/TBX
