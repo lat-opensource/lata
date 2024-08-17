@@ -45,7 +45,7 @@ uint32 ir2_assemble(IR2_INST *ir2){
     return ins;
 }
 
-// #ifdef CONFIG_LATX_DEBUG
+#ifdef CONFIG_LATA_DEBUG
 bool ir2_op_check(IR2_INST *ir2)
 {
     /* get the instrution format in LA*/
@@ -89,4 +89,4 @@ bool ir2_op_check(IR2_INST *ir2)
     }
     return true;
 }
-// #endif
+#endif

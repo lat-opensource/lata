@@ -9,55 +9,57 @@
 #include "ir2.h"
 #include "lata.h"
 
+extern void qemu_log(const char *fmt, ...);
+
 static const char *ir2_name(int value)
 {
-// #ifdef CONFIG_LATX_DEBUG
-//     /*
-//      * Todo: Add below defination:
-//      */
-//     #if 0
-//     static const char *ir2_scr_name[] = {
-//         "$scr0" , "$scr1" , "$scr2" , "$scr3",
-//     };
+#ifdef CONFIG_LATA_DEBUG
+    /*
+     * Todo: Add below defination:
+     */
+    #if 0
+    static const char *ir2_scr_name[] = {
+        "$scr0" , "$scr1" , "$scr2" , "$scr3",
+    };
 
-//     static const char *ir2_cc_name[] = {
-//         "$cc0" , "$cc1" , "$cc2" , "$cc3" ,
-//         "$cc4" , "$cc5" , "$cc6" , "$cc7" ,
-//     };
-//     #endif
-//     const char *g_ir2_names[] = {
-//         "$zero" , "$ra" , "$tp" , "$sp" , "$a0" , "$a1" , "$a2" , "$a3" ,
-//         "$a4"   , "$a5" , "$a6" , "$a7" , "$t0" , "$t1" , "$t2" , "$t3" ,
-//         "$t4"   , "$t5" , "$t6" , "$t7" , "$t8" , "$x"  , "$fp" , "$s0" ,
-//         "$s1"   , "$s2" , "$s3" , "$s4" , "$s5" , "$s6" , "$s7" , "$s8" ,
-//         "", "", "", "", "", "", "", "", /*  32-39 */
-//         "$fa0"  , "$fa1"  , "$fa2"  , "$fa3"  ,
-//         "$fa4"  , "$fa5"  , "$fa6"  , "$fa7"  ,
-//         "$ft0"  , "$ft1"  , "$ft2"  , "$ft3"  ,
-//         "$ft4"  , "$ft5"  , "$ft6"  , "$ft7"  ,
-//         "$ft8"  , "$ft9"  , "$ft10" , "$ft11" ,
-//         "$ft12" , "$ft13" , "$ft14" , "$ft15" ,
-//         "$fs0"  , "$fs1"  , "$fs2"  , "$fs3"  ,
-//         "$fs4"  , "$fs5"  , "$fs6"  , "$s7"   ,
-//         "", "", "", "", "", "", "", "", /* 72-79 */
-//         "NONE", "GPR", "SCR", "FPR", "FCSR", "IMMD", "IMMH", "LABEL",/* 80-87 */
-//         "", "", "", "", "", "", "", "", /* 88-95 */
-//         "ax", "sx", "zx", "bx", "AD", "AX", "", "",  /* 96-103 */
-//         "", "", "", "", "", "", "", "", /* 104-111 */
-//         "", "", "", "", "", "", "", "", /* 112-119 */
-//         "", "", "", "", "", "", "", "", /* 120-127 */
-//         /* clang-format on */
-//         //"", "label", "", "", "", "", "", "", /* 128-135 */
-//         //"", "", "", "", "", "", "", "", /* 136-143 */
-//         //"", "", "", "", "", "", "", "", /* 144-151 */
-// #include "ir2-name.h"
+    static const char *ir2_cc_name[] = {
+        "$cc0" , "$cc1" , "$cc2" , "$cc3" ,
+        "$cc4" , "$cc5" , "$cc6" , "$cc7" ,
+    };
+    #endif
+    const char *g_ir2_names[] = {
+        "$zero" , "$ra" , "$tp" , "$sp" , "$a0" , "$a1" , "$a2" , "$a3" ,
+        "$a4"   , "$a5" , "$a6" , "$a7" , "$t0" , "$t1" , "$t2" , "$t3" ,
+        "$t4"   , "$t5" , "$t6" , "$t7" , "$t8" , "$x"  , "$fp" , "$s0" ,
+        "$s1"   , "$s2" , "$s3" , "$s4" , "$s5" , "$s6" , "$s7" , "$s8" ,
+        "", "", "", "", "", "", "", "", /*  32-39 */
+        "$fa0"  , "$fa1"  , "$fa2"  , "$fa3"  ,
+        "$fa4"  , "$fa5"  , "$fa6"  , "$fa7"  ,
+        "$ft0"  , "$ft1"  , "$ft2"  , "$ft3"  ,
+        "$ft4"  , "$ft5"  , "$ft6"  , "$ft7"  ,
+        "$ft8"  , "$ft9"  , "$ft10" , "$ft11" ,
+        "$ft12" , "$ft13" , "$ft14" , "$ft15" ,
+        "$fs0"  , "$fs1"  , "$fs2"  , "$fs3"  ,
+        "$fs4"  , "$fs5"  , "$fs6"  , "$s7"   ,
+        "", "", "", "", "", "", "", "", /* 72-79 */
+        "NONE", "GPR", "SCR", "FPR", "FCSR", "IMMD", "IMMH", "LABEL",/* 80-87 */
+        "", "", "", "", "", "", "", "", /* 88-95 */
+        "ax", "sx", "zx", "bx", "AD", "AX", "", "",  /* 96-103 */
+        "", "", "", "", "", "", "", "", /* 104-111 */
+        "", "", "", "", "", "", "", "", /* 112-119 */
+        "", "", "", "", "", "", "", "", /* 120-127 */
+        /* clang-format on */
+        //"", "label", "", "", "", "", "", "", /* 128-135 */
+        //"", "", "", "", "", "", "", "", /* 136-143 */
+        //"", "", "", "", "", "", "", "", /* 144-151 */
+#include "ir2-name.h"
 
-//     };
-//     lsassert(value <= LISA_ENDING);
-//     return g_ir2_names[value];
-// #else
+    };
+    lsassert(value <= LISA_ENDING);
+    return g_ir2_names[value];
+#else
      return "undef";
-// #endif
+#endif
 }
 
 void ir2_opnd_build_none(IR2_OPND *opnd)
@@ -191,71 +193,71 @@ void ir2_opnd_convert_label_to_imm(IR2_OPND *opnd, int imm)
 int ir2_opnd_to_string(IR2_OPND *opnd, char *str, bool hex)
 {
 
-    // int base_reg_num = ir2_opnd_base_reg_num(opnd);
+    int base_reg_num = ir2_opnd_base_reg_num(opnd);
 
-    // switch (ir2_opnd_type(opnd)) {
-    // case IR2_OPND_NONE:
-    //     return 0;
-    // case IR2_OPND_GPR: {
-    //     if (ir2_opnd_is_itemp(opnd)) {
-    //         return sprintf(str, "\033[3%dmitmp%d\033[m", base_reg_num % 6 + 1,
-    //                        reg_itemp_reverse_map[base_reg_num]);
-    //     } else {
-    //         strcpy(str, ir2_name(base_reg_num));
-    //         return strlen(str);
-    //     }
-    // }
-    // case IR2_OPND_FPR: {
-    //     if (ir2_opnd_is_ftemp(opnd)) {
-    //         return sprintf(str, "\033[3%dmftmp%d\033[m", base_reg_num % 6 + 1,
-    //                        reg_ftemp_reverse_map[base_reg_num]);
-    //     } else {
-    //         strcpy(str, ir2_name(40 + base_reg_num));
-    //         return strlen(str);
-    //     }
-    // }
-    // case IR2_OPND_FCSR: {
-    //     return sprintf(str, "$c%d", base_reg_num);
-    // }
-    // case IR2_OPND_CC: {
-    //     return sprintf(str, "$c%d", base_reg_num);
-    // }
-    // //case IR2_OPND_MEM: {
-    // //    if (ir2_opnd_imm(opnd) > -1024 && ir2_opnd_imm(opnd) < 1024) {
-    // //        if (ir2_opnd_is_mem_base_itemp(opnd)) {
-    // //            return sprintf(str, "%d(\033[3%dmitmp%d\033[m)",
-    // //                           ir2_opnd_imm(opnd), base_reg_num % 6 + 1,
-    // //                           base_reg_num);
-    // //        } else {
-    // //            return sprintf(str, "%d(%s)", ir2_opnd_imm(opnd),
-    // //                           ir2_name(base_reg_num));
-    // //        }
-    // //    } else {
-    // //        if (ir2_opnd_is_mem_base_itemp(opnd)) {
-    // //            return sprintf(str, "0x%x(\033[3%dmitmp%d\033[m)",
-    // //                           ir2_opnd_imm(opnd), base_reg_num % 6 + 1,
-    // //                           base_reg_num);
-    // //        } else {
-    // //            return sprintf(str, "0x%x(%s)", ir2_opnd_imm(opnd),
-    // //                           ir2_name(base_reg_num));
-    // //        }
-    // //    }
-    // //}
-    // case IR2_OPND_IMM: {
-    //     if (hex) {
-    //         return sprintf(str, "0x%x", (uint32)ir2_opnd_imm(opnd));
-    //     } else {
-    //         return sprintf(str, "%d", ir2_opnd_imm(opnd));
-    //     }
-    // }
-    // case IR2_OPND_SCR:
-    //     return sprintf(str, "%d", ir2_opnd_imm(opnd));
-    // case IR2_OPND_LABEL:
-    //     return sprintf(str, "LABEL %d", ir2_opnd_imm(opnd));
-    // default:
-    //     lsassertm(0, "type = %d\n", ir2_opnd_type(opnd));
+    switch (ir2_opnd_type(opnd)) {
+    case IR2_OPND_NONE:
         return 0;
+    case IR2_OPND_GPR: {
+        if (ir2_opnd_is_itemp(opnd)) {
+            return sprintf(str, "\033[3%dmitmp%d\033[m", base_reg_num % 6 + 1,
+                           reg_itemp_reverse_map[base_reg_num]);
+        } else {
+            strcpy(str, ir2_name(base_reg_num));
+            return strlen(str);
+        }
+    }
+    case IR2_OPND_FPR: {
+        if (ir2_opnd_is_ftemp(opnd)) {
+            return sprintf(str, "\033[3%dmftmp%d\033[m", base_reg_num % 6 + 1,
+                           reg_ftemp_reverse_map[base_reg_num]);
+        } else {
+            strcpy(str, ir2_name(40 + base_reg_num));
+            return strlen(str);
+        }
+    }
+    case IR2_OPND_FCSR: {
+        return sprintf(str, "$c%d", base_reg_num);
+    }
+    case IR2_OPND_CC: {
+        return sprintf(str, "$c%d", base_reg_num);
+    }
+    // case IR2_OPND_MEM: {
+    //    if (ir2_opnd_imm(opnd) > -1024 && ir2_opnd_imm(opnd) < 1024) {
+    //        if (ir2_opnd_is_mem_base_itemp(opnd)) {
+    //            return sprintf(str, "%d(\033[3%dmitmp%d\033[m)",
+    //                           ir2_opnd_imm(opnd), base_reg_num % 6 + 1,
+    //                           base_reg_num);
+    //        } else {
+    //            return sprintf(str, "%d(%s)", ir2_opnd_imm(opnd),
+    //                           ir2_name(base_reg_num));
+    //        }
+    //    } else {
+    //        if (ir2_opnd_is_mem_base_itemp(opnd)) {
+    //            return sprintf(str, "0x%x(\033[3%dmitmp%d\033[m)",
+    //                           ir2_opnd_imm(opnd), base_reg_num % 6 + 1,
+    //                           base_reg_num);
+    //        } else {
+    //            return sprintf(str, "0x%x(%s)", ir2_opnd_imm(opnd),
+    //                           ir2_name(base_reg_num));
+    //        }
+    //    }
     // }
+    case IR2_OPND_IMM: {
+        if (hex) {
+            return sprintf(str, "0x%x", (uint32)ir2_opnd_imm(opnd));
+        } else {
+            return sprintf(str, "%d", ir2_opnd_imm(opnd));
+        }
+    }
+    case IR2_OPND_SCR:
+        return sprintf(str, "%d", ir2_opnd_imm(opnd));
+    case IR2_OPND_LABEL:
+        return sprintf(str, "LABEL %d", ir2_opnd_imm(opnd));
+    default:
+        lsassertm(0, "type = %d\n", ir2_opnd_type(opnd));
+        return 0;
+    }
 }
 
 bool ir2_opcode_is_branch(IR2_OPCODE opcode)
@@ -364,29 +366,29 @@ int ir2_to_string(IR2_INST *ir2, char *str)
     return length;
 }
 
-//static int ir1_id;
+static int ir1_id;
 
 int ir2_dump(IR2_INST *ir2)
 {
-//    char str[64];
+   char str[64];
     int size = 0;
 
-    // if (ir2_opcode(ir2) ==
-    //     0) { /* an empty IR2_INST was inserted into the ir2 */
-    //          /* list, but not assigned yet. */
-    //     return 0;
-    // }
+    if (ir2_opcode(ir2) ==
+        0) { /* an empty IR2_INST was inserted into the ir2 */
+             /* list, but not assigned yet. */
+        return 0;
+    }
 
-    // size = ir2_to_string(ir2, str);
-    // if (ir2->_id == 0) {
-    //     ir1_id = 0;
-    //     qemu_log("[%d, %d] %s\n", ir2->_id, ir1_id, str);
-    // } else if (str[0] == '-') {
-    //     ir1_id ++;
-    //     qemu_log("[%d, %d] %s\n", ir2->_id, ir1_id, str);
-    // } else {
-    //     qemu_log("%s\n", str);
-    // }
+    size = ir2_to_string(ir2, str);
+    if (ir2->_id == 0) {
+        ir1_id = 0;
+        qemu_log("[%d, %d] %s\n", ir2->_id, ir1_id, str);
+    } else if (str[0] == '-') {
+        ir1_id ++;
+        qemu_log("[%d, %d] %s\n", ir2->_id, ir1_id, str);
+    } else {
+        qemu_log("%s\n", str);
+    }
 
 
     return size;
@@ -621,4 +623,3 @@ IR2_OPND create_immh_opnd(int val)
 //     la_b(ir2_opnd_addr);
 // #endif
 // }
-
