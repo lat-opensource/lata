@@ -7087,9 +7087,8 @@ static void handle_fp_1src_half(DisasContext *s, int opcode, int rd, int rn)
 /* Floating-point data-processing (1 source) - single precision */
 static void handle_fp_1src_single(DisasContext *s, int opcode, int rd, int rn)
 {
-    assert(0);
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
-    IR2_OPND vreg_n = alloc_fpr_dst(rn);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
 
     switch (opcode) {
     case 0x0: /* FMOV */
@@ -7142,6 +7141,10 @@ static void handle_fp_1src_single(DisasContext *s, int opcode, int rd, int rn)
     assert(0);
     
  done:
+    la_movgr2frh_w(vreg_d, zero_ir2_opnd);
+    /* 高64位清零 */
+    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
@@ -7151,7 +7154,7 @@ static void handle_fp_1src_single(DisasContext *s, int opcode, int rd, int rn)
 static void handle_fp_1src_double(DisasContext *s, int opcode, int rd, int rn)
 {
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
-    IR2_OPND vreg_n = alloc_fpr_dst(rn);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
 
     switch (opcode) {
     case 0x0: /* FMOV */
@@ -7201,6 +7204,9 @@ static void handle_fp_1src_double(DisasContext *s, int opcode, int rd, int rn)
     assert(0);
 
  done:
+    /* 高64位清零 */
+    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
@@ -7346,7 +7352,8 @@ static void disas_fp_1src(DisasContext *s, uint32_t insn)
 
     default:
     do_unallocated:
-        unallocated_encoding(s);
+        // unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         break;
     }
 }
@@ -7355,7 +7362,6 @@ static void disas_fp_1src(DisasContext *s, uint32_t insn)
 static void handle_fp_2src_single(DisasContext *s, int opcode,
                                   int rd, int rn, int rm)
 {
-    assert(0);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
@@ -7393,6 +7399,9 @@ static void handle_fp_2src_single(DisasContext *s, int opcode,
         free_alloc_fpr(vtemp);
         break;
     }
+    la_movgr2frh_w(vreg_d, zero_ir2_opnd);
+    /* 高64位清零 */
+    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
 
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
@@ -7441,6 +7450,8 @@ static void handle_fp_2src_double(DisasContext *s, int opcode,
         free_alloc_fpr(vtemp);
         break;
     }
+    /* 高64位清零 */
+    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
 
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
