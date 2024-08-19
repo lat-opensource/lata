@@ -10228,6 +10228,158 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
     clear_vec_high(s, elements * (size ? 8 : 4) > 8, rd);
 }
 
+static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode, 
+                                                        int rd, int rn, int rm)
+{
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
+
+    if (size) {
+        /* Double */
+
+        switch (fpopcode) {
+        case 0x39: /* FMLS */
+            /* As usual for ARM, separate negation for fused multiply-add */
+            assert(0);
+            /* fall through */
+        case 0x19: /* FMLA */
+            assert(0);
+            break;
+        case 0x18: /* FMAXNM */
+            assert(0);
+            break;
+        case 0x1a: /* FADD */
+            assert(0);
+            break;
+        case 0x1b: /* FMULX */
+            assert(0);
+            break;
+        case 0x1c: /* FCMEQ */
+            assert(0);
+            break;
+        case 0x1e: /* FMAX */
+            assert(0);
+            break;
+        case 0x1f: /* FRECPS */
+            assert(0);
+            break;
+        case 0x38: /* FMINNM */
+            assert(0);
+            break;
+        case 0x3a: /* FSUB */
+            assert(0);
+            break;
+        case 0x3e: /* FMIN */
+            assert(0);
+            break;
+        case 0x3f: /* FRSQRTS */
+            assert(0);
+            break;
+        case 0x5b: /* FMUL */
+            assert(0);
+            break;
+        case 0x5c: /* FCMGE */
+            assert(0);
+            break;
+        case 0x5d: /* FACGE */
+            assert(0);
+            break;
+        case 0x5f: /* FDIV */
+            assert(0);
+            break;
+        case 0x7a: /* FABD */
+            la_fsub_d(vreg_d, vreg_n, vreg_m);
+            la_fabs_d(vreg_d, vreg_d);
+            break;
+        case 0x7c: /* FCMGT */
+            assert(0);
+            break;
+        case 0x7d: /* FACGT */
+            assert(0);
+            break;
+        default:
+            g_assert_not_reached();
+        }
+
+    } else {
+        /* Single */
+
+        switch (fpopcode) {
+        case 0x39: /* FMLS */
+            /* As usual for ARM, separate negation for fused multiply-add */
+            assert(0);
+            /* fall through */
+        case 0x19: /* FMLA */
+            assert(0);
+            break;
+        case 0x1a: /* FADD */
+            assert(0);
+            break;
+        case 0x1b: /* FMULX */
+            assert(0);
+            break;
+        case 0x1c: /* FCMEQ */
+            assert(0);
+            break;
+        case 0x1e: /* FMAX */
+            assert(0);
+            break;
+        case 0x1f: /* FRECPS */
+            assert(0);
+            break;
+        case 0x18: /* FMAXNM */
+            assert(0);
+            break;
+        case 0x38: /* FMINNM */
+            assert(0);
+            break;
+        case 0x3a: /* FSUB */
+            assert(0);
+            break;
+        case 0x3e: /* FMIN */
+            assert(0);
+            break;
+        case 0x3f: /* FRSQRTS */
+            assert(0);
+            break;
+        case 0x5b: /* FMUL */
+            assert(0);
+            break;
+        case 0x5c: /* FCMGE */
+            assert(0);
+            break;
+        case 0x5d: /* FACGE */
+            assert(0);
+            break;
+        case 0x5f: /* FDIV */
+            assert(0);
+            break;
+        case 0x7a: /* FABD */
+            la_fsub_s(vreg_d, vreg_n, vreg_m);
+            la_fabs_s(vreg_d, vreg_d);
+            break;
+        case 0x7c: /* FCMGT */
+            assert(0);
+            break;
+        case 0x7d: /* FACGT */
+            assert(0);
+            break;
+        default:
+            g_assert_not_reached();
+        }
+
+        la_movgr2frh_w(vreg_d, zero_ir2_opnd);
+    }
+
+    /* 高64位清零 */
+    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_m);
+}
+
 /* AdvSIMD scalar three same
  *  31 30  29 28       24 23  22  21 20  16 15    11  10 9    5 4    0
  * +-----+---+-----------+------+---+------+--------+---+------+------+
@@ -10267,7 +10419,7 @@ static void disas_simd_scalar_three_reg_same(DisasContext *s, uint32_t insn)
             return;
         }
 
-        handle_3same_float(s, extract32(size, 0, 1), 1, fpopcode, rd, rn, rm);
+        handle_3same_float_scalar(s, extract32(size, 0, 1), fpopcode, rd, rn, rm);
         return;
     }
 
