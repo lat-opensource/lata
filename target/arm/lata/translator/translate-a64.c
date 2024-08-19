@@ -10062,181 +10062,155 @@ static void handle_3same_64(DisasContext *s, int opcode, bool u,
     }
 }
 
-/* Handle the 3-same-operands float operations; shared by the scalar
- * and vector encodings. The caller must filter out any encodings
- * not allocated for the encoding it is dealing with.
- */
 static void handle_3same_float(DisasContext *s, int size, int elements,
                                int fpopcode, int rd, int rn, int rm)
 {
-    int pass;
-    TCGv_ptr fpst = fpstatus_ptr(FPST_FPCR);
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
 
-    for (pass = 0; pass < elements; pass++) {
-        if (size) {
-            /* Double */
-            TCGv_i64 tcg_op1 = tcg_temp_new_i64();
-            TCGv_i64 tcg_op2 = tcg_temp_new_i64();
-            TCGv_i64 tcg_res = tcg_temp_new_i64();
+    if (size) {
+        /* Double */
 
-            read_vec_element(s, tcg_op1, rn, pass, MO_64);
-            read_vec_element(s, tcg_op2, rm, pass, MO_64);
+        switch (fpopcode) {
+        case 0x39: /* FMLS */
+            /* As usual for ARM, separate negation for fused multiply-add */
+            assert(0);
+            /* fall through */
+        case 0x19: /* FMLA */
+            assert(0);
+            break;
+        case 0x18: /* FMAXNM */
+            assert(0);
+            break;
+        case 0x1a: /* FADD */
+            la_vfadd_d(vreg_d, vreg_n, vreg_m);
+            break;
+        case 0x1b: /* FMULX */
+            assert(0);
+            break;
+        case 0x1c: /* FCMEQ */
+            assert(0);
+            break;
+        case 0x1e: /* FMAX */
+            assert(0);
+            break;
+        case 0x1f: /* FRECPS */
+            assert(0);
+            break;
+        case 0x38: /* FMINNM */
+            assert(0);
+            break;
+        case 0x3a: /* FSUB */
+            la_vfsub_d(vreg_d, vreg_n, vreg_m);
+            break;
+        case 0x3e: /* FMIN */
+            assert(0);
+            break;
+        case 0x3f: /* FRSQRTS */
+            assert(0);
+            break;
+        case 0x5b: /* FMUL */
+            assert(0);
+            break;
+        case 0x5c: /* FCMGE */
+            assert(0);
+            break;
+        case 0x5d: /* FACGE */
+            assert(0);
+            break;
+        case 0x5f: /* FDIV */
+            assert(0);
+            break;
+        case 0x7a: /* FABD */
+            assert(0);
+            break;
+        case 0x7c: /* FCMGT */
+            assert(0);
+            break;
+        case 0x7d: /* FACGT */
+            assert(0);
+            break;
+        default:
+            g_assert_not_reached();
+        }
 
-            switch (fpopcode) {
-            case 0x39: /* FMLS */
-                /* As usual for ARM, separate negation for fused multiply-add */
-                gen_helper_vfp_negd(tcg_op1, tcg_op1);
-                /* fall through */
-            case 0x19: /* FMLA */
-                read_vec_element(s, tcg_res, rd, pass, MO_64);
-                gen_helper_vfp_muladdd(tcg_res, tcg_op1, tcg_op2,
-                                       tcg_res, fpst);
-                break;
-            case 0x18: /* FMAXNM */
-                gen_helper_vfp_maxnumd(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x1a: /* FADD */
-                gen_helper_vfp_addd(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x1b: /* FMULX */
-                gen_helper_vfp_mulxd(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x1c: /* FCMEQ */
-                gen_helper_neon_ceq_f64(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x1e: /* FMAX */
-                gen_helper_vfp_maxd(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x1f: /* FRECPS */
-                gen_helper_recpsf_f64(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x38: /* FMINNM */
-                gen_helper_vfp_minnumd(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x3a: /* FSUB */
-                gen_helper_vfp_subd(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x3e: /* FMIN */
-                gen_helper_vfp_mind(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x3f: /* FRSQRTS */
-                gen_helper_rsqrtsf_f64(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x5b: /* FMUL */
-                gen_helper_vfp_muld(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x5c: /* FCMGE */
-                gen_helper_neon_cge_f64(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x5d: /* FACGE */
-                gen_helper_neon_acge_f64(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x5f: /* FDIV */
-                gen_helper_vfp_divd(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x7a: /* FABD */
-                gen_helper_vfp_subd(tcg_res, tcg_op1, tcg_op2, fpst);
-                gen_helper_vfp_absd(tcg_res, tcg_res);
-                break;
-            case 0x7c: /* FCMGT */
-                gen_helper_neon_cgt_f64(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x7d: /* FACGT */
-                gen_helper_neon_acgt_f64(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            default:
-                g_assert_not_reached();
-            }
+    } else {
+        /* Single */
 
-            write_vec_element(s, tcg_res, rd, pass, MO_64);
-        } else {
-            /* Single */
-            TCGv_i32 tcg_op1 = tcg_temp_new_i32();
-            TCGv_i32 tcg_op2 = tcg_temp_new_i32();
-            TCGv_i32 tcg_res = tcg_temp_new_i32();
+        switch (fpopcode) {
+        case 0x39: /* FMLS */
+            /* As usual for ARM, separate negation for fused multiply-add */
+            assert(0);
+            /* fall through */
+        case 0x19: /* FMLA */
+            assert(0);
+            break;
+        case 0x1a: /* FADD */
+            la_vfadd_s(vreg_d, vreg_n, vreg_m);
+            break;
+        case 0x1b: /* FMULX */
+            assert(0);
+            break;
+        case 0x1c: /* FCMEQ */
+            assert(0);
+            break;
+        case 0x1e: /* FMAX */
+            assert(0);
+            break;
+        case 0x1f: /* FRECPS */
+            assert(0);
+            break;
+        case 0x18: /* FMAXNM */
+            assert(0);
+            break;
+        case 0x38: /* FMINNM */
+            assert(0);
+            break;
+        case 0x3a: /* FSUB */
+            la_vfsub_s(vreg_d, vreg_n, vreg_m);
+            break;
+        case 0x3e: /* FMIN */
+            assert(0);
+            break;
+        case 0x3f: /* FRSQRTS */
+            assert(0);
+            break;
+        case 0x5b: /* FMUL */
+            assert(0);
+            break;
+        case 0x5c: /* FCMGE */
+            assert(0);
+            break;
+        case 0x5d: /* FACGE */
+            assert(0);
+            break;
+        case 0x5f: /* FDIV */
+            assert(0);
+            break;
+        case 0x7a: /* FABD */
+            assert(0);
+            break;
+        case 0x7c: /* FCMGT */
+            assert(0);
+            break;
+        case 0x7d: /* FACGT */
+            assert(0);
+            break;
+        default:
+            g_assert_not_reached();
+        }
 
-            read_vec_element_i32(s, tcg_op1, rn, pass, MO_32);
-            read_vec_element_i32(s, tcg_op2, rm, pass, MO_32);
-
-            switch (fpopcode) {
-            case 0x39: /* FMLS */
-                /* As usual for ARM, separate negation for fused multiply-add */
-                gen_helper_vfp_negs(tcg_op1, tcg_op1);
-                /* fall through */
-            case 0x19: /* FMLA */
-                read_vec_element_i32(s, tcg_res, rd, pass, MO_32);
-                gen_helper_vfp_muladds(tcg_res, tcg_op1, tcg_op2,
-                                       tcg_res, fpst);
-                break;
-            case 0x1a: /* FADD */
-                gen_helper_vfp_adds(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x1b: /* FMULX */
-                gen_helper_vfp_mulxs(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x1c: /* FCMEQ */
-                gen_helper_neon_ceq_f32(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x1e: /* FMAX */
-                gen_helper_vfp_maxs(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x1f: /* FRECPS */
-                gen_helper_recpsf_f32(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x18: /* FMAXNM */
-                gen_helper_vfp_maxnums(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x38: /* FMINNM */
-                gen_helper_vfp_minnums(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x3a: /* FSUB */
-                gen_helper_vfp_subs(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x3e: /* FMIN */
-                gen_helper_vfp_mins(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x3f: /* FRSQRTS */
-                gen_helper_rsqrtsf_f32(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x5b: /* FMUL */
-                gen_helper_vfp_muls(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x5c: /* FCMGE */
-                gen_helper_neon_cge_f32(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x5d: /* FACGE */
-                gen_helper_neon_acge_f32(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x5f: /* FDIV */
-                gen_helper_vfp_divs(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x7a: /* FABD */
-                gen_helper_vfp_subs(tcg_res, tcg_op1, tcg_op2, fpst);
-                gen_helper_vfp_abss(tcg_res, tcg_res);
-                break;
-            case 0x7c: /* FCMGT */
-                gen_helper_neon_cgt_f32(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            case 0x7d: /* FACGT */
-                gen_helper_neon_acgt_f32(tcg_res, tcg_op1, tcg_op2, fpst);
-                break;
-            default:
-                g_assert_not_reached();
-            }
-
-            if (elements == 1) {
-                /* scalar single so clear high part */
-                TCGv_i64 tcg_tmp = tcg_temp_new_i64();
-
-                tcg_gen_extu_i32_i64(tcg_tmp, tcg_res);
-                write_vec_element(s, tcg_tmp, rd, pass, MO_64);
-            } else {
-                write_vec_element_i32(s, tcg_res, rd, pass, MO_32);
-            }
+        if(elements == 2){
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
         }
     }
 
-    clear_vec_high(s, elements * (size ? 8 : 4) > 8, rd);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_m);
 }
 
 static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode, 
@@ -12265,7 +12239,8 @@ static void disas_simd_3same_float(DisasContext *s, uint32_t insn)
     int elements = datasize / esize;
 
     if (size == 1 && !is_q) {
-        unallocated_encoding(s);
+        // unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -12276,7 +12251,8 @@ static void disas_simd_3same_float(DisasContext *s, uint32_t insn)
     case 0x78: /* FMINNMP */
     case 0x7e: /* FMINP */
         if (size && !is_q) {
-            unallocated_encoding(s);
+            // unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         handle_simd_3same_pair(s, is_q, 0, fpopcode, size ? MO_64 : MO_32,
@@ -12312,7 +12288,8 @@ static void disas_simd_3same_float(DisasContext *s, uint32_t insn)
     case 0x59: /* FMLAL2 */
     case 0x79: /* FMLSL2 */
         if (size & 1 || !dc_isar_feature(aa64_fhm, s)) {
-            unallocated_encoding(s);
+            // unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         if (fp_access_check(s)) {
@@ -12328,7 +12305,8 @@ static void disas_simd_3same_float(DisasContext *s, uint32_t insn)
         return;
 
     default:
-        unallocated_encoding(s);
+        // unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 }
@@ -12760,7 +12738,8 @@ static void disas_simd_three_reg_same(DisasContext *s, uint32_t insn)
             }
         } else {
             if (size == 3) {
-                unallocated_encoding(s);
+                // unallocated_encoding(s);
+                lata_unallocated_encoding(s);
                 return;
             }
         }
