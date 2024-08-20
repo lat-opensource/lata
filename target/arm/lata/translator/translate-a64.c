@@ -9062,7 +9062,6 @@ static void disas_simd_scalar_pairwise(DisasContext *s, uint32_t insn)
     int opcode = extract32(insn, 12, 5);
     int rn = extract32(insn, 5, 5);
     int rd = extract32(insn, 0, 5);
-    TCGv_ptr fpst;
 
     /* For some ops (the FP ones), size[1] is part of the encoding.
      * For ADDP strictly it is not but size[1] is always 1 for valid
@@ -9073,14 +9072,13 @@ static void disas_simd_scalar_pairwise(DisasContext *s, uint32_t insn)
     switch (opcode) {
     case 0x3b: /* ADDP */
         if (u || size != 3) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         if (!fp_access_check(s)) {
             return;
         }
 
-        fpst = NULL;
         break;
     case 0xc: /* FMAXNMP */
     case 0xd: /* FADDP */
@@ -9090,7 +9088,7 @@ static void disas_simd_scalar_pairwise(DisasContext *s, uint32_t insn)
         /* FP op, size[0] is 32 or 64 bit*/
         if (!u) {
             if (!dc_isar_feature(aa64_fp16, s)) {
-                unallocated_encoding(s);
+                lata_unallocated_encoding(s);
                 return;
             } else {
                 size = MO_16;
@@ -9103,69 +9101,65 @@ static void disas_simd_scalar_pairwise(DisasContext *s, uint32_t insn)
             return;
         }
 
-        fpst = fpstatus_ptr(size == MO_16 ? FPST_FPCR_F16 : FPST_FPCR);
         break;
     default:
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vtemp = ra_alloc_ftemp();
     if (size == MO_64) {
-        TCGv_i64 tcg_op1 = tcg_temp_new_i64();
-        TCGv_i64 tcg_op2 = tcg_temp_new_i64();
-        TCGv_i64 tcg_res = tcg_temp_new_i64();
-
-        read_vec_element(s, tcg_op1, rn, 0, MO_64);
-        read_vec_element(s, tcg_op2, rn, 1, MO_64);
+        la_vreplvei_d(vtemp, vreg_n, 1);
 
         switch (opcode) {
         case 0x3b: /* ADDP */
-            tcg_gen_add_i64(tcg_res, tcg_op1, tcg_op2);
+            // tcg_gen_add_i64(tcg_res, tcg_op1, tcg_op2);
+            la_vadd_d(vreg_d, vtemp, vreg_n);
             break;
         case 0xc: /* FMAXNMP */
-            gen_helper_vfp_maxnumd(tcg_res, tcg_op1, tcg_op2, fpst);
+            // gen_helper_vfp_maxnumd(tcg_res, tcg_op1, tcg_op2, fpst);
+            la_vfmax_d(vreg_d, vreg_n, vtemp);
             break;
         case 0xd: /* FADDP */
-            gen_helper_vfp_addd(tcg_res, tcg_op1, tcg_op2, fpst);
+            // gen_helper_vfp_addd(tcg_res, tcg_op1, tcg_op2, fpst);
+            la_vfadd_d(vreg_d, vtemp, vreg_n);
             break;
         case 0xf: /* FMAXP */
-            gen_helper_vfp_maxd(tcg_res, tcg_op1, tcg_op2, fpst);
+            assert(0);
+            // gen_helper_vfp_maxd(tcg_res, tcg_op1, tcg_op2, fpst);
             break;
         case 0x2c: /* FMINNMP */
-            gen_helper_vfp_minnumd(tcg_res, tcg_op1, tcg_op2, fpst);
+            // gen_helper_vfp_minnumd(tcg_res, tcg_op1, tcg_op2, fpst);
+            la_vfmin_d(vreg_d, vreg_n, vtemp);
             break;
         case 0x2f: /* FMINP */
-            gen_helper_vfp_mind(tcg_res, tcg_op1, tcg_op2, fpst);
+            assert(0);
+            // gen_helper_vfp_mind(tcg_res, tcg_op1, tcg_op2, fpst);
             break;
         default:
             g_assert_not_reached();
         }
 
-        write_fp_dreg(s, rd, tcg_res);
     } else {
-        TCGv_i32 tcg_op1 = tcg_temp_new_i32();
-        TCGv_i32 tcg_op2 = tcg_temp_new_i32();
-        TCGv_i32 tcg_res = tcg_temp_new_i32();
-
-        read_vec_element_i32(s, tcg_op1, rn, 0, size);
-        read_vec_element_i32(s, tcg_op2, rn, 1, size);
-
+        assert(0);
         if (size == MO_16) {
             switch (opcode) {
             case 0xc: /* FMAXNMP */
-                gen_helper_advsimd_maxnumh(tcg_res, tcg_op1, tcg_op2, fpst);
+                // gen_helper_advsimd_maxnumh(tcg_res, tcg_op1, tcg_op2, fpst);
                 break;
             case 0xd: /* FADDP */
-                gen_helper_advsimd_addh(tcg_res, tcg_op1, tcg_op2, fpst);
+                // gen_helper_advsimd_addh(tcg_res, tcg_op1, tcg_op2, fpst);
                 break;
             case 0xf: /* FMAXP */
-                gen_helper_advsimd_maxh(tcg_res, tcg_op1, tcg_op2, fpst);
+                // gen_helper_advsimd_maxh(tcg_res, tcg_op1, tcg_op2, fpst);
                 break;
             case 0x2c: /* FMINNMP */
-                gen_helper_advsimd_minnumh(tcg_res, tcg_op1, tcg_op2, fpst);
+                // gen_helper_advsimd_minnumh(tcg_res, tcg_op1, tcg_op2, fpst);
                 break;
             case 0x2f: /* FMINP */
-                gen_helper_advsimd_minh(tcg_res, tcg_op1, tcg_op2, fpst);
+                // gen_helper_advsimd_minh(tcg_res, tcg_op1, tcg_op2, fpst);
                 break;
             default:
                 g_assert_not_reached();
@@ -9173,27 +9167,34 @@ static void disas_simd_scalar_pairwise(DisasContext *s, uint32_t insn)
         } else {
             switch (opcode) {
             case 0xc: /* FMAXNMP */
-                gen_helper_vfp_maxnums(tcg_res, tcg_op1, tcg_op2, fpst);
+                // gen_helper_vfp_maxnums(tcg_res, tcg_op1, tcg_op2, fpst);
                 break;
             case 0xd: /* FADDP */
-                gen_helper_vfp_adds(tcg_res, tcg_op1, tcg_op2, fpst);
+                // gen_helper_vfp_adds(tcg_res, tcg_op1, tcg_op2, fpst);
                 break;
             case 0xf: /* FMAXP */
-                gen_helper_vfp_maxs(tcg_res, tcg_op1, tcg_op2, fpst);
+                // gen_helper_vfp_maxs(tcg_res, tcg_op1, tcg_op2, fpst);
                 break;
             case 0x2c: /* FMINNMP */
-                gen_helper_vfp_minnums(tcg_res, tcg_op1, tcg_op2, fpst);
+                // gen_helper_vfp_minnums(tcg_res, tcg_op1, tcg_op2, fpst);
                 break;
             case 0x2f: /* FMINP */
-                gen_helper_vfp_mins(tcg_res, tcg_op1, tcg_op2, fpst);
+                // gen_helper_vfp_mins(tcg_res, tcg_op1, tcg_op2, fpst);
                 break;
             default:
                 g_assert_not_reached();
             }
         }
 
-        write_fp_sreg(s, rd, tcg_res);
+        la_movgr2frh_w(vreg_d, zero_ir2_opnd);
     }
+
+    /* 高64位清零 */
+    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vtemp);
 }
 
 /*
@@ -12121,15 +12122,8 @@ static void disas_simd_3same_logic(DisasContext *s, uint32_t insn)
 static void handle_simd_3same_pair(DisasContext *s, int is_q, int u, int opcode,
                                    int size, int rn, int rm, int rd)
 {
-    // TCGv_ptr fpst;
-    // int pass;
-
-    /* Floating point operations need fpst */
-    if (opcode >= 0x58) {
+    if(!is_q){
         assert(0);
-        // fpst = fpstatus_ptr(FPST_FPCR);
-    } else {
-        // fpst = NULL;
     }
 
     if (!fp_access_check(s)) {
@@ -12190,7 +12184,21 @@ static void handle_simd_3same_pair(DisasContext *s, int is_q, int u, int opcode,
         assert(0);
         break;
     case 0x5a: /* FADDP */
-        assert(0);
+        switch (size)
+        {
+        case 2:
+            la_vpickev_w(vtemp, vreg_m, vreg_n);
+            la_vpickod_w(vtemp1, vreg_m, vreg_n);
+            la_vfadd_s(vreg_d, vtemp, vtemp1);
+            break;
+        case 3:
+            la_vpickev_d(vtemp, vreg_m, vreg_n);
+            la_vpickod_d(vtemp1, vreg_m, vreg_n);
+            la_vfadd_d(vreg_d, vtemp, vtemp1);
+            break;
+        default:
+            assert(0);
+        }
         break;
     case 0x5e: /* FMAXP */
         assert(0);
