@@ -10083,7 +10083,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x1c: /* FCMEQ */
-            assert(0);
+            la_vfcmp_cond_d(vreg_d, vreg_n, vreg_m, FCMP_COND_SEQ);
             break;
         case 0x1e: /* FMAX */
             assert(0);
@@ -10107,7 +10107,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x5c: /* FCMGE */
-            assert(0);
+            la_vfcmp_cond_d(vreg_d, vreg_m, vreg_n, FCMP_COND_SLE);
             break;
         case 0x5d: /* FACGE */
             assert(0);
@@ -10119,7 +10119,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x7c: /* FCMGT */
-            assert(0);
+            la_vfcmp_cond_d(vreg_d, vreg_m, vreg_n, FCMP_COND_SLT);
             break;
         case 0x7d: /* FACGT */
             assert(0);
@@ -10146,7 +10146,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x1c: /* FCMEQ */
-            assert(0);
+            la_vfcmp_cond_s(vreg_d, vreg_n, vreg_m, FCMP_COND_SEQ);
             break;
         case 0x1e: /* FMAX */
             assert(0);
@@ -10173,7 +10173,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x5c: /* FCMGE */
-            assert(0);
+            la_vfcmp_cond_s(vreg_d, vreg_m, vreg_n, FCMP_COND_SLE);
             break;
         case 0x5d: /* FACGE */
             assert(0);
@@ -10185,7 +10185,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x7c: /* FCMGT */
-            assert(0);
+            la_vfcmp_cond_s(vreg_d, vreg_m, vreg_n, FCMP_COND_SLT);
             break;
         case 0x7d: /* FACGT */
             assert(0);
