@@ -495,21 +495,6 @@ typedef struct DisasCompare64 {
     TCGv_i64 value;
 } DisasCompare64;
 
-static void a64_test_cc(DisasCompare64 *c64, int cc)
-{
-    DisasCompare c32;
-
-    arm_test_cc(&c32, cc);
-
-    /*
-     * Sign-extend the 32-bit value so that the GE/LT comparisons work
-     * properly.  The NE/EQ comparisons are also fine with this choice.
-      */
-    c64->cond = c32.cond;
-    c64->value = tcg_temp_new_i64();
-    tcg_gen_ext_i32_i64(c64->value, c32.value);
-}
-
 static void gen_rebuild_hflags(DisasContext *s)
 {
     gen_helper_rebuild_hflags_a64(cpu_env, tcg_constant_i32(s->current_el));
@@ -6973,9 +6958,6 @@ static void disas_fp_ccomp(DisasContext *s, uint32_t insn)
 static void disas_fp_csel(DisasContext *s, uint32_t insn)
 {
     unsigned int mos, type, rm, cond, rn, rd;
-    TCGv_i64 t_true, t_false;
-    DisasCompare64 c;
-    MemOp sz;
 
     mos = extract32(insn, 29, 3);
     type = extract32(insn, 22, 2);
@@ -6985,45 +6967,75 @@ static void disas_fp_csel(DisasContext *s, uint32_t insn)
     rd = extract32(insn, 0, 5);
 
     if (mos) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
-    switch (type) {
-    case 0:
-        sz = MO_32;
-        break;
-    case 1:
-        sz = MO_64;
-        break;
-    case 3:
-        sz = MO_16;
-        if (dc_isar_feature(aa64_fp16, s)) {
-            break;
-        }
-        /* fallthru */
-    default:
-        unallocated_encoding(s);
-        return;
-    }
 
     if (!fp_access_check(s)) {
         return;
     }
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND temp = ra_alloc_itemp();
+    IR2_OPND l_false = ir2_opnd_new_type(IR2_OPND_LABEL);
+    IR2_OPND l_end = ir2_opnd_new_type(IR2_OPND_LABEL);
 
-    /* Zero extend sreg & hreg inputs to 64 bits now.  */
-    t_true = tcg_temp_new_i64();
-    t_false = tcg_temp_new_i64();
-    read_vec_element(s, t_true, rn, 0, sz);
-    read_vec_element(s, t_false, rm, 0, sz);
+    la_setarmj(temp, cond);
+    la_beqz(temp, l_false);
 
-    a64_test_cc(&c, cond);
-    tcg_gen_movcond_i64(c.cond, t_true, c.value, tcg_constant_i64(0),
-                        t_true, t_false);
+    /* TRUE */
+    switch (type) {
+        case 0:
+            la_fmov_s(vreg_d, vreg_n);
+            la_movgr2frh_w(vreg_d, zero_ir2_opnd);
+            break;
+        case 1:
+            la_fmov_d(vreg_d, vreg_n);
+            break;
+        case 3:
+            assert(0);
+            if (dc_isar_feature(aa64_fp16, s)) {
+                break;
+            }
+            /* fallthru */
+        default:
+            lata_unallocated_encoding(s);
+            return;
+    }
+    la_b(l_end);
 
-    /* Note that sregs & hregs write back zeros to the high bits,
-       and we've already done the zero-extension.  */
-    write_fp_dreg(s, rd, t_true);
+    /* FALSE */
+    la_label(l_false);
+    switch (type) {
+        case 0:
+            la_fmov_s(vreg_d, vreg_m);
+            la_movgr2frh_w(vreg_d, zero_ir2_opnd);
+            break;
+        case 1:
+            la_fmov_d(vreg_d, vreg_m);
+            break;
+        case 3:
+            assert(0);
+            if (dc_isar_feature(aa64_fp16, s)) {
+                break;
+            }
+            /* fallthru */
+        default:
+            lata_unallocated_encoding(s);
+            return;
+    }
+    
+    la_label(l_end);
+
+    /* 高64位清零 */
+    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_m);
+    free_alloc_gpr(temp);
 }
 
 /* Floating-point data-processing (1 source) - half precision */
