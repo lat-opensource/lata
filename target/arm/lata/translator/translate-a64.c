@@ -10791,129 +10791,89 @@ static void handle_2misc_fcmp_zero(DisasContext *s, int opcode,
                                    bool is_scalar, bool is_u, bool is_q,
                                    int size, int rn, int rd)
 {
+    assert(!is_scalar);
     bool is_double = (size == MO_64);
-    TCGv_ptr fpst;
 
     if (!fp_access_check(s)) {
         return;
     }
 
-    fpst = fpstatus_ptr(size == MO_16 ? FPST_FPCR_F16 : FPST_FPCR);
-
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    la_vxor_v(vtemp, vtemp, vtemp);
     if (is_double) {
-        TCGv_i64 tcg_op = tcg_temp_new_i64();
-        TCGv_i64 tcg_zero = tcg_constant_i64(0);
-        TCGv_i64 tcg_res = tcg_temp_new_i64();
-        NeonGenTwoDoubleOpFn *genfn;
-        bool swap = false;
-        int pass;
 
         switch (opcode) {
         case 0x2e: /* FCMLT (zero) */
-            swap = true;
-            /* fallthrough */
+            la_vfcmp_cond_d(vreg_d, vreg_n, vtemp, FCMP_COND_SLT);
+            break;
         case 0x2c: /* FCMGT (zero) */
-            genfn = gen_helper_neon_cgt_f64;
+            la_vfcmp_cond_d(vreg_d, vtemp, vreg_n, FCMP_COND_SLT);
             break;
         case 0x2d: /* FCMEQ (zero) */
-            genfn = gen_helper_neon_ceq_f64;
+            la_vfcmp_cond_d(vreg_d, vreg_n, vtemp, FCMP_COND_SEQ);
             break;
         case 0x6d: /* FCMLE (zero) */
-            swap = true;
-            /* fall through */
+            la_vfcmp_cond_d(vreg_d, vreg_n, vtemp, FCMP_COND_SLE);
+            break;
         case 0x6c: /* FCMGE (zero) */
-            genfn = gen_helper_neon_cge_f64;
+            la_vfcmp_cond_d(vreg_d, vtemp, vreg_n, FCMP_COND_SLE);
             break;
         default:
             g_assert_not_reached();
         }
 
-        for (pass = 0; pass < (is_scalar ? 1 : 2); pass++) {
-            read_vec_element(s, tcg_op, rn, pass, MO_64);
-            if (swap) {
-                genfn(tcg_res, tcg_zero, tcg_op, fpst);
-            } else {
-                genfn(tcg_res, tcg_op, tcg_zero, fpst);
-            }
-            write_vec_element(s, tcg_res, rd, pass, MO_64);
-        }
-
-        clear_vec_high(s, !is_scalar, rd);
     } else {
-        TCGv_i32 tcg_op = tcg_temp_new_i32();
-        TCGv_i32 tcg_zero = tcg_constant_i32(0);
-        TCGv_i32 tcg_res = tcg_temp_new_i32();
-        NeonGenTwoSingleOpFn *genfn;
-        bool swap = false;
-        int pass, maxpasses;
 
         if (size == MO_16) {
+            assert(0);
             switch (opcode) {
             case 0x2e: /* FCMLT (zero) */
-                swap = true;
-                /* fall through */
+                break;
             case 0x2c: /* FCMGT (zero) */
-                genfn = gen_helper_advsimd_cgt_f16;
                 break;
             case 0x2d: /* FCMEQ (zero) */
-                genfn = gen_helper_advsimd_ceq_f16;
                 break;
             case 0x6d: /* FCMLE (zero) */
-                swap = true;
-                /* fall through */
+                break;
             case 0x6c: /* FCMGE (zero) */
-                genfn = gen_helper_advsimd_cge_f16;
                 break;
             default:
                 g_assert_not_reached();
             }
         } else {
-            switch (opcode) {
+        switch (opcode) {
             case 0x2e: /* FCMLT (zero) */
-                swap = true;
-                /* fall through */
+                la_vfcmp_cond_s(vreg_d, vreg_n, vtemp, FCMP_COND_SLT);
+                break;
             case 0x2c: /* FCMGT (zero) */
-                genfn = gen_helper_neon_cgt_f32;
+                la_vfcmp_cond_s(vreg_d, vtemp, vreg_n, FCMP_COND_SLT);
                 break;
             case 0x2d: /* FCMEQ (zero) */
-                genfn = gen_helper_neon_ceq_f32;
+                la_vfcmp_cond_s(vreg_d, vreg_n, vtemp, FCMP_COND_SEQ);
                 break;
             case 0x6d: /* FCMLE (zero) */
-                swap = true;
-                /* fall through */
+                la_vfcmp_cond_s(vreg_d, vreg_n, vtemp, FCMP_COND_SLE);
+                break;
             case 0x6c: /* FCMGE (zero) */
-                genfn = gen_helper_neon_cge_f32;
+                la_vfcmp_cond_s(vreg_d, vtemp, vreg_n, FCMP_COND_SLE);
                 break;
             default:
                 g_assert_not_reached();
             }
+
         }
 
-        if (is_scalar) {
-            maxpasses = 1;
-        } else {
-            int vector_size = 8 << is_q;
-            maxpasses = vector_size >> size;
-        }
-
-        for (pass = 0; pass < maxpasses; pass++) {
-            read_vec_element_i32(s, tcg_op, rn, pass, size);
-            if (swap) {
-                genfn(tcg_res, tcg_zero, tcg_op, fpst);
-            } else {
-                genfn(tcg_res, tcg_op, tcg_zero, fpst);
-            }
-            if (is_scalar) {
-                write_fp_sreg(s, rd, tcg_res);
-            } else {
-                write_vec_element_i32(s, tcg_res, rd, pass, size);
-            }
-        }
-
-        if (!is_scalar) {
-            clear_vec_high(s, is_q, rd);
-        }
     }
+    /* 高64位清零 */
+    if(!is_q){
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    }
+
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
 }
 
 static void handle_2misc_reciprocal(DisasContext *s, int opcode,
@@ -13389,7 +13349,7 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
             /* CNT */
             break;
         }
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     case 0x12: /* XTN, XTN2, SQXTUN, SQXTUN2 */
     case 0x14: /* SQXTN, SQXTN2, UQXTN, UQXTN2 */
@@ -13499,7 +13459,7 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
         case 0x6c: /* FCMGE (zero) */
         case 0x6d: /* FCMLE (zero) */
             if (size == 3 && !is_q) {
-                unallocated_encoding(s);
+                lata_unallocated_encoding(s);
                 return;
             }
             handle_2misc_fcmp_zero(s, opcode, false, u, is_q, size, rn, rd);
