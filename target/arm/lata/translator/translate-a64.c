@@ -7219,7 +7219,6 @@ static void handle_fp_1src_double(DisasContext *s, int opcode, int rd, int rn)
 static void handle_fp_fcvt(DisasContext *s, int opcode,
                            int rd, int rn, int dtype, int ntype)
 {
-    assert(0);
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
 
@@ -7262,6 +7261,8 @@ static void handle_fp_fcvt(DisasContext *s, int opcode,
         g_assert_not_reached();
     }
 
+    /* 高64位清零 */
+    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
@@ -7817,63 +7818,231 @@ static void handle_fpfpcvt(DisasContext *s, int rd, int rn, int opcode,
         free_alloc_fpr(vtemp);
         free_alloc_gpr(reg_n);
     } else {
-        assert(0);
-        IR2_OPND reg_d = alloc_gpr_dst(rd);
-        IR2_OPND vreg_n = alloc_fpr_src(rn);
-        IR2_OPND vtemp = ra_alloc_ftemp();
 
         if (extract32(opcode, 2, 1)) {
             /* There are too many rounding modes to all fit into rmode,
              * so FCVTA[US] is a special case.
              */
-            assert(0);
-            // rmode = FPROUNDING_TIEAWAY;
+            rmode = FPROUNDING_TIEAWAY;
         }
+        if(is_signed && extract32(opcode, 2, 1) != 1){ /* FCVT[NPMZ]S */
+            IR2_OPND reg_d = alloc_gpr_dst(rd);
+            IR2_OPND vreg_n = alloc_fpr_src(rn);
+            IR2_OPND vtemp = ra_alloc_ftemp();
 
-        switch (type) {
-        case 1: /* float64 */
-            if (sf) {
-                la_ftint_l_d(vtemp, vreg_n);
-                la_movfr2gr_d(reg_d, vtemp);
-            } else {
-                /*  因为movfr2gr_s默认是符号拓展，
-                    所以对非符号拓展的操作需要高位清零;
-                    float32同理。
-                */
-                la_ftint_w_d(vtemp, vreg_n);
-                la_movfr2gr_s(reg_d, vtemp);
-                if (!is_signed) {
-                    la_bstrpick_d(reg_d, reg_d, 31, 0);   
+
+            switch(rmode){ 
+            case 0: /* Round to Nearest (RN) mode. */
+                switch (type) {
+                case 1: /* float64 */
+                    if (sf) {
+                        la_ftintrne_l_d(vtemp, vreg_n);
+                        la_movfr2gr_d(reg_d, vtemp);
+                    } else {
+                        la_ftintrne_w_d(vtemp, vreg_n);
+                        la_movfr2gr_s(reg_d, vtemp);
+
+                    }
+                    break;
+                case 0: /* float32 */
+                    if (sf) {
+                        la_ftintrne_l_s(vtemp, vreg_n);
+                        la_movfr2gr_d(reg_d, vtemp);
+                    } else {
+                        la_ftintrne_w_s(vtemp, vreg_n);
+                        la_movfr2gr_s(reg_d, vtemp);
+
+                    }
+                    break;
+                case 3: /* float16 */
+                    assert(0);
+                    break;
+                default:
+                    g_assert_not_reached();
                 }
-            }
-            break;
+                break;
+            case 1: /* Round towards Plus Infinity (RP) mode. */
+                switch (type) {
+                case 1: /* float64 */
+                    if (sf) {
+                        la_ftintrp_l_d(vtemp, vreg_n);
+                        la_movfr2gr_d(reg_d, vtemp);
+                    } else {
+                        la_ftintrp_w_d(vtemp, vreg_n);
+                        la_movfr2gr_s(reg_d, vtemp);
 
-        case 0: /* float32 */
-            if (sf) {
-                la_ftint_l_s(vtemp, vreg_n);
-                la_movfr2gr_d(reg_d, vtemp);
-            } else {
-                la_ftint_w_s(vtemp, vreg_n);
-                la_movfr2gr_s(reg_d, vtemp);
-                if (!is_signed) {
-                    la_bstrpick_d(reg_d, reg_d, 31, 0);   
+                    }
+                    break;
+                case 0: /* float32 */
+                    if (sf) {
+                        la_ftintrp_l_s(vtemp, vreg_n);
+                        la_movfr2gr_d(reg_d, vtemp);
+                    } else {
+                        la_ftintrp_w_s(vtemp, vreg_n);
+                        la_movfr2gr_s(reg_d, vtemp);
+
+                    }
+                    break;
+                case 3: /* float16 */
+                    assert(0);
+                    break;
+                default:
+                    g_assert_not_reached();
                 }
+                break;
+            case 2: /* Round towards Minus Infinity (RM) mode. */
+                switch (type) {
+                case 1: /* float64 */
+                    if (sf) {
+                        la_ftintrm_l_d(vtemp, vreg_n);
+                        la_movfr2gr_d(reg_d, vtemp);
+                    } else {
+                        la_ftintrm_w_d(vtemp, vreg_n);
+                        la_movfr2gr_s(reg_d, vtemp);
+
+                    }
+                    break;
+                case 0: /* float32 */
+                    if (sf) {
+                        la_ftintrm_l_s(vtemp, vreg_n);
+                        la_movfr2gr_d(reg_d, vtemp);
+                    } else {
+                        la_ftintrm_w_s(vtemp, vreg_n);
+                        la_movfr2gr_s(reg_d, vtemp);
+
+                    }
+                    break;
+                case 3: /* float16 */
+                    assert(0);
+                    break;
+                default:
+                    g_assert_not_reached();
+                }
+                break;
+            case 3: /* Round towards Zero (RZ) mode. */
+                switch (type) {
+                case 1: /* float64 */
+                    if (sf) {
+                        la_ftintrz_l_d(vtemp, vreg_n);
+                        la_movfr2gr_d(reg_d, vtemp);
+                    } else {
+                        la_ftintrz_w_d(vtemp, vreg_n);
+                        la_movfr2gr_s(reg_d, vtemp);
+
+                    }
+                    break;
+                case 0: /* float32 */
+                    if (sf) {
+                        la_ftintrz_l_s(vtemp, vreg_n);
+                        la_movfr2gr_d(reg_d, vtemp);
+                    } else {
+                        la_ftintrz_w_s(vtemp, vreg_n);
+                        la_movfr2gr_s(reg_d, vtemp);
+
+                    }
+                    break;
+                case 3: /* float16 */
+                    assert(0);
+                    break;
+                default:
+                    g_assert_not_reached();
+                }
+                break;
+            default:
+                g_assert_not_reached();
             }
-            break;
 
-        case 3: /* float16 */
-            assert(0);
-            break;
+            if(!sf){
+                la_bstrpick_d(reg_d, reg_d, 31, 0);   
+            }
+            store_gpr_dst(rd, reg_d);
+            free_alloc_gpr(reg_d);
+            free_alloc_fpr(vreg_n);
+            free_alloc_fpr(vtemp);
+        }else{  /* FCVT[NPMZ]U */
+            /* 龙芯没有对应浮点数转成无符号整数的指令，
+            当大于最大的无符号浮点数(0xffffffff或0xffffffffffffffff), arm64会置成最大的无符号整数。
+            当小于0的浮点数转成无符号整数时， arm64直接置0。
+            */
 
-        default:
-            g_assert_not_reached();
-        }
+            IR2_OPND temp = ra_alloc_itemp();
+            IR2_OPND reg_d = alloc_gpr_dst(rd);
 
-        store_gpr_dst(rd, reg_d);
-        free_alloc_gpr(reg_d);
-        free_alloc_fpr(vreg_n);
-        free_alloc_fpr(vtemp);
-        // gen_restore_rmode(tcg_rmode, tcg_fpstatus);
+            li_d(temp, s->base.pc_next);
+            la_st_d(temp, env_ir2_opnd, env_offset_pc());
+            lata_gen_call_helper_prologue(tcg_ctx);
+
+            /* set rmode */
+            li_d(a0_ir2_opnd, env_offset_RMODE());
+            li_d(a1_ir2_opnd, arm_rmode_to_sf(rmode));
+            la_stx_w(a1_ir2_opnd, env_ir2_opnd, a0_ir2_opnd);
+
+            /* a2: fpstatus */
+            li_d(temp, offsetof(CPUARMState, vfp.fp_status));
+            la_add_d(a2_ir2_opnd, env_ir2_opnd, temp);
+            /* a1: shift */
+            li_d(a1_ir2_opnd, 64 - scale);
+            /* a0: fp */
+            li_d(temp, env_offset_fpr(rn));
+            la_ldx_d(a0_ir2_opnd, env_ir2_opnd, temp);
+
+            switch (type) {
+            case 1: /* float64 */
+                if(is_signed){
+                    if (sf) {
+                        li_d(temp, (uint64_t)helper_vfp_tosqd);
+                    } else {
+                        li_d(temp, (uint64_t)helper_vfp_tosld);
+                    }
+                }else{
+                    if (sf) {
+                        li_d(temp, (uint64_t)helper_vfp_touqd);
+                    } else {
+                        li_d(temp, (uint64_t)helper_vfp_tould);
+                    }
+                }
+                break;
+            case 0: /* float32 */
+                if(is_signed){
+                    if (sf) {
+                        li_d(temp, (uint64_t)helper_vfp_tosqs);
+                    } else {
+                        li_d(temp, (uint64_t)helper_vfp_tosls);
+                    }
+                }else{
+                    if (sf) {
+                        li_d(temp, (uint64_t)helper_vfp_touqs);
+                    } else {
+                        li_d(temp, (uint64_t)helper_vfp_touls);
+                    }
+                }
+                break;
+            case 3: /* float16 */
+                assert(0);
+                break;
+
+            default:
+                g_assert_not_reached();
+            }
+            la_jirl(ra_ir2_opnd, temp, 0);
+            
+            /* set rmode */
+            li_d(a6_ir2_opnd, env_offset_FPSCR());
+            la_ldx_d(a7_ir2_opnd, env_ir2_opnd, a6_ir2_opnd);
+            la_bstrpick_d(a7_ir2_opnd, a7_ir2_opnd, 23, 22);
+            li_d(a6_ir2_opnd, env_offset_RMODE());
+            la_stx_w(a7_ir2_opnd, env_ir2_opnd, a6_ir2_opnd);
+
+            lata_gen_call_helper_epilogue(tcg_ctx);
+            la_mov64(reg_d, a0_ir2_opnd);
+            if(!sf){
+                la_bstrpick_d(reg_d, reg_d, 31, 0);
+            }
+
+            store_gpr_dst(rd, reg_d);
+            free_alloc_gpr(reg_d);
+            free_alloc_gpr(temp);
+        }   
     }
 }
 
