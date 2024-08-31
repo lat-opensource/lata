@@ -327,9 +327,9 @@ static void generate_context_switch_bt_to_native(CPUState *cs)
 
     /* set fcsr, rm set by FPSCR[23:22], others was cleared */
     li_d(a5_ir2_opnd, env_offset_FPSCR());
-    la_ldx_d(a7_ir2_opnd, env_ir2_opnd, a5_ir2_opnd);
+    la_ldx_wu(a7_ir2_opnd, env_ir2_opnd, a5_ir2_opnd);
     la_bstrpick_d(a7_ir2_opnd, a7_ir2_opnd, 23, 22);
-    li_d(a6_ir2_opnd, 2 << 6 | 1 << 4 | 3 << 2 | 0);
+    li_d(a6_ir2_opnd, 1 << 6 | 3 << 4 | 2 << 2 | 0);
     la_slli_d(a7_ir2_opnd, a7_ir2_opnd, 1);
     la_srl_d(a7_ir2_opnd, a6_ir2_opnd, a7_ir2_opnd);
     la_andi(a7_ir2_opnd, a7_ir2_opnd, 0x3);
@@ -381,9 +381,9 @@ static void generate_context_switch_native_to_bt(CPUState *cs)
     la_srl_d(t0_ir2_opnd, t1_ir2_opnd, t0_ir2_opnd);
     la_andi(t0_ir2_opnd, t0_ir2_opnd, 0x3);
     li_d(t2_ir2_opnd, env_offset_FPSCR());
-    la_ldx_d(t1_ir2_opnd, env_ir2_opnd, t2_ir2_opnd);
+    la_ldx_wu(t1_ir2_opnd, env_ir2_opnd, t2_ir2_opnd);
     la_bstrins_d(t1_ir2_opnd, t0_ir2_opnd, 23, 22);
-    la_stx_d(t1_ir2_opnd, env_ir2_opnd, t2_ir2_opnd);
+    la_stx_w(t1_ir2_opnd, env_ir2_opnd, t2_ir2_opnd);
 
     /* load callee-saved LA registers. s0-s8 */
     la_ld_d(s0_ir2_opnd, sp_ir2_opnd, S0_EXTRA_SPACE);
@@ -610,9 +610,9 @@ void lata_gen_call_helper_prologue(TCGContext *tcg_ctx)
     la_srl_d(t0_ir2_opnd, t1_ir2_opnd, t0_ir2_opnd);
     la_andi(t0_ir2_opnd, t0_ir2_opnd, 0x3);
     li_d(t2_ir2_opnd, env_offset_FPSCR());
-    la_ldx_d(t1_ir2_opnd, env_ir2_opnd, t2_ir2_opnd);
+    la_ldx_wu(t1_ir2_opnd, env_ir2_opnd, t2_ir2_opnd);
     la_bstrins_d(t1_ir2_opnd, t0_ir2_opnd, 23, 22);
-    la_stx_d(t1_ir2_opnd, env_ir2_opnd, t2_ir2_opnd);
+    la_stx_w(t1_ir2_opnd, env_ir2_opnd, t2_ir2_opnd);
 
     /* clear fcsr */
     la_movgr2fcsr(fcsr_ir2_opnd, zero_ir2_opnd);
@@ -626,9 +626,9 @@ void lata_gen_call_helper_epilogue(TCGContext *tcg_ctx)
 
     /* set fcsr, rm set by FPSCR[23:22], others was cleared */
     li_d(a5_ir2_opnd, env_offset_FPSCR());
-    la_ldx_d(a7_ir2_opnd, env_ir2_opnd, a5_ir2_opnd);
+    la_ldx_wu(a7_ir2_opnd, env_ir2_opnd, a5_ir2_opnd);
     la_bstrpick_d(a7_ir2_opnd, a7_ir2_opnd, 23, 22);
-    li_d(a6_ir2_opnd, 2 << 6 | 1 << 4 | 3 << 2 | 0);
+    li_d(a6_ir2_opnd, 1 << 6 | 3 << 4 | 2 << 2 | 0);
     la_slli_d(a7_ir2_opnd, a7_ir2_opnd, 1);
     la_srl_d(a7_ir2_opnd, a6_ir2_opnd, a7_ir2_opnd);
     la_andi(a7_ir2_opnd, a7_ir2_opnd, 0x3);
