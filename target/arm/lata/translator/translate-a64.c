@@ -13294,41 +13294,23 @@ static void handle_2misc_widening(DisasContext *s, int opcode, bool is_q,
      * in the source becomes a 2*size element in the destination.
      * The only instruction like this is FCVTL.
      */
-    int pass;
-
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
     if (size == 3) {
         /* 32 -> 64 bit fp conversion */
-        TCGv_i64 tcg_res[2];
-        int srcelt = is_q ? 2 : 0;
-
-        for (pass = 0; pass < 2; pass++) {
-            TCGv_i32 tcg_op = tcg_temp_new_i32();
-            tcg_res[pass] = tcg_temp_new_i64();
-
-            read_vec_element_i32(s, tcg_op, rn, srcelt + pass, MO_32);
-            gen_helper_vfp_fcvtds(tcg_res[pass], tcg_op, cpu_env);
-        }
-        for (pass = 0; pass < 2; pass++) {
-            write_vec_element(s, tcg_res[pass], rd, pass, MO_64);
+        if(is_q){
+            la_vfcvth_d_s(vreg_d, vreg_n);
+        }else{
+            la_vfcvtl_d_s(vreg_d, vreg_n);
         }
     } else {
         /* 16 -> 32 bit fp conversion */
-        int srcelt = is_q ? 4 : 0;
-        TCGv_i32 tcg_res[4];
-        TCGv_ptr fpst = fpstatus_ptr(FPST_FPCR);
-        TCGv_i32 ahp = get_ahp_flag();
-
-        for (pass = 0; pass < 4; pass++) {
-            tcg_res[pass] = tcg_temp_new_i32();
-
-            read_vec_element_i32(s, tcg_res[pass], rn, srcelt + pass, MO_16);
-            gen_helper_vfp_fcvt_f16_to_f32(tcg_res[pass], tcg_res[pass],
-                                           fpst, ahp);
-        }
-        for (pass = 0; pass < 4; pass++) {
-            write_vec_element_i32(s, tcg_res[pass], rd, pass, MO_32);
-        }
+        assert(0);
     }
+
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
 }
 
 static void handle_rev(DisasContext *s, int opcode, bool u,
