@@ -11137,104 +11137,56 @@ static void handle_2misc_narrow(DisasContext *s, bool scalar,
     /* Handle 2-reg-misc ops which are narrowing (so each 2*size element
      * in the source becomes a size element in the destination).
      */
-    int pass;
-    TCGv_i32 tcg_res[2];
-    int destelt = is_q ? 2 : 0;
-    int passes = scalar ? 1 : 2;
+    IR2_OPND vreg_d = alloc_fpr_src(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vtemp = ra_alloc_ftemp();
 
-    if (scalar) {
-        tcg_res[1] = tcg_constant_i32(0);
+    switch (opcode) {
+    case 0x12: /* XTN, SQXTUN */
+    {
+        assert(0);
+        break;
     }
+    case 0x14: /* SQXTN, UQXTN */
+    {
+        assert(0);
+        break;
+    }
+    case 0x16: /* FCVTN, FCVTN2 */
+        /* 32 bit to 16 bit or 64 bit to 32 bit float conversion */
+        if (size == 2) {
+            if(is_q){
+                la_vori_b(vtemp, vreg_d, 0);
+                la_vfcvt_s_d(vreg_d, vreg_n, vreg_n);     
+                la_vextrins_d(vreg_d, vtemp, 0);
+            }else{
+                la_vfcvt_s_d(vreg_d, vreg_n, vreg_n);
+                la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+            }
 
-    for (pass = 0; pass < passes; pass++) {
-        TCGv_i64 tcg_op = tcg_temp_new_i64();
-        NeonGenNarrowFn *genfn = NULL;
-        NeonGenNarrowEnvFn *genenvfn = NULL;
-
-        if (scalar) {
-            read_vec_element(s, tcg_op, rn, pass, size + 1);
         } else {
-            read_vec_element(s, tcg_op, rn, pass, MO_64);
+            assert(0);
         }
-        tcg_res[pass] = tcg_temp_new_i32();
-
-        switch (opcode) {
-        case 0x12: /* XTN, SQXTUN */
+        break;
+    case 0x36: /* BFCVTN, BFCVTN2 */
         {
-            static NeonGenNarrowFn * const xtnfns[3] = {
-                gen_helper_neon_narrow_u8,
-                gen_helper_neon_narrow_u16,
-                tcg_gen_extrl_i64_i32,
-            };
-            static NeonGenNarrowEnvFn * const sqxtunfns[3] = {
-                gen_helper_neon_unarrow_sat8,
-                gen_helper_neon_unarrow_sat16,
-                gen_helper_neon_unarrow_sat32,
-            };
-            if (u) {
-                genenvfn = sqxtunfns[size];
-            } else {
-                genfn = xtnfns[size];
-            }
-            break;
+            assert(0);
         }
-        case 0x14: /* SQXTN, UQXTN */
-        {
-            static NeonGenNarrowEnvFn * const fns[3][2] = {
-                { gen_helper_neon_narrow_sat_s8,
-                  gen_helper_neon_narrow_sat_u8 },
-                { gen_helper_neon_narrow_sat_s16,
-                  gen_helper_neon_narrow_sat_u16 },
-                { gen_helper_neon_narrow_sat_s32,
-                  gen_helper_neon_narrow_sat_u32 },
-            };
-            genenvfn = fns[size][u];
-            break;
-        }
-        case 0x16: /* FCVTN, FCVTN2 */
-            /* 32 bit to 16 bit or 64 bit to 32 bit float conversion */
-            if (size == 2) {
-                gen_helper_vfp_fcvtsd(tcg_res[pass], tcg_op, cpu_env);
-            } else {
-                TCGv_i32 tcg_lo = tcg_temp_new_i32();
-                TCGv_i32 tcg_hi = tcg_temp_new_i32();
-                TCGv_ptr fpst = fpstatus_ptr(FPST_FPCR);
-                TCGv_i32 ahp = get_ahp_flag();
-
-                tcg_gen_extr_i64_i32(tcg_lo, tcg_hi, tcg_op);
-                gen_helper_vfp_fcvt_f32_to_f16(tcg_lo, tcg_lo, fpst, ahp);
-                gen_helper_vfp_fcvt_f32_to_f16(tcg_hi, tcg_hi, fpst, ahp);
-                tcg_gen_deposit_i32(tcg_res[pass], tcg_lo, tcg_hi, 16, 16);
-            }
-            break;
-        case 0x36: /* BFCVTN, BFCVTN2 */
-            {
-                TCGv_ptr fpst = fpstatus_ptr(FPST_FPCR);
-                gen_helper_bfcvt_pair(tcg_res[pass], tcg_op, fpst);
-            }
-            break;
-        case 0x56:  /* FCVTXN, FCVTXN2 */
-            /* 64 bit to 32 bit float conversion
-             * with von Neumann rounding (round to odd)
-             */
-            assert(size == 2);
-            gen_helper_fcvtx_f64_to_f32(tcg_res[pass], tcg_op, cpu_env);
-            break;
-        default:
-            g_assert_not_reached();
-        }
-
-        if (genfn) {
-            genfn(tcg_res[pass], tcg_op);
-        } else if (genenvfn) {
-            genenvfn(tcg_res[pass], cpu_env, tcg_op);
-        }
+        break;
+    case 0x56:  /* FCVTXN, FCVTXN2 */
+        /* 64 bit to 32 bit float conversion
+            * with von Neumann rounding (round to odd)
+            */
+        assert(0);
+        break;
+    default:
+        g_assert_not_reached();
     }
 
-    for (pass = 0; pass < 2; pass++) {
-        write_vec_element_i32(s, tcg_res[pass], rd, destelt + pass, MO_32);
-    }
-    clear_vec_high(s, is_q, rd);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vtemp);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
 }
 
 /* Remaining saturating accumulating ops */
