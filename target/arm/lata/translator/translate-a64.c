@@ -10267,7 +10267,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x18: /* FMAXNM */
-            assert(0);
+            la_vfmax_d(vreg_d, vreg_n, vreg_m);
             break;
         case 0x1a: /* FADD */
             la_vfadd_d(vreg_d, vreg_n, vreg_m);
@@ -10285,7 +10285,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x38: /* FMINNM */
-            assert(0);
+            la_vfmin_d(vreg_d, vreg_n, vreg_m);
             break;
         case 0x3a: /* FSUB */
             la_vfsub_d(vreg_d, vreg_n, vreg_m);
@@ -10348,10 +10348,10 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x18: /* FMAXNM */
-            assert(0);
+            la_vfmax_s(vreg_d, vreg_n, vreg_m);
             break;
         case 0x38: /* FMINNM */
-            assert(0);
+            la_vfmin_s(vreg_d, vreg_n, vreg_m);
             break;
         case 0x3a: /* FSUB */
             la_vfsub_s(vreg_d, vreg_n, vreg_m);
@@ -10418,7 +10418,7 @@ static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode,
             assert(0);
             break;
         case 0x18: /* FMAXNM */
-            assert(0);
+            la_fmax_d(vreg_d, vreg_n, vreg_m);
             break;
         case 0x1a: /* FADD */
             assert(0);
@@ -10436,7 +10436,7 @@ static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode,
             assert(0);
             break;
         case 0x38: /* FMINNM */
-            assert(0);
+            la_vfmin_d(vreg_d, vreg_n, vreg_m);
             break;
         case 0x3a: /* FSUB */
             assert(0);
@@ -10500,10 +10500,10 @@ static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode,
             assert(0);
             break;
         case 0x18: /* FMAXNM */
-            assert(0);
+            la_vfmax_s(vreg_d, vreg_n, vreg_m);
             break;
         case 0x38: /* FMINNM */
-            assert(0);
+            la_vfmax_s(vreg_d, vreg_n, vreg_m);
             break;
         case 0x3a: /* FSUB */
             assert(0);
