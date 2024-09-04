@@ -823,14 +823,6 @@ static TCGv_i64 read_fp_dreg(DisasContext *s, int reg)
     return v;
 }
 
-static TCGv_i32 read_fp_sreg(DisasContext *s, int reg)
-{
-    TCGv_i32 v = tcg_temp_new_i32();
-
-    tcg_gen_ld_i32(v, cpu_env, fp_reg_offset(s, reg, MO_32));
-    return v;
-}
-
 static TCGv_i32 read_fp_hreg(DisasContext *s, int reg)
 {
     TCGv_i32 v = tcg_temp_new_i32();
@@ -7566,13 +7558,11 @@ static void disas_fp_2src(DisasContext *s, uint32_t insn)
 static void handle_fp_3src_single(DisasContext *s, bool o0, bool o1,
                                   int rd, int rn, int rm, int ra)
 {
-    TCGv_i32 tcg_op1, tcg_op2, tcg_op3;
-    TCGv_i32 tcg_res = tcg_temp_new_i32();
-    TCGv_ptr fpst = fpstatus_ptr(FPST_FPCR);
-
-    tcg_op1 = read_fp_sreg(s, rn);
-    tcg_op2 = read_fp_sreg(s, rm);
-    tcg_op3 = read_fp_sreg(s, ra);
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND vreg_a = alloc_fpr_src(ra);
+    IR2_OPND vtemp = ra_alloc_ftemp();
 
     /* These are fused multiply-add, and must be done as one
      * floating point operation with no rounding between the
@@ -7582,29 +7572,39 @@ static void handle_fp_3src_single(DisasContext *s, bool o0, bool o1,
      * flipped if it is a negated-input.
      */
     if (o1 == true) {
-        gen_helper_vfp_negs(tcg_op3, tcg_op3);
+        la_fneg_s(vtemp, vreg_n);
+        if(o0 != o1){
+            la_fmsub_s(vreg_d, vtemp, vreg_m, vreg_a);
+        }else{
+            la_fmadd_s(vreg_d, vtemp, vreg_m, vreg_a);
+        }
+    }else{
+        if(o0 != o1){
+            la_fmsub_s(vreg_d, vreg_n, vreg_m, vreg_a);
+        }else{
+            la_fmadd_s(vreg_d, vreg_n, vreg_m, vreg_a);
+        }
     }
+    la_movgr2frh_w(vreg_d, zero_ir2_opnd);
+    /* 高64位清零 */
+    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
 
-    if (o0 != o1) {
-        gen_helper_vfp_negs(tcg_op1, tcg_op1);
-    }
-
-    gen_helper_vfp_muladds(tcg_res, tcg_op1, tcg_op2, tcg_op3, fpst);
-
-    write_fp_sreg(s, rd, tcg_res);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_m);
+    free_alloc_fpr(vreg_a);
 }
 
 /* Floating-point data-processing (3 source) - double precision */
 static void handle_fp_3src_double(DisasContext *s, bool o0, bool o1,
                                   int rd, int rn, int rm, int ra)
 {
-    TCGv_i64 tcg_op1, tcg_op2, tcg_op3;
-    TCGv_i64 tcg_res = tcg_temp_new_i64();
-    TCGv_ptr fpst = fpstatus_ptr(FPST_FPCR);
-
-    tcg_op1 = read_fp_dreg(s, rn);
-    tcg_op2 = read_fp_dreg(s, rm);
-    tcg_op3 = read_fp_dreg(s, ra);
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND vreg_a = alloc_fpr_src(ra);
+    IR2_OPND vtemp = ra_alloc_ftemp();
 
     /* These are fused multiply-add, and must be done as one
      * floating point operation with no rounding between the
@@ -7614,16 +7614,28 @@ static void handle_fp_3src_double(DisasContext *s, bool o0, bool o1,
      * flipped if it is a negated-input.
      */
     if (o1 == true) {
-        gen_helper_vfp_negd(tcg_op3, tcg_op3);
+        la_fneg_d(vtemp, vreg_n);
+        if(o0 != o1){
+            la_fmsub_d(vreg_d, vtemp, vreg_m, vreg_a);
+        }else{
+            la_fmadd_d(vreg_d, vtemp, vreg_m, vreg_a);
+        }
+    }else{
+        if(o0 != o1){
+            la_fmsub_d(vreg_d, vreg_n, vreg_m, vreg_a);
+        }else{
+            la_fmadd_d(vreg_d, vreg_n, vreg_m, vreg_a);
+        }
     }
 
-    if (o0 != o1) {
-        gen_helper_vfp_negd(tcg_op1, tcg_op1);
-    }
+    /* 高64位清零 */
+    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
 
-    gen_helper_vfp_muladdd(tcg_res, tcg_op1, tcg_op2, tcg_op3, fpst);
-
-    write_fp_dreg(s, rd, tcg_res);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_m);
+    free_alloc_fpr(vreg_a);
 }
 
 /* Floating-point data-processing (3 source) - half precision */
@@ -7676,7 +7688,7 @@ static void disas_fp_3src(DisasContext *s, uint32_t insn)
     bool o1 = extract32(insn, 21, 1);
 
     if (mos) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -7695,7 +7707,7 @@ static void disas_fp_3src(DisasContext *s, uint32_t insn)
         break;
     case 3:
         if (!dc_isar_feature(aa64_fp16, s)) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         if (!fp_access_check(s)) {
@@ -7704,7 +7716,7 @@ static void disas_fp_3src(DisasContext *s, uint32_t insn)
         handle_fp_3src_half(s, o0, o1, rd, rn, rm, ra);
         break;
     default:
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
     }
 }
 
