@@ -10294,7 +10294,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x5f: /* FDIV */
-            assert(0);
+            la_vfdiv_d(vreg_d, vreg_n, vreg_m);
             break;
         case 0x7a: /* FABD */
             assert(0);
@@ -10360,7 +10360,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x5f: /* FDIV */
-            assert(0);
+            la_vfdiv_s(vreg_d, vreg_n, vreg_m);
             break;
         case 0x7a: /* FABD */
             assert(0);
@@ -10445,7 +10445,7 @@ static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode,
             assert(0);
             break;
         case 0x5f: /* FDIV */
-            assert(0);
+            la_fdiv_d(vreg_d, vreg_n, vreg_m);
             break;
         case 0x7a: /* FABD */
             la_fsub_d(vreg_d, vreg_n, vreg_m);
@@ -10512,7 +10512,7 @@ static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode,
             assert(0);
             break;
         case 0x5f: /* FDIV */
-            assert(0);
+            la_fdiv_s(vreg_d, vreg_n, vreg_m);
             break;
         case 0x7a: /* FABD */
             la_fsub_s(vreg_d, vreg_n, vreg_m);
