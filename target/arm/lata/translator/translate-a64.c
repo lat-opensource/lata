@@ -14263,14 +14263,13 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
     int is_fp = 0;
     bool is_fp16 = false;
     int index;
-    TCGv_ptr fpst;
 
     switch (16 * u + opcode) {
     case 0x08: /* MUL */
     case 0x10: /* MLA */
     case 0x14: /* MLS */
         if (is_scalar) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
@@ -14281,7 +14280,7 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
     case 0x0a: /* SMULL, SMULL2 */
     case 0x1a: /* UMULL, UMULL2 */
         if (is_scalar) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         is_long = true;
@@ -14303,14 +14302,14 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
     case 0x1d: /* SQRDMLAH */
     case 0x1f: /* SQRDMLSH */
         if (!dc_isar_feature(aa64_rdm, s)) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
     case 0x0e: /* SDOT */
     case 0x1e: /* UDOT */
         if (is_scalar || size != MO_32 || !dc_isar_feature(aa64_dp, s)) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
@@ -14319,28 +14318,28 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
         case 0: /* SUDOT */
         case 2: /* USDOT */
             if (is_scalar || !dc_isar_feature(aa64_i8mm, s)) {
-                unallocated_encoding(s);
+                lata_unallocated_encoding(s);
                 return;
             }
             size = MO_32;
             break;
         case 1: /* BFDOT */
             if (is_scalar || !dc_isar_feature(aa64_bf16, s)) {
-                unallocated_encoding(s);
+                lata_unallocated_encoding(s);
                 return;
             }
             size = MO_32;
             break;
         case 3: /* BFMLAL{B,T} */
             if (is_scalar || !dc_isar_feature(aa64_bf16, s)) {
-                unallocated_encoding(s);
+                lata_unallocated_encoding(s);
                 return;
             }
             /* can't set is_fp without other incorrect size checks */
             size = MO_16;
             break;
         default:
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
@@ -14349,7 +14348,7 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
     case 0x15: /* FCMLA #180 */
     case 0x17: /* FCMLA #270 */
         if (is_scalar || !dc_isar_feature(aa64_fcma, s)) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         is_fp = 2;
@@ -14359,14 +14358,14 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
     case 0x18: /* FMLAL2 */
     case 0x1c: /* FMLSL2 */
         if (is_scalar || size != MO_32 || !dc_isar_feature(aa64_fhm, s)) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         size = MO_16;
         /* is_fp, but we pass cpu_env not fp_status.  */
         break;
     default:
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -14382,7 +14381,7 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
         case MO_64: /* double precision */
             break;
         default:
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
@@ -14393,7 +14392,7 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
         switch (size) {
         case MO_32:
             if (h && !is_q) {
-                unallocated_encoding(s);
+                lata_unallocated_encoding(s);
                 return;
             }
             is_fp16 = true;
@@ -14401,7 +14400,7 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
         case MO_64:
             break;
         default:
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
@@ -14410,13 +14409,13 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
         switch (size) {
         case MO_8:
         case MO_64:
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
     }
     if (is_fp16 && !dc_isar_feature(aa64_fp16, s)) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -14431,7 +14430,7 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
         break;
     case MO_64:
         if (l || !is_q) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         index = h;
@@ -14445,36 +14444,21 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
         return;
     }
 
-    if (is_fp) {
-        fpst = fpstatus_ptr(is_fp16 ? FPST_FPCR_F16 : FPST_FPCR);
-    } else {
-        fpst = NULL;
-    }
-
     switch (16 * u + opcode) {
     case 0x0e: /* SDOT */
     case 0x1e: /* UDOT */
-        gen_gvec_op4_ool(s, is_q, rd, rn, rm, rd, index,
-                         u ? gen_helper_gvec_udot_idx_b
-                         : gen_helper_gvec_sdot_idx_b);
+        assert(0);
         return;
     case 0x0f:
+        assert(0);
         switch (extract32(insn, 22, 2)) {
         case 0: /* SUDOT */
-            gen_gvec_op4_ool(s, is_q, rd, rn, rm, rd, index,
-                             gen_helper_gvec_sudot_idx_b);
             return;
         case 1: /* BFDOT */
-            gen_gvec_op4_ool(s, is_q, rd, rn, rm, rd, index,
-                             gen_helper_gvec_bfdot_idx);
             return;
         case 2: /* USDOT */
-            gen_gvec_op4_ool(s, is_q, rd, rn, rm, rd, index,
-                             gen_helper_gvec_usdot_idx_b);
             return;
         case 3: /* BFMLAL{B,T} */
-            gen_gvec_op4_fpst(s, 1, rd, rn, rm, rd, 0, (index << 1) | is_q,
-                              gen_helper_gvec_bfmlal_idx);
             return;
         }
         g_assert_not_reached();
@@ -14483,16 +14467,7 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
     case 0x15: /* FCMLA #180 */
     case 0x17: /* FCMLA #270 */
         {
-            int rot = extract32(insn, 13, 2);
-            int data = (index << 2) | rot;
-            tcg_gen_gvec_4_ptr(vec_full_reg_offset(s, rd),
-                               vec_full_reg_offset(s, rn),
-                               vec_full_reg_offset(s, rm),
-                               vec_full_reg_offset(s, rd), fpst,
-                               is_q ? 16 : 8, vec_full_reg_size(s), data,
-                               size == MO_64
-                               ? gen_helper_gvec_fcmlas_idx
-                               : gen_helper_gvec_fcmlah_idx);
+            assert(0);
         }
         return;
 
@@ -14501,440 +14476,310 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
     case 0x18: /* FMLAL2 */
     case 0x1c: /* FMLSL2 */
         {
-            int is_s = extract32(opcode, 2, 1);
-            int is_2 = u;
-            int data = (index << 2) | (is_2 << 1) | is_s;
-            tcg_gen_gvec_3_ptr(vec_full_reg_offset(s, rd),
-                               vec_full_reg_offset(s, rn),
-                               vec_full_reg_offset(s, rm), cpu_env,
-                               is_q ? 16 : 8, vec_full_reg_size(s),
-                               data, gen_helper_gvec_fmlal_idx_a64);
+            assert(0);
         }
         return;
 
     case 0x08: /* MUL */
         if (!is_long && !is_scalar) {
-            static gen_helper_gvec_3 * const fns[3] = {
-                gen_helper_gvec_mul_idx_h,
-                gen_helper_gvec_mul_idx_s,
-                gen_helper_gvec_mul_idx_d,
-            };
-            tcg_gen_gvec_3_ool(vec_full_reg_offset(s, rd),
-                               vec_full_reg_offset(s, rn),
-                               vec_full_reg_offset(s, rm),
-                               is_q ? 16 : 8, vec_full_reg_size(s),
-                               index, fns[size - 1]);
+            assert(0);
             return;
         }
         break;
 
     case 0x10: /* MLA */
         if (!is_long && !is_scalar) {
-            static gen_helper_gvec_4 * const fns[3] = {
-                gen_helper_gvec_mla_idx_h,
-                gen_helper_gvec_mla_idx_s,
-                gen_helper_gvec_mla_idx_d,
-            };
-            tcg_gen_gvec_4_ool(vec_full_reg_offset(s, rd),
-                               vec_full_reg_offset(s, rn),
-                               vec_full_reg_offset(s, rm),
-                               vec_full_reg_offset(s, rd),
-                               is_q ? 16 : 8, vec_full_reg_size(s),
-                               index, fns[size - 1]);
+            assert(0);
             return;
         }
         break;
 
     case 0x14: /* MLS */
         if (!is_long && !is_scalar) {
-            static gen_helper_gvec_4 * const fns[3] = {
-                gen_helper_gvec_mls_idx_h,
-                gen_helper_gvec_mls_idx_s,
-                gen_helper_gvec_mls_idx_d,
-            };
-            tcg_gen_gvec_4_ool(vec_full_reg_offset(s, rd),
-                               vec_full_reg_offset(s, rn),
-                               vec_full_reg_offset(s, rm),
-                               vec_full_reg_offset(s, rd),
-                               is_q ? 16 : 8, vec_full_reg_size(s),
-                               index, fns[size - 1]);
+            assert(0);
             return;
         }
         break;
     }
 
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vtemp1 = ra_alloc_ftemp();
+
     if (size == 3) {
-        TCGv_i64 tcg_idx = tcg_temp_new_i64();
-        int pass;
 
         assert(is_fp && is_q && !is_long);
 
-        read_vec_element(s, tcg_idx, rm, index, MO_64);
-
-        for (pass = 0; pass < (is_scalar ? 1 : 2); pass++) {
-            TCGv_i64 tcg_op = tcg_temp_new_i64();
-            TCGv_i64 tcg_res = tcg_temp_new_i64();
-
-            read_vec_element(s, tcg_op, rn, pass, MO_64);
-
-            switch (16 * u + opcode) {
-            case 0x05: /* FMLS */
-                /* As usual for ARM, separate negation for fused multiply-add */
-                gen_helper_vfp_negd(tcg_op, tcg_op);
-                /* fall through */
-            case 0x01: /* FMLA */
-                read_vec_element(s, tcg_res, rd, pass, MO_64);
-                gen_helper_vfp_muladdd(tcg_res, tcg_op, tcg_idx, tcg_res, fpst);
-                break;
-            case 0x09: /* FMUL */
-                gen_helper_vfp_muld(tcg_res, tcg_op, tcg_idx, fpst);
-                break;
-            case 0x19: /* FMULX */
-                gen_helper_vfp_mulxd(tcg_res, tcg_op, tcg_idx, fpst);
-                break;
-            default:
-                g_assert_not_reached();
-            }
-
-            write_vec_element(s, tcg_res, rd, pass, MO_64);
+        switch (16 * u + opcode) {
+        case 0x05: /* FMLS */
+            vreg_d = alloc_fpr_src(rd);
+            la_vxor_v(vtemp, vtemp, vtemp);
+            la_vfsub_d(vtemp, vtemp, vreg_n);
+            la_vreplvei_d(vtemp1, vreg_m, index);
+            la_vfmadd_d(vreg_d, vtemp, vtemp1, vreg_d);
+            break;
+        case 0x01: /* FMLA */
+            vreg_d = alloc_fpr_src(rd);
+            la_vreplvei_d(vtemp1, vreg_m, index);
+            la_vfmadd_d(vreg_d, vreg_n, vtemp1, vreg_d);
+            break;
+        case 0x09: /* FMUL */
+            break;
+        case 0x19: /* FMULX */
+            break;
+        default:
+            g_assert_not_reached();
         }
 
-        clear_vec_high(s, !is_scalar, rd);
+
     } else if (!is_long) {
         /* 32 bit floating point, or 16 or 32 bit integer.
          * For the 16 bit scalar case we use the usual Neon helpers and
          * rely on the fact that 0 op 0 == 0 with no side effects.
          */
-        TCGv_i32 tcg_idx = tcg_temp_new_i32();
-        int pass, maxpasses;
-
-        if (is_scalar) {
-            maxpasses = 1;
-        } else {
-            maxpasses = is_q ? 4 : 2;
-        }
-
-        read_vec_element_i32(s, tcg_idx, rm, index, size);
 
         if (size == 1 && !is_scalar) {
             /* The simplest way to handle the 16x16 indexed ops is to duplicate
              * the index into both halves of the 32 bit tcg_idx and then use
              * the usual Neon helpers.
              */
-            tcg_gen_deposit_i32(tcg_idx, tcg_idx, tcg_idx, 16, 16);
+            // tcg_gen_deposit_i32(tcg_idx, tcg_idx, tcg_idx, 16, 16);
         }
 
-        for (pass = 0; pass < maxpasses; pass++) {
-            TCGv_i32 tcg_op = tcg_temp_new_i32();
-            TCGv_i32 tcg_res = tcg_temp_new_i32();
-
-            read_vec_element_i32(s, tcg_op, rn, pass, is_scalar ? size : MO_32);
-
-            switch (16 * u + opcode) {
-            case 0x08: /* MUL */
-            case 0x10: /* MLA */
-            case 0x14: /* MLS */
-            {
-                static NeonGenTwoOpFn * const fns[2][2] = {
-                    { gen_helper_neon_add_u16, gen_helper_neon_sub_u16 },
-                    { tcg_gen_add_i32, tcg_gen_sub_i32 },
-                };
-                NeonGenTwoOpFn *genfn;
-                bool is_sub = opcode == 0x4;
-
-                if (size == 1) {
-                    gen_helper_neon_mul_u16(tcg_res, tcg_op, tcg_idx);
-                } else {
-                    tcg_gen_mul_i32(tcg_res, tcg_op, tcg_idx);
-                }
-                if (opcode == 0x8) {
-                    break;
-                }
-                read_vec_element_i32(s, tcg_op, rd, pass, MO_32);
-                genfn = fns[size - 1][is_sub];
-                genfn(tcg_res, tcg_op, tcg_res);
+        switch (16 * u + opcode) {
+        case 0x08: /* MUL */
+        case 0x10: /* MLA */
+        case 0x14: /* MLS */
+        {
+            assert(0);
+            break;
+        }
+        case 0x05: /* FMLS */
+            switch (size) {
+            case 1:
+                assert(0);
                 break;
-            }
-            case 0x05: /* FMLS */
-            case 0x01: /* FMLA */
-                read_vec_element_i32(s, tcg_res, rd, pass,
-                                     is_scalar ? size : MO_32);
-                switch (size) {
-                case 1:
-                    if (opcode == 0x5) {
-                        /* As usual for ARM, separate negation for fused
-                         * multiply-add */
-                        tcg_gen_xori_i32(tcg_op, tcg_op, 0x80008000);
-                    }
-                    if (is_scalar) {
-                        gen_helper_advsimd_muladdh(tcg_res, tcg_op, tcg_idx,
-                                                   tcg_res, fpst);
-                    } else {
-                        gen_helper_advsimd_muladd2h(tcg_res, tcg_op, tcg_idx,
-                                                    tcg_res, fpst);
-                    }
-                    break;
-                case 2:
-                    if (opcode == 0x5) {
-                        /* As usual for ARM, separate negation for
-                         * fused multiply-add */
-                        tcg_gen_xori_i32(tcg_op, tcg_op, 0x80000000);
-                    }
-                    gen_helper_vfp_muladds(tcg_res, tcg_op, tcg_idx,
-                                           tcg_res, fpst);
-                    break;
-                default:
-                    g_assert_not_reached();
-                }
-                break;
-            case 0x09: /* FMUL */
-                switch (size) {
-                case 1:
-                    if (is_scalar) {
-                        gen_helper_advsimd_mulh(tcg_res, tcg_op,
-                                                tcg_idx, fpst);
-                    } else {
-                        gen_helper_advsimd_mul2h(tcg_res, tcg_op,
-                                                 tcg_idx, fpst);
-                    }
-                    break;
-                case 2:
-                    gen_helper_vfp_muls(tcg_res, tcg_op, tcg_idx, fpst);
-                    break;
-                default:
-                    g_assert_not_reached();
-                }
-                break;
-            case 0x19: /* FMULX */
-                switch (size) {
-                case 1:
-                    if (is_scalar) {
-                        gen_helper_advsimd_mulxh(tcg_res, tcg_op,
-                                                 tcg_idx, fpst);
-                    } else {
-                        gen_helper_advsimd_mulx2h(tcg_res, tcg_op,
-                                                  tcg_idx, fpst);
-                    }
-                    break;
-                case 2:
-                    gen_helper_vfp_mulxs(tcg_res, tcg_op, tcg_idx, fpst);
-                    break;
-                default:
-                    g_assert_not_reached();
-                }
-                break;
-            case 0x0c: /* SQDMULH */
-                if (size == 1) {
-                    gen_helper_neon_qdmulh_s16(tcg_res, cpu_env,
-                                               tcg_op, tcg_idx);
-                } else {
-                    gen_helper_neon_qdmulh_s32(tcg_res, cpu_env,
-                                               tcg_op, tcg_idx);
-                }
-                break;
-            case 0x0d: /* SQRDMULH */
-                if (size == 1) {
-                    gen_helper_neon_qrdmulh_s16(tcg_res, cpu_env,
-                                                tcg_op, tcg_idx);
-                } else {
-                    gen_helper_neon_qrdmulh_s32(tcg_res, cpu_env,
-                                                tcg_op, tcg_idx);
-                }
-                break;
-            case 0x1d: /* SQRDMLAH */
-                read_vec_element_i32(s, tcg_res, rd, pass,
-                                     is_scalar ? size : MO_32);
-                if (size == 1) {
-                    gen_helper_neon_qrdmlah_s16(tcg_res, cpu_env,
-                                                tcg_op, tcg_idx, tcg_res);
-                } else {
-                    gen_helper_neon_qrdmlah_s32(tcg_res, cpu_env,
-                                                tcg_op, tcg_idx, tcg_res);
-                }
-                break;
-            case 0x1f: /* SQRDMLSH */
-                read_vec_element_i32(s, tcg_res, rd, pass,
-                                     is_scalar ? size : MO_32);
-                if (size == 1) {
-                    gen_helper_neon_qrdmlsh_s16(tcg_res, cpu_env,
-                                                tcg_op, tcg_idx, tcg_res);
-                } else {
-                    gen_helper_neon_qrdmlsh_s32(tcg_res, cpu_env,
-                                                tcg_op, tcg_idx, tcg_res);
-                }
+            case 2:
+                vreg_d = alloc_fpr_src(rd);
+                la_vxor_v(vtemp, vtemp, vtemp);
+                la_vfsub_s(vtemp, vtemp, vreg_n);
+                la_vreplvei_w(vtemp1, vreg_m, index);
+                la_vfmadd_s(vreg_d, vtemp, vtemp1, vreg_d);
                 break;
             default:
                 g_assert_not_reached();
             }
-
-            if (is_scalar) {
-                write_fp_sreg(s, rd, tcg_res);
-            } else {
-                write_vec_element_i32(s, tcg_res, rd, pass, MO_32);
+            break;
+        case 0x01: /* FMLA */
+            switch (size) {
+            case 1:
+                assert(0);
+                break;
+            case 2:
+                vreg_d = alloc_fpr_src(rd);
+                la_vreplvei_w(vtemp1, vreg_m, index);
+                la_vfmadd_s(vreg_d, vreg_n, vtemp1, vreg_d);
+                break;
+            default:
+                g_assert_not_reached();
             }
+            break;
+        case 0x09: /* FMUL */
+            assert(0);
+            break;
+        case 0x19: /* FMULX */
+            assert(0);
+            break;
+        case 0x0c: /* SQDMULH */
+            assert(0);
+            break;
+        case 0x0d: /* SQRDMULH */
+            assert(0);
+            break;
+        case 0x1d: /* SQRDMLAH */
+            assert(0);
+            break;
+        case 0x1f: /* SQRDMLSH */
+            assert(0);
+            break;
+        default:
+            g_assert_not_reached();
         }
-
-        clear_vec_high(s, is_q, rd);
+        
+        if(!is_q){
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        }
     } else {
         /* long ops: 16x16->32 or 32x32->64 */
-        TCGv_i64 tcg_res[2];
-        int pass;
-        bool satop = extract32(opcode, 0, 1);
-        MemOp memop = MO_32;
+        assert(0);
+    //     TCGv_i64 tcg_res[2];
+    //     int pass;
+    //     bool satop = extract32(opcode, 0, 1);
+    //     MemOp memop = MO_32;
 
-        if (satop || !u) {
-            memop |= MO_SIGN;
-        }
+    //     if (satop || !u) {
+    //         memop |= MO_SIGN;
+    //     }
 
-        if (size == 2) {
-            TCGv_i64 tcg_idx = tcg_temp_new_i64();
+    //     if (size == 2) {
+    //         TCGv_i64 tcg_idx = tcg_temp_new_i64();
 
-            read_vec_element(s, tcg_idx, rm, index, memop);
+    //         read_vec_element(s, tcg_idx, rm, index, memop);
 
-            for (pass = 0; pass < (is_scalar ? 1 : 2); pass++) {
-                TCGv_i64 tcg_op = tcg_temp_new_i64();
-                TCGv_i64 tcg_passres;
-                int passelt;
+    //         for (pass = 0; pass < (is_scalar ? 1 : 2); pass++) {
+    //             TCGv_i64 tcg_op = tcg_temp_new_i64();
+    //             TCGv_i64 tcg_passres;
+    //             int passelt;
 
-                if (is_scalar) {
-                    passelt = 0;
-                } else {
-                    passelt = pass + (is_q * 2);
-                }
+    //             if (is_scalar) {
+    //                 passelt = 0;
+    //             } else {
+    //                 passelt = pass + (is_q * 2);
+    //             }
 
-                read_vec_element(s, tcg_op, rn, passelt, memop);
+    //             read_vec_element(s, tcg_op, rn, passelt, memop);
 
-                tcg_res[pass] = tcg_temp_new_i64();
+    //             tcg_res[pass] = tcg_temp_new_i64();
 
-                if (opcode == 0xa || opcode == 0xb) {
-                    /* Non-accumulating ops */
-                    tcg_passres = tcg_res[pass];
-                } else {
-                    tcg_passres = tcg_temp_new_i64();
-                }
+    //             if (opcode == 0xa || opcode == 0xb) {
+    //                 /* Non-accumulating ops */
+    //                 tcg_passres = tcg_res[pass];
+    //             } else {
+    //                 tcg_passres = tcg_temp_new_i64();
+    //             }
 
-                tcg_gen_mul_i64(tcg_passres, tcg_op, tcg_idx);
+    //             tcg_gen_mul_i64(tcg_passres, tcg_op, tcg_idx);
 
-                if (satop) {
-                    /* saturating, doubling */
-                    gen_helper_neon_addl_saturate_s64(tcg_passres, cpu_env,
-                                                      tcg_passres, tcg_passres);
-                }
+    //             if (satop) {
+    //                 /* saturating, doubling */
+    //                 gen_helper_neon_addl_saturate_s64(tcg_passres, cpu_env,
+    //                                                   tcg_passres, tcg_passres);
+    //             }
 
-                if (opcode == 0xa || opcode == 0xb) {
-                    continue;
-                }
+    //             if (opcode == 0xa || opcode == 0xb) {
+    //                 continue;
+    //             }
 
-                /* Accumulating op: handle accumulate step */
-                read_vec_element(s, tcg_res[pass], rd, pass, MO_64);
+    //             /* Accumulating op: handle accumulate step */
+    //             read_vec_element(s, tcg_res[pass], rd, pass, MO_64);
 
-                switch (opcode) {
-                case 0x2: /* SMLAL, SMLAL2, UMLAL, UMLAL2 */
-                    tcg_gen_add_i64(tcg_res[pass], tcg_res[pass], tcg_passres);
-                    break;
-                case 0x6: /* SMLSL, SMLSL2, UMLSL, UMLSL2 */
-                    tcg_gen_sub_i64(tcg_res[pass], tcg_res[pass], tcg_passres);
-                    break;
-                case 0x7: /* SQDMLSL, SQDMLSL2 */
-                    tcg_gen_neg_i64(tcg_passres, tcg_passres);
-                    /* fall through */
-                case 0x3: /* SQDMLAL, SQDMLAL2 */
-                    gen_helper_neon_addl_saturate_s64(tcg_res[pass], cpu_env,
-                                                      tcg_res[pass],
-                                                      tcg_passres);
-                    break;
-                default:
-                    g_assert_not_reached();
-                }
-            }
+    //             switch (opcode) {
+    //             case 0x2: /* SMLAL, SMLAL2, UMLAL, UMLAL2 */
+    //                 tcg_gen_add_i64(tcg_res[pass], tcg_res[pass], tcg_passres);
+    //                 break;
+    //             case 0x6: /* SMLSL, SMLSL2, UMLSL, UMLSL2 */
+    //                 tcg_gen_sub_i64(tcg_res[pass], tcg_res[pass], tcg_passres);
+    //                 break;
+    //             case 0x7: /* SQDMLSL, SQDMLSL2 */
+    //                 tcg_gen_neg_i64(tcg_passres, tcg_passres);
+    //                 /* fall through */
+    //             case 0x3: /* SQDMLAL, SQDMLAL2 */
+    //                 gen_helper_neon_addl_saturate_s64(tcg_res[pass], cpu_env,
+    //                                                   tcg_res[pass],
+    //                                                   tcg_passres);
+    //                 break;
+    //             default:
+    //                 g_assert_not_reached();
+    //             }
+    //         }
 
-            clear_vec_high(s, !is_scalar, rd);
-        } else {
-            TCGv_i32 tcg_idx = tcg_temp_new_i32();
+    //         clear_vec_high(s, !is_scalar, rd);
+    //     } else {
+    //         TCGv_i32 tcg_idx = tcg_temp_new_i32();
 
-            assert(size == 1);
-            read_vec_element_i32(s, tcg_idx, rm, index, size);
+    //         assert(size == 1);
+    //         read_vec_element_i32(s, tcg_idx, rm, index, size);
 
-            if (!is_scalar) {
-                /* The simplest way to handle the 16x16 indexed ops is to
-                 * duplicate the index into both halves of the 32 bit tcg_idx
-                 * and then use the usual Neon helpers.
-                 */
-                tcg_gen_deposit_i32(tcg_idx, tcg_idx, tcg_idx, 16, 16);
-            }
+    //         if (!is_scalar) {
+    //             /* The simplest way to handle the 16x16 indexed ops is to
+    //              * duplicate the index into both halves of the 32 bit tcg_idx
+    //              * and then use the usual Neon helpers.
+    //              */
+    //             tcg_gen_deposit_i32(tcg_idx, tcg_idx, tcg_idx, 16, 16);
+    //         }
 
-            for (pass = 0; pass < (is_scalar ? 1 : 2); pass++) {
-                TCGv_i32 tcg_op = tcg_temp_new_i32();
-                TCGv_i64 tcg_passres;
+    //         for (pass = 0; pass < (is_scalar ? 1 : 2); pass++) {
+    //             TCGv_i32 tcg_op = tcg_temp_new_i32();
+    //             TCGv_i64 tcg_passres;
 
-                if (is_scalar) {
-                    read_vec_element_i32(s, tcg_op, rn, pass, size);
-                } else {
-                    read_vec_element_i32(s, tcg_op, rn,
-                                         pass + (is_q * 2), MO_32);
-                }
+    //             if (is_scalar) {
+    //                 read_vec_element_i32(s, tcg_op, rn, pass, size);
+    //             } else {
+    //                 read_vec_element_i32(s, tcg_op, rn,
+    //                                      pass + (is_q * 2), MO_32);
+    //             }
 
-                tcg_res[pass] = tcg_temp_new_i64();
+    //             tcg_res[pass] = tcg_temp_new_i64();
 
-                if (opcode == 0xa || opcode == 0xb) {
-                    /* Non-accumulating ops */
-                    tcg_passres = tcg_res[pass];
-                } else {
-                    tcg_passres = tcg_temp_new_i64();
-                }
+    //             if (opcode == 0xa || opcode == 0xb) {
+    //                 /* Non-accumulating ops */
+    //                 tcg_passres = tcg_res[pass];
+    //             } else {
+    //                 tcg_passres = tcg_temp_new_i64();
+    //             }
 
-                if (memop & MO_SIGN) {
-                    gen_helper_neon_mull_s16(tcg_passres, tcg_op, tcg_idx);
-                } else {
-                    gen_helper_neon_mull_u16(tcg_passres, tcg_op, tcg_idx);
-                }
-                if (satop) {
-                    gen_helper_neon_addl_saturate_s32(tcg_passres, cpu_env,
-                                                      tcg_passres, tcg_passres);
-                }
+    //             if (memop & MO_SIGN) {
+    //                 gen_helper_neon_mull_s16(tcg_passres, tcg_op, tcg_idx);
+    //             } else {
+    //                 gen_helper_neon_mull_u16(tcg_passres, tcg_op, tcg_idx);
+    //             }
+    //             if (satop) {
+    //                 gen_helper_neon_addl_saturate_s32(tcg_passres, cpu_env,
+    //                                                   tcg_passres, tcg_passres);
+    //             }
 
-                if (opcode == 0xa || opcode == 0xb) {
-                    continue;
-                }
+    //             if (opcode == 0xa || opcode == 0xb) {
+    //                 continue;
+    //             }
 
-                /* Accumulating op: handle accumulate step */
-                read_vec_element(s, tcg_res[pass], rd, pass, MO_64);
+    //             /* Accumulating op: handle accumulate step */
+    //             read_vec_element(s, tcg_res[pass], rd, pass, MO_64);
 
-                switch (opcode) {
-                case 0x2: /* SMLAL, SMLAL2, UMLAL, UMLAL2 */
-                    gen_helper_neon_addl_u32(tcg_res[pass], tcg_res[pass],
-                                             tcg_passres);
-                    break;
-                case 0x6: /* SMLSL, SMLSL2, UMLSL, UMLSL2 */
-                    gen_helper_neon_subl_u32(tcg_res[pass], tcg_res[pass],
-                                             tcg_passres);
-                    break;
-                case 0x7: /* SQDMLSL, SQDMLSL2 */
-                    gen_helper_neon_negl_u32(tcg_passres, tcg_passres);
-                    /* fall through */
-                case 0x3: /* SQDMLAL, SQDMLAL2 */
-                    gen_helper_neon_addl_saturate_s32(tcg_res[pass], cpu_env,
-                                                      tcg_res[pass],
-                                                      tcg_passres);
-                    break;
-                default:
-                    g_assert_not_reached();
-                }
-            }
+    //             switch (opcode) {
+    //             case 0x2: /* SMLAL, SMLAL2, UMLAL, UMLAL2 */
+    //                 gen_helper_neon_addl_u32(tcg_res[pass], tcg_res[pass],
+    //                                          tcg_passres);
+    //                 break;
+    //             case 0x6: /* SMLSL, SMLSL2, UMLSL, UMLSL2 */
+    //                 gen_helper_neon_subl_u32(tcg_res[pass], tcg_res[pass],
+    //                                          tcg_passres);
+    //                 break;
+    //             case 0x7: /* SQDMLSL, SQDMLSL2 */
+    //                 gen_helper_neon_negl_u32(tcg_passres, tcg_passres);
+    //                 /* fall through */
+    //             case 0x3: /* SQDMLAL, SQDMLAL2 */
+    //                 gen_helper_neon_addl_saturate_s32(tcg_res[pass], cpu_env,
+    //                                                   tcg_res[pass],
+    //                                                   tcg_passres);
+    //                 break;
+    //             default:
+    //                 g_assert_not_reached();
+    //             }
+    //         }
 
-            if (is_scalar) {
-                tcg_gen_ext32u_i64(tcg_res[0], tcg_res[0]);
-            }
-        }
+    //         if (is_scalar) {
+    //             tcg_gen_ext32u_i64(tcg_res[0], tcg_res[0]);
+    //         }
+    //     }
 
-        if (is_scalar) {
-            tcg_res[1] = tcg_constant_i64(0);
-        }
+    //     if (is_scalar) {
+    //         tcg_res[1] = tcg_constant_i64(0);
+    //     }
 
-        for (pass = 0; pass < 2; pass++) {
-            write_vec_element(s, tcg_res[pass], rd, pass, MO_64);
-        }
+    //     for (pass = 0; pass < 2; pass++) {
+    //         write_vec_element(s, tcg_res[pass], rd, pass, MO_64);
+    //     }
     }
+
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_m);
+    free_alloc_fpr(vtemp);
+    free_alloc_fpr(vtemp1);
 }
 
 /* Crypto AES
