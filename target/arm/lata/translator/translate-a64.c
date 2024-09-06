@@ -10254,17 +10254,21 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND vtemp = ra_alloc_ftemp();
 
     if (size) {
         /* Double */
 
         switch (fpopcode) {
         case 0x39: /* FMLS */
-            /* As usual for ARM, separate negation for fused multiply-add */
-            assert(0);
-            /* fall through */
+            vreg_d = alloc_fpr_src(rd);
+            la_vxor_v(vtemp, vtemp, vtemp);
+            la_vfsub_d(vtemp, vtemp, vreg_n);
+            la_vfmadd_d(vreg_d, vtemp, vreg_m, vreg_d);
+            break;
         case 0x19: /* FMLA */
-            assert(0);
+            vreg_d = alloc_fpr_src(rd);
+            la_vfmadd_d(vreg_d, vreg_n, vreg_m, vreg_d);
             break;
         case 0x18: /* FMAXNM */
             la_vfmax_d(vreg_d, vreg_n, vreg_m);
@@ -10326,11 +10330,14 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
 
         switch (fpopcode) {
         case 0x39: /* FMLS */
-            /* As usual for ARM, separate negation for fused multiply-add */
-            assert(0);
-            /* fall through */
+            vreg_d = alloc_fpr_src(rd);
+            la_vxor_v(vtemp, vtemp, vtemp);
+            la_vfsub_s(vtemp, vtemp, vreg_n);
+            la_vfmadd_s(vreg_d, vtemp, vreg_m, vreg_d);
+            break;
         case 0x19: /* FMLA */
-            assert(0);
+            vreg_d = alloc_fpr_src(rd);
+            la_vfmadd_s(vreg_d, vreg_n, vreg_m, vreg_d);
             break;
         case 0x1a: /* FADD */
             la_vfadd_s(vreg_d, vreg_n, vreg_m);
@@ -10397,6 +10404,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
     free_alloc_fpr(vreg_m);
+    free_alloc_fpr(vtemp);
 }
 
 static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode, 
@@ -10410,44 +10418,16 @@ static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode,
         /* Double */
 
         switch (fpopcode) {
-        case 0x39: /* FMLS */
-            /* As usual for ARM, separate negation for fused multiply-add */
-            assert(0);
-            /* fall through */
-        case 0x19: /* FMLA */
-            assert(0);
-            break;
-        case 0x18: /* FMAXNM */
-            la_fmax_d(vreg_d, vreg_n, vreg_m);
-            break;
-        case 0x1a: /* FADD */
-            assert(0);
-            break;
         case 0x1b: /* FMULX */
             assert(0);
             break;
         case 0x1c: /* FCMEQ */
             assert(0);
             break;
-        case 0x1e: /* FMAX */
-            assert(0);
-            break;
         case 0x1f: /* FRECPS */
             assert(0);
             break;
-        case 0x38: /* FMINNM */
-            la_vfmin_d(vreg_d, vreg_n, vreg_m);
-            break;
-        case 0x3a: /* FSUB */
-            assert(0);
-            break;
-        case 0x3e: /* FMIN */
-            assert(0);
-            break;
         case 0x3f: /* FRSQRTS */
-            assert(0);
-            break;
-        case 0x5b: /* FMUL */
             assert(0);
             break;
         case 0x5c: /* FCMGE */
@@ -10455,9 +10435,6 @@ static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode,
             break;
         case 0x5d: /* FACGE */
             assert(0);
-            break;
-        case 0x5f: /* FDIV */
-            la_fdiv_d(vreg_d, vreg_n, vreg_m);
             break;
         case 0x7a: /* FABD */
             la_fsub_d(vreg_d, vreg_n, vreg_m);
@@ -10477,44 +10454,16 @@ static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode,
         /* Single */
 
         switch (fpopcode) {
-        case 0x39: /* FMLS */
-            /* As usual for ARM, separate negation for fused multiply-add */
-            assert(0);
-            /* fall through */
-        case 0x19: /* FMLA */
-            assert(0);
-            break;
-        case 0x1a: /* FADD */
-            assert(0);
-            break;
         case 0x1b: /* FMULX */
             assert(0);
             break;
         case 0x1c: /* FCMEQ */
             assert(0);
             break;
-        case 0x1e: /* FMAX */
-            assert(0);
-            break;
         case 0x1f: /* FRECPS */
             assert(0);
             break;
-        case 0x18: /* FMAXNM */
-            la_vfmax_s(vreg_d, vreg_n, vreg_m);
-            break;
-        case 0x38: /* FMINNM */
-            la_vfmax_s(vreg_d, vreg_n, vreg_m);
-            break;
-        case 0x3a: /* FSUB */
-            assert(0);
-            break;
-        case 0x3e: /* FMIN */
-            assert(0);
-            break;
         case 0x3f: /* FRSQRTS */
-            assert(0);
-            break;
-        case 0x5b: /* FMUL */
             assert(0);
             break;
         case 0x5c: /* FCMGE */
@@ -10522,9 +10471,6 @@ static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode,
             break;
         case 0x5d: /* FACGE */
             assert(0);
-            break;
-        case 0x5f: /* FDIV */
-            la_fdiv_s(vreg_d, vreg_n, vreg_m);
             break;
         case 0x7a: /* FABD */
             la_fsub_s(vreg_d, vreg_n, vreg_m);
