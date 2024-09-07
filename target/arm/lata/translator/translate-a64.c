@@ -10316,7 +10316,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x5b: /* FMUL */
-            assert(0);
+            la_vfmul_d(vreg_d, vreg_n, vreg_m);
             break;
         case 0x5c: /* FCMGE */
             la_vfcmp_cond_d(vreg_d, vreg_m, vreg_n, FCMP_COND_SLE);
@@ -10385,7 +10385,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             assert(0);
             break;
         case 0x5b: /* FMUL */
-            assert(0);
+            la_vfmul_s(vreg_d, vreg_n, vreg_m);
             break;
         case 0x5c: /* FCMGE */
             la_vfcmp_cond_s(vreg_d, vreg_m, vreg_n, FCMP_COND_SLE);
@@ -14541,8 +14541,11 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
             la_vfmadd_d(vreg_d, vreg_n, vtemp1, vreg_d);
             break;
         case 0x09: /* FMUL */
+            la_vreplvei_d(vtemp1, vreg_m, index);
+            la_vfmul_d(vreg_d, vreg_n, vtemp1);
             break;
         case 0x19: /* FMULX */
+            assert(0);
             break;
         default:
             g_assert_not_reached();
@@ -14602,7 +14605,8 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
             }
             break;
         case 0x09: /* FMUL */
-            assert(0);
+            la_vreplvei_w(vtemp1, vreg_m, index);
+            la_vfmul_s(vreg_d, vreg_n, vtemp1);
             break;
         case 0x19: /* FMULX */
             assert(0);
