@@ -1869,7 +1869,7 @@ static bool trans_YIELD(DisasContext *s, arg_YIELD *a)
      * spin unnecessarily we would need to do something more involved.
      */
     if (!(tb_cflags(s->base.tb) & CF_PARALLEL)) {
-        s->base.is_jmp = DISAS_YIELD;
+        // s->base.is_jmp = DISAS_YIELD;
     }
     return true;
 }
