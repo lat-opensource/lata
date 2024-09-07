@@ -7563,6 +7563,7 @@ static void handle_fp_3src_single(DisasContext *s, bool o0, bool o1,
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vreg_a = alloc_fpr_src(ra);
     IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vtemp1 = ra_alloc_ftemp();
 
     /* These are fused multiply-add, and must be done as one
      * floating point operation with no rounding between the
@@ -7571,20 +7572,24 @@ static void handle_fp_3src_single(DisasContext *s, bool o0, bool o1,
      * correct : an input NaN should come out with its sign bit
      * flipped if it is a negated-input.
      */
-    if (o1 == true) {
+
+    if(o0 != o1){
         la_fneg_s(vtemp, vreg_n);
-        if(o0 != o1){
-            la_fmsub_s(vreg_d, vtemp, vreg_m, vreg_a);
-        }else{
+        if(o1 == true){ /* FNMADD */
+            la_fneg_s(vtemp1, vreg_a);
+            la_fmadd_s(vreg_d, vtemp, vreg_m, vtemp1);
+        }else{ /* FMSUB */
             la_fmadd_s(vreg_d, vtemp, vreg_m, vreg_a);
         }
     }else{
-        if(o0 != o1){
-            la_fmsub_s(vreg_d, vreg_n, vreg_m, vreg_a);
-        }else{
+        if(o1 == true){ /* FNMSUB */
+            la_fneg_s(vtemp1, vreg_a);
+            la_fmadd_s(vreg_d, vreg_n, vreg_m, vtemp1);
+        }else{ /* FMADD */
             la_fmadd_s(vreg_d, vreg_n, vreg_m, vreg_a);
         }
     }
+
     la_movgr2frh_w(vreg_d, zero_ir2_opnd);
     /* 高64位清零 */
     la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
@@ -7594,6 +7599,8 @@ static void handle_fp_3src_single(DisasContext *s, bool o0, bool o1,
     free_alloc_fpr(vreg_n);
     free_alloc_fpr(vreg_m);
     free_alloc_fpr(vreg_a);
+    free_alloc_fpr(vtemp);
+    free_alloc_fpr(vtemp1);
 }
 
 /* Floating-point data-processing (3 source) - double precision */
@@ -7605,6 +7612,7 @@ static void handle_fp_3src_double(DisasContext *s, bool o0, bool o1,
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vreg_a = alloc_fpr_src(ra);
     IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vtemp1 = ra_alloc_ftemp();
 
     /* These are fused multiply-add, and must be done as one
      * floating point operation with no rounding between the
@@ -7613,21 +7621,23 @@ static void handle_fp_3src_double(DisasContext *s, bool o0, bool o1,
      * correct : an input NaN should come out with its sign bit
      * flipped if it is a negated-input.
      */
-    if (o1 == true) {
+
+    if(o0 != o1){
         la_fneg_d(vtemp, vreg_n);
-        if(o0 != o1){
-            la_fmsub_d(vreg_d, vtemp, vreg_m, vreg_a);
-        }else{
+        if(o1 == true){ /* FNMADD */
+            la_fneg_d(vtemp1, vreg_a);
+            la_fmadd_d(vreg_d, vtemp, vreg_m, vtemp1);
+        }else{ /* FMSUB */
             la_fmadd_d(vreg_d, vtemp, vreg_m, vreg_a);
         }
     }else{
-        if(o0 != o1){
-            la_fmsub_d(vreg_d, vreg_n, vreg_m, vreg_a);
-        }else{
+        if(o1 == true){ /* FNMSUB */
+            la_fneg_d(vtemp1, vreg_a);
+            la_fmadd_d(vreg_d, vreg_n, vreg_m, vtemp1);
+        }else{ /* FMADD */
             la_fmadd_d(vreg_d, vreg_n, vreg_m, vreg_a);
         }
     }
-
     /* 高64位清零 */
     la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
 
@@ -7636,6 +7646,8 @@ static void handle_fp_3src_double(DisasContext *s, bool o0, bool o1,
     free_alloc_fpr(vreg_n);
     free_alloc_fpr(vreg_m);
     free_alloc_fpr(vreg_a);
+    free_alloc_fpr(vtemp);
+    free_alloc_fpr(vtemp1);
 }
 
 /* Floating-point data-processing (3 source) - half precision */
