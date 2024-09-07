@@ -7362,7 +7362,7 @@ static void handle_fp_2src_single(DisasContext *s, int opcode,
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
-    IR2_OPND vtemp;
+    // IR2_OPND vtemp;
 
     switch (opcode) {
     case 0x0: /* FMUL */
@@ -7390,10 +7390,8 @@ static void handle_fp_2src_single(DisasContext *s, int opcode,
         la_fmin_s(vreg_d, vreg_n, vreg_m);
         break;
     case 0x8: /* FNMUL */
-        vtemp = ra_alloc_ftemp();
-        la_movgr2fr_d(vtemp, zero_ir2_opnd);
-        la_fnmadd_s(vreg_d, vreg_n, vreg_m, vtemp);
-        free_alloc_fpr(vtemp);
+        la_fmul_s(vreg_d, vreg_n, vreg_m);
+        la_fneg_s(vreg_d, vreg_d);
         break;
     }
     la_movgr2frh_w(vreg_d, zero_ir2_opnd);
@@ -7413,7 +7411,7 @@ static void handle_fp_2src_double(DisasContext *s, int opcode,
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
-    IR2_OPND vtemp;
+    // IR2_OPND vtemp;
 
     switch (opcode) {
     case 0x0: /* FMUL */
@@ -7441,10 +7439,8 @@ static void handle_fp_2src_double(DisasContext *s, int opcode,
         la_fmin_d(vreg_d, vreg_n, vreg_m);
         break;
     case 0x8: /* FNMUL */
-        vtemp = ra_alloc_ftemp();
-        la_movgr2fr_d(vtemp, zero_ir2_opnd);
-        la_fnmadd_d(vreg_d, vreg_n, vreg_m, vtemp);
-        free_alloc_fpr(vtemp);
+        la_fmul_d(vreg_d, vreg_n, vreg_m);
+        la_fneg_d(vreg_d, vreg_d);
         break;
     }
     /* 高64位清零 */
