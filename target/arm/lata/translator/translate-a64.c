@@ -10925,6 +10925,7 @@ static void handle_2misc_64(DisasContext *s, int opcode, bool u,
         }
         break;
     case 0x7f: /* FSQRT */
+        la_vfsqrt_d(*vreg_d, *vreg_n);
         // gen_helper_vfp_sqrtd(tcg_rd, tcg_rn, cpu_env);
         break;
     case 0x1a: /* FCVTNS */
@@ -13587,7 +13588,7 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
             return;
         case 0x7f: /* FSQRT */
             if (size == 3 && !is_q) {
-                unallocated_encoding(s);
+                lata_unallocated_encoding(s);
                 return;
             }
             break;
@@ -13900,6 +13901,7 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
                 }
                 break;
             case 0x7f: /* FSQRT */
+                la_vfsqrt_s(vreg_d, vreg_n);
                 // gen_helper_vfp_sqrts(tcg_res, tcg_op, cpu_env);
                 break;
             case 0x1a: /* FCVTNS */
