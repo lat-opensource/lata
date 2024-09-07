@@ -7103,9 +7103,15 @@ static void handle_fp_1src_single(DisasContext *s, int opcode, int rd, int rn)
         // gen_fpst = gen_helper_bfcvt;
         break;
     case 0x8: /* FRINTN */
+        break;
     case 0x9: /* FRINTP */
+        break;
     case 0xa: /* FRINTM */
+        la_vfrintrm_s(vreg_d, vreg_n);
+        break;
     case 0xb: /* FRINTZ */
+        la_vfrintrz_s(vreg_d, vreg_n);
+        break;
     case 0xc: /* FRINTA */
         // rmode = opcode & 7;
         // gen_fpst = gen_helper_rints;
@@ -7166,9 +7172,15 @@ static void handle_fp_1src_double(DisasContext *s, int opcode, int rd, int rn)
         la_fsqrt_d(vreg_d, vreg_n);
         goto done;
     case 0x8: /* FRINTN */
+        break;
     case 0x9: /* FRINTP */
+        break;
     case 0xa: /* FRINTM */
+        la_vfrintrm_d(vreg_d, vreg_n);
+        break;
     case 0xb: /* FRINTZ */
+        la_vfrintrz_d(vreg_d, vreg_n);
+        break;
     case 0xc: /* FRINTA */
         // rmode = opcode & 7;
         // gen_fpst = gen_helper_rintd;
@@ -10930,10 +10942,17 @@ static void handle_2misc_64(DisasContext *s, int opcode, bool u,
         // gen_helper_vfp_touqd(tcg_rd, tcg_rn, tcg_constant_i32(0), tcg_fpstatus);
         break;
     case 0x18: /* FRINTN */
+        break;
     case 0x19: /* FRINTM */
+        la_vfrintrm_d(*vreg_d, *vreg_n);
+        break;
     case 0x38: /* FRINTP */
+        break;
     case 0x39: /* FRINTZ */
+        la_vfrintrz_d(*vreg_d, *vreg_n);
+        break;
     case 0x58: /* FRINTA */
+        break;
     case 0x79: /* FRINTI */
         // gen_helper_rintd(tcg_rd, tcg_rn, tcg_fpstatus);
         break;
@@ -13654,7 +13673,7 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
         case 0x79: /* FRINTI */
             // need_fpstatus = true;
             if (size == 3 && !is_q) {
-                unallocated_encoding(s);
+                lata_unallocated_encoding(s);
                 return;
             }
             break;
@@ -13900,10 +13919,17 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
                 //                         tcg_constant_i32(0), tcg_fpstatus);
                 break;
             case 0x18: /* FRINTN */
+                break;
             case 0x19: /* FRINTM */
+                la_vfrintrm_s(vreg_d, vreg_n);
+                break;
             case 0x38: /* FRINTP */
+                break;
             case 0x39: /* FRINTZ */
+                la_vfrintrz_s(vreg_d, vreg_n);
+                break;
             case 0x58: /* FRINTA */
+                break;
             case 0x79: /* FRINTI */
                 // gen_helper_rints(tcg_res, tcg_op, tcg_fpstatus);
                 break;
