@@ -7737,7 +7737,7 @@ static void disas_fp_imm(DisasContext *s, uint32_t insn)
     MemOp sz;
 
     if (mos || imm5) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -7755,7 +7755,7 @@ static void disas_fp_imm(DisasContext *s, uint32_t insn)
         }
         /* fallthru */
     default:
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -7772,7 +7772,7 @@ static void disas_fp_imm(DisasContext *s, uint32_t insn)
     /* 高64位清零 */
     la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
 
-    store_gpr_dst(rd, vreg_d);
+    store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
     free_alloc_gpr(temp);
 }
@@ -9179,7 +9179,7 @@ static void disas_simd_mod_imm(DisasContext *s, uint32_t insn)
     if (o2 != 0 || ((cmode == 0xf) && is_neg && !is_q)) {
         /* Check for FMOV (vector, immediate) - half-precision */
         if (!(dc_isar_feature(aa64_fp16, s) && o2 && cmode == 0xf)) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
     }
@@ -9196,12 +9196,20 @@ static void disas_simd_mod_imm(DisasContext *s, uint32_t insn)
     } else {
         imm = asimd_imm_const(abcdefgh, cmode, is_neg);
     }
-
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND temp = ra_alloc_itemp();
+    li_d(temp, (int64_t)imm);
     if (!((cmode & 0x9) == 0x1 || (cmode & 0xd) == 0x9)) {
         /* MOVI or MVNI, with MVNI negation handled above.  */
-        tcg_gen_gvec_dup_imm(MO_64, vec_full_reg_offset(s, rd), is_q ? 16 : 8,
-                             vec_full_reg_size(s), imm);
+        // tcg_gen_gvec_dup_imm(MO_64, vec_full_reg_offset(s, rd), is_q ? 16 : 8,
+        //                      vec_full_reg_size(s), imm);
+        if(is_neg){
+            la_vreplgr2vr_d(vreg_d, temp);
+        }else{
+            la_vreplgr2vr_w(vreg_d, temp);
+        }
     } else {
+        assert(0);
         /* ORR or BIC, with BIC negation to AND handled above.  */
         if (is_neg) {
             gen_gvec_fn2i(s, is_q, rd, rd, imm, tcg_gen_gvec_andi, MO_64);
@@ -9209,6 +9217,13 @@ static void disas_simd_mod_imm(DisasContext *s, uint32_t insn)
             gen_gvec_fn2i(s, is_q, rd, rd, imm, tcg_gen_gvec_ori, MO_64);
         }
     }
+
+    if(!is_q){
+        /* 高64位清零 */
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    }
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
 }
 
 /* AdvSIMD scalar copy
