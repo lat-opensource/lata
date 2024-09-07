@@ -8939,7 +8939,7 @@ static void handle_simd_inse(DisasContext *s, int rd, int rn,
     int src_index, dst_index;
 
     if (size > 3) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -8997,7 +8997,7 @@ static void handle_simd_insg(DisasContext *s, int rd, int rn, int imm5)
     int idx;
 
     if (size > 3) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -9140,7 +9140,7 @@ static void disas_simd_copy(DisasContext *s, uint32_t insn)
             /* INS (element) */
             handle_simd_inse(s, rd, rn, imm4, imm5);
         } else {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
         }
     } else {
         switch (imm4) {
@@ -9157,7 +9157,7 @@ static void disas_simd_copy(DisasContext *s, uint32_t insn)
                 /* INS (general) */
                 handle_simd_insg(s, rd, rn, imm5);
             } else {
-                unallocated_encoding(s);
+                lata_unallocated_encoding(s);
             }
             break;
         case 5:
