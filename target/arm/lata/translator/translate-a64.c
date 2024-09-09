@@ -8488,75 +8488,254 @@ static void disas_simd_zip_trn(DisasContext *s, uint32_t insn)
     int opcode = extract32(insn, 12, 2);
     bool part = extract32(insn, 14, 1);
     bool is_q = extract32(insn, 30, 1);
-    int esize = 8 << size;
-    int i;
-    int datasize = is_q ? 128 : 64;
-    int elements = datasize / esize;
-    TCGv_i64 tcg_res[2], tcg_ele;
 
-    if (opcode == 0 || (size == 3 && !is_q)) {
-        unallocated_encoding(s);
+    if (opcode == 0 || (size == 3 && !is_q)){
+        lata_unallocated_encoding(s);
         return;
     }
 
-    if (!fp_access_check(s)) {
+    if (!fp_access_check(s)){
         return;
     }
 
-    tcg_res[0] = tcg_temp_new_i64();
-    tcg_res[1] = is_q ? tcg_temp_new_i64() : NULL;
-    tcg_ele = tcg_temp_new_i64();
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vtemp1 = ra_alloc_ftemp();
 
-    for (i = 0; i < elements; i++) {
-        int o, w;
+    switch (opcode){
+    case 1:        /* UZP1/2 */
+        if (!part) /* UZP1 */{
+            if (!is_q){
+                switch (size){
+                case 0:
+                    la_vpickev_b(vtemp, vreg_m, vreg_n);
+                    la_vpickev_b(vtemp1, vreg_m, vreg_n);
+                    la_vbsrl_v(vtemp1, vtemp1, 8);
+                    la_vpackev_w(vreg_d, vtemp1, vtemp);
 
-        switch (opcode) {
-        case 1: /* UZP1/2 */
+                    break;
+                case 1:
+                    la_vpickev_h(vtemp, vreg_m, vreg_n);
+                    la_vpickev_h(vtemp1, vreg_m, vreg_n);
+                    la_vbsrl_v(vtemp1, vtemp1, 8);
+                    la_vpackev_w(vreg_d, vtemp1, vtemp);
+
+                    break;
+                case 2:
+                    la_vpickev_w(vtemp, vreg_m, vreg_n);
+                    la_vpickev_w(vtemp1, vreg_m, vreg_n);
+                    la_vbsrl_v(vtemp1, vtemp1, 8);
+                    la_vpackev_w(vreg_d, vtemp1, vtemp);
+                    break;
+                case 3:
+                    la_vpickev_d(vtemp, vreg_m, vreg_n);
+                    la_vpickev_d(vtemp1, vreg_m, vreg_n);
+                    la_vbsrl_v(vtemp1, vtemp1, 8);
+                    la_vpackev_w(vreg_d, vtemp1, vtemp);
+                    break;
+                default:
+                    assert(0);
+                }
+            }
+            else{
+                switch (size){
+                case 0:
+                    la_vpickev_b(vreg_d, vreg_m, vreg_n);
+                    break;
+                case 1:
+                    la_vpickev_h(vreg_d, vreg_m, vreg_n);
+                    break;
+                case 2:
+                    la_vpickev_w(vreg_d, vreg_m, vreg_n);
+                    break;
+                case 3:
+                    la_vpickev_d(vreg_d, vreg_m, vreg_n);
+                    break;
+                default:
+                    assert(0);
+                }
+            }
+        }
+        else{ /* UZP2 */
+            if (!is_q){
+                switch (size){
+                case 0:
+                    la_vpickod_b(vtemp, vreg_m, vreg_n);
+                    la_vpickod_b(vtemp1, vreg_m, vreg_n);
+                    la_vbsrl_v(vtemp1, vtemp1, 8);
+                    la_vpackev_w(vreg_d, vtemp1, vtemp);
+
+                    break;
+                case 1:
+                    la_vpickod_h(vtemp, vreg_m, vreg_n);
+                    la_vpickod_h(vtemp1, vreg_m, vreg_n);
+                    la_vbsrl_v(vtemp1, vtemp1, 8);
+                    la_vpackev_w(vreg_d, vtemp1, vtemp);
+
+                    break;
+                case 2:
+                    la_vpickod_w(vtemp, vreg_m, vreg_n);
+                    la_vpickod_w(vtemp1, vreg_m, vreg_n);
+                    la_vbsrl_v(vtemp1, vtemp1, 8);
+                    la_vpackev_w(vreg_d, vtemp1, vtemp);
+                    break;
+                case 3:
+                    la_vpickod_d(vtemp, vreg_m, vreg_n);
+                    la_vpickod_d(vtemp1, vreg_m, vreg_n);
+                    la_vbsrl_v(vtemp1, vtemp1, 8);
+                    la_vpackev_w(vreg_d, vtemp1, vtemp);
+                    break;
+                default:
+                    assert(0);
+                }
+            }
+            else{
+                switch (size){
+                case 0:
+                    la_vpickod_b(vreg_d, vreg_m, vreg_n);
+                    break;
+                case 1:
+                    la_vpickod_h(vreg_d, vreg_m, vreg_n);
+                    break;
+                case 2:
+                    la_vpickod_w(vreg_d, vreg_m, vreg_n);
+                    break;
+                case 3:
+                    la_vpickod_d(vreg_d, vreg_m, vreg_n);
+                    break;
+                default:
+                    assert(0);
+                }
+            }
+        }
+        break;
+    case 2: /* TRN1/2 */
+        if (!part){
+            switch (size){
+            case 0:
+                la_vpackev_b(vreg_d, vreg_m, vreg_n);
+                break;
+            case 1:
+                la_vpackev_h(vreg_d, vreg_m, vreg_n);
+                break;
+            case 2:
+                la_vpackev_w(vreg_d, vreg_m, vreg_n);
+                break;
+            case 3:
+                la_vpackev_d(vreg_d, vreg_m, vreg_n);
+                break;
+            default:
+                assert(0);
+            }
+        }
+        else{
+            switch (size){
+            case 0:
+                la_vpackod_b(vreg_d, vreg_m, vreg_n);
+                break;
+            case 1:
+                la_vpackod_h(vreg_d, vreg_m, vreg_n);
+                break;
+            case 2:
+                la_vpackod_w(vreg_d, vreg_m, vreg_n);
+                break;
+            case 3:
+                la_vpackod_d(vreg_d, vreg_m, vreg_n);
+                break;
+            default:
+                assert(0);
+            }
+        }
+
+        break;
+    case 3: /* ZIP1/2 */
+        if (!part){
+            switch (size){
+            case 0:
+                la_vilvl_b(vreg_d, vreg_m, vreg_n);
+                break;
+            case 1:
+                la_vilvl_h(vreg_d, vreg_m, vreg_n);
+                break;
+            case 2:
+                la_vilvl_w(vreg_d, vreg_m, vreg_n);
+                break;
+            case 3:
+                la_vilvl_d(vreg_d, vreg_m, vreg_n);
+                break;
+            default:
+                assert(0);
+            }
+        }
+        else
         {
-            int midpoint = elements / 2;
-            if (i < midpoint) {
-                read_vec_element(s, tcg_ele, rn, 2 * i + part, size);
-            } else {
-                read_vec_element(s, tcg_ele, rm,
-                                 2 * (i - midpoint) + part, size);
+            if (!is_q){
+                switch (size){
+                case 0:
+                    la_vbsll_v(vtemp, vreg_n, 8);
+                    la_vbsll_v(vtemp1, vreg_m, 8);
+                    la_vilvh_b(vtemp, vtemp1, vtemp);
+                    la_vbsrl_v(vreg_d, vtemp, 8);
+                    break;
+                case 1:
+                    la_vbsll_v(vtemp, vreg_n, 8);
+                    la_vbsll_v(vtemp1, vreg_m, 8);
+                    la_vilvh_h(vtemp, vtemp1, vtemp);
+                    la_vbsrl_v(vreg_d, vtemp, 8);
+                    break;
+                case 2:
+                    la_vbsll_v(vtemp, vreg_n, 8);
+                    la_vbsll_v(vtemp1, vreg_m, 8);
+                    la_vilvh_w(vtemp, vtemp1, vtemp);
+                    la_vbsrl_v(vreg_d, vtemp, 8);
+                    break;
+                case 3:
+                    la_vbsll_v(vtemp, vreg_n, 8);
+                    la_vbsll_v(vtemp1, vreg_m, 8);
+                    la_vilvh_d(vtemp, vtemp1, vtemp);
+                    la_vbsrl_v(vreg_d, vtemp, 8);
+                    break;
+                default:
+                    assert(0);
+                }
             }
-            break;
-        }
-        case 2: /* TRN1/2 */
-            if (i & 1) {
-                read_vec_element(s, tcg_ele, rm, (i & ~1) + part, size);
-            } else {
-                read_vec_element(s, tcg_ele, rn, (i & ~1) + part, size);
+            else{
+                switch (size){
+                case 0:
+                    la_vilvh_b(vreg_d, vreg_m, vreg_n);
+                    break;
+                case 1:
+                    la_vilvh_h(vreg_d, vreg_m, vreg_n);
+                    break;
+                case 2:
+                    la_vilvh_w(vreg_d, vreg_m, vreg_n);
+                    break;
+                case 3:
+                    la_vilvh_d(vreg_d, vreg_m, vreg_n);
+                    break;
+                default:
+                    assert(0);
+                }
             }
-            break;
-        case 3: /* ZIP1/2 */
-        {
-            int base = part * elements / 2;
-            if (i & 1) {
-                read_vec_element(s, tcg_ele, rm, base + (i >> 1), size);
-            } else {
-                read_vec_element(s, tcg_ele, rn, base + (i >> 1), size);
-            }
-            break;
-        }
-        default:
-            g_assert_not_reached();
         }
 
-        w = (i * esize) / 64;
-        o = (i * esize) % 64;
-        if (o == 0) {
-            tcg_gen_mov_i64(tcg_res[w], tcg_ele);
-        } else {
-            tcg_gen_shli_i64(tcg_ele, tcg_ele, o);
-            tcg_gen_or_i64(tcg_res[w], tcg_res[w], tcg_ele);
-        }
+        break;
+    default:
+        g_assert_not_reached();
     }
 
-    for (i = 0; i <= is_q; ++i) {
-        write_vec_element(s, tcg_res[i], rd, i, MO_64);
+    /* 高64位清零 */
+    if (!is_q){
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
     }
-    clear_vec_high(s, is_q, rd);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_m);
+    free_alloc_fpr(vtemp);
+    free_alloc_fpr(vtemp1);
 }
 
 /*
