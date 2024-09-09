@@ -11738,42 +11738,73 @@ static void handle_vec_simd_shli(DisasContext *s, bool is_q, bool insert,
     }
 }
 
-/* USHLL/SHLL - Vector shift left with widening */
+/* USHLL/SSHLL - Vector shift left with widening */
 static void handle_vec_simd_wshli(DisasContext *s, bool is_q, bool is_u,
                                  int immh, int immb, int opcode, int rn, int rd)
 {
-    assert(0);
-    // int size = 32 - clz32(immh) - 1;
-    // int immhb = immh << 3 | immb;
-    // int shift = immhb - (8 << size);
-    // int dsize = 64;
-    // int esize = 8 << size;
-    // int elements = dsize/esize;
-    // TCGv_i64 tcg_rn = tcg_temp_new_i64();
-    // TCGv_i64 tcg_rd = tcg_temp_new_i64();
-    // int i;
+    int size = 32 - clz32(immh) - 1;
+    int immhb = immh << 3 | immb;
+    int shift = immhb - (8 << size);
+    int esize = 8 << size;
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vtemp = ra_alloc_ftemp();
 
-    // if (size >= 3) {
-    //     unallocated_encoding(s);
-    //     return;
-    // }
+    if (size >= 3) {
+        lata_unallocated_encoding(s);
+        return;
+    }
 
-    // if (!fp_access_check(s)) {
-    //     return;
-    // }
+    if (!fp_access_check(s)) {
+        return;
+    }
 
-    // /* For the LL variants the store is larger than the load,
-    //  * so if rd == rn we would overwrite parts of our input.
-    //  * So load everything right now and use shifts in the main loop.
-    //  */
-    // read_vec_element(s, tcg_rn, rn, is_q ? 1 : 0, MO_64);
+    /* 统一移至低位处理 */
+    if (!is_q){
+        la_vbsrl_v(vtemp, vreg_n, 0);
+    }
+    else{
+        la_vbsrl_v(vtemp, vreg_n, 8);
+    }
 
-    // for (i = 0; i < elements; i++) {
-    //     tcg_gen_shri_i64(tcg_rd, tcg_rn, i * esize);
-    //     ext_and_shift_reg(tcg_rd, tcg_rd, size | (!is_u << 2), 0);
-    //     tcg_gen_shli_i64(tcg_rd, tcg_rd, shift);
-    //     write_vec_element(s, tcg_rd, rd, i, size + 1);
-    // }
+    /* USHLL/USHLL2*/
+    if(is_u){
+        switch (size){
+        case 0:
+            la_vsllwil_hu_bu(vreg_d, vtemp, shift);
+            break;
+        case 1:
+            la_vsllwil_wu_hu(vreg_d, vtemp, shift);
+            break;
+        case 2:
+            la_vsllwil_du_wu(vreg_d, vtemp, shift);
+            break;
+        default:
+            assert(0);
+        }       
+    }
+    else{
+        switch (size){
+        case 0:
+            la_vsllwil_h_b(vreg_d, vtemp, shift);
+            break;
+        case 1:
+            la_vsllwil_w_h(vreg_d, vtemp, shift);
+            break;
+        case 2:
+            la_vsllwil_d_w(vreg_d, vtemp, shift);
+            break;
+        default:
+            assert(0);
+        }          
+    }
+    
+
+
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vtemp);
 }
 
 /* SHRN/RSHRN - Shift right with narrowing (and potential rounding) */
