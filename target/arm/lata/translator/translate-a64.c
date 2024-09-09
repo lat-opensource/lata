@@ -11926,203 +11926,267 @@ static void handle_3rd_widening(DisasContext *s, int is_q, int is_u, int size,
                                 int opcode, int rd, int rn, int rm)
 {
     /* 3-reg-different widening insns: 64 x 64 -> 128 */
-    TCGv_i64 tcg_res[2];
-    int pass, accop;
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vtemp1 = ra_alloc_ftemp();
 
-    tcg_res[0] = tcg_temp_new_i64();
-    tcg_res[1] = tcg_temp_new_i64();
+    /* 0向量寄存器 */
+    IR2_OPND vzero = ra_alloc_ftemp();
+    la_vandi_b(vzero, vzero, 0);
 
-    /* Does this op do an adding accumulate, a subtracting accumulate,
-     * or no accumulate at all?
-     */
-    switch (opcode) {
-    case 5:
-    case 8:
-    case 9:
-        accop = 1;
+    int op_id = (is_u << 4) | opcode;
+    int is_sub = extract32(op_id, 1, 1);
+
+    switch (op_id){
+    case 0x0: /* SADDL, SADDL2 */
+        assert(0);
         break;
-    case 10:
-    case 11:
-        accop = -1;
+    case 0x2: /* SSUBL, SSUBL2 */
+        assert(0);
+        break;
+    case 0x5: /* SABAL, SABAL2 */
+        assert(0);
+        break;
+    case 0x7: /* SABDL, SABDL2 */
+        assert(0);
+        break;
+    case 0x8: /* SMLAL, SMLAL2 */
+        assert(0);
+        break;
+    case 0xa: /* SMLSL, SMLSL2 */
+        assert(0);
+        break;
+    case 0xc: /* SMULL, SMULL2 */
+        if (!is_q){
+            /* 低位统一移至偶数位后做偶数位的相乘并拓2倍宽 */
+            switch (size){
+            case 0:
+                la_vilvl_b(vtemp, vzero, vreg_n);
+                la_vilvl_b(vtemp1, vzero, vreg_m);
+                la_vmulwev_h_b(vreg_d, vtemp, vtemp1);
+                break;
+            case 1:
+                la_vilvl_h(vtemp, vzero, vreg_n);
+                la_vilvl_h(vtemp1, vzero, vreg_m);
+                la_vmulwev_w_h(vreg_d, vtemp, vtemp1);
+                break;
+            case 2:
+                la_vilvl_w(vtemp, vzero, vreg_n);
+                la_vilvl_w(vtemp1, vzero, vreg_m);
+                la_vmulwev_d_w(vreg_d, vtemp, vtemp1);
+                break;
+            case 3:
+                la_vilvl_d(vtemp, vzero, vreg_n);
+                la_vilvl_d(vtemp1, vzero, vreg_m);
+                la_vmulwev_q_d(vreg_d, vtemp, vtemp1);
+                break;
+            default:
+                assert(0);
+            }
+        }
+        else{
+            /* 高位统一移至偶数位后做偶数位的相乘并拓2倍宽 */
+            switch (size){
+            case 0:
+                la_vilvh_b(vtemp, vzero, vreg_n);
+                la_vilvh_b(vtemp1, vzero, vreg_m);
+                la_vmulwev_h_b(vreg_d, vtemp, vtemp1);
+                break;
+            case 1:
+                la_vilvh_h(vtemp, vzero, vreg_n);
+                la_vilvh_h(vtemp1, vzero, vreg_m);
+                la_vmulwev_w_h(vreg_d, vtemp, vtemp1);
+                break;
+            case 2:
+                la_vilvh_w(vtemp, vzero, vreg_n);
+                la_vilvh_w(vtemp1, vzero, vreg_m);
+                la_vmulwev_d_w(vreg_d, vtemp, vtemp1);
+                break;
+            case 3:
+                la_vilvh_d(vtemp, vzero, vreg_n);
+                la_vilvh_d(vtemp1, vzero, vreg_m);
+                la_vmulwev_q_d(vreg_d, vtemp, vtemp1);
+                break;
+            default:
+                assert(0);
+            }
+        }
+        break;
+    case 0x9: /* SQDMLAL, SQDMLAL2 */
+        assert(0);
+        break;
+    case 0xb: /* SQDMLSL, SQDMLSL2 */
+        assert(0);
+        break;
+    case 0xd: /* SQDMULL, SQDMULL2 */
+        assert(0);
+        break;
+    case 0x10: /* UADDL, UADDL2 */
+    case 0x12: /* USUBL, USUBL2 */
+        if (!is_q){ /* 统一移到高位处理 */
+            la_vbsll_v(vtemp, vreg_n, 8);
+            la_vbsll_v(vtemp1, vreg_m, 8);
+            switch (size){
+            case 0:
+                /* 高位扩展 */
+                la_vexth_hu_bu(vtemp, vtemp);
+                la_vexth_hu_bu(vtemp1, vtemp1);
+                if (is_sub)
+                    la_vsub_h(vreg_d, vtemp, vtemp1);
+                else
+                    la_vadd_h(vreg_d, vtemp, vtemp1);
+                break;
+            case 1:
+                la_vexth_wu_hu(vtemp, vtemp);
+                la_vexth_wu_hu(vtemp1, vtemp1);
+                if (is_sub)
+                    la_vsub_w(vreg_d, vtemp, vtemp1);
+                else
+                    la_vadd_w(vreg_d, vtemp, vtemp1);
+                break;
+            case 2:
+                la_vexth_du_wu(vtemp, vtemp);
+                la_vexth_du_wu(vtemp1, vtemp1);
+                if (is_sub)
+                    la_vsub_d(vreg_d, vtemp, vtemp1);
+                else
+                    la_vadd_d(vreg_d, vtemp, vtemp1);
+                break;
+            case 3:
+                la_vexth_qu_du(vtemp, vtemp);
+                la_vexth_qu_du(vtemp1, vtemp1);
+                if (is_sub)
+                    la_vsub_q(vreg_d, vtemp, vtemp1);
+                else
+                    la_vadd_q(vreg_d, vtemp, vtemp1);
+                break;
+            default:
+                assert(0);
+            }
+        }
+        else{
+            switch (size){
+            case 0:
+                /* 高位扩展 */
+                la_vexth_hu_bu(vtemp, vreg_n);
+                la_vexth_hu_bu(vtemp1, vreg_m);
+                if (is_sub)
+                    la_vsub_h(vreg_d, vtemp, vtemp1);
+                else
+                    la_vadd_h(vreg_d, vtemp, vtemp1);
+                break;
+            case 1:
+                la_vexth_wu_hu(vtemp, vreg_n);
+                la_vexth_wu_hu(vtemp1, vreg_m);
+                if (is_sub)
+                    la_vsub_w(vreg_d, vtemp, vtemp1);
+                else
+                    la_vadd_w(vreg_d, vtemp, vtemp1);
+                break;
+            case 2:
+                la_vexth_du_wu(vtemp, vreg_n);
+                la_vexth_du_wu(vtemp1, vreg_m);
+                if (is_sub)
+                    la_vsub_d(vreg_d, vtemp, vtemp1);
+                else
+                    la_vadd_d(vreg_d, vtemp, vtemp1);
+                break;
+            case 3:
+                la_vexth_qu_du(vtemp, vreg_n);
+                la_vexth_qu_du(vtemp1, vreg_m);
+                if (is_sub)
+                    la_vsub_q(vreg_d, vtemp, vtemp1);
+                else
+                    la_vadd_q(vreg_d, vtemp, vtemp1);
+                break;
+            default:
+                assert(0);
+            }
+        }
+
+        break;
+    case 0x15: /* UABAL, UABAL2 */
+        assert(0);
+        break;
+    case 0x17: /* UABDL, UABDL2 */
+        assert(0);
+        break;
+    case 0x18: /* UMLAL, UMLAL2 */
+        assert(0);
+        break;
+    case 0x1a: /* UMLSL, UMLSL2 */
+        assert(0);
+        break;
+    case 0x1c: /* UMULL, UMULL2 */
+        if (!is_q){
+            /* 低位统一移至偶数位后做偶数位的相乘并拓2倍宽 */
+            switch (size){
+            case 0:
+                la_vilvl_b(vtemp, vzero, vreg_n);
+                la_vilvl_b(vtemp1, vzero, vreg_m);
+                la_vmulwev_h_bu(vreg_d, vtemp, vtemp1);
+                break;
+            case 1:
+                la_vilvl_h(vtemp, vzero, vreg_n);
+                la_vilvl_h(vtemp1, vzero, vreg_m);
+                la_vmulwev_w_hu(vreg_d, vtemp, vtemp1);
+                break;
+            case 2:
+                la_vilvl_w(vtemp, vzero, vreg_n);
+                la_vilvl_w(vtemp1, vzero, vreg_m);
+                la_vmulwev_d_wu(vreg_d, vtemp, vtemp1);
+                break;
+            case 3:
+                la_vilvl_d(vtemp, vzero, vreg_n);
+                la_vilvl_d(vtemp1, vzero, vreg_m);
+                la_vmulwev_q_du(vreg_d, vtemp, vtemp1);
+                break;
+            default:
+                assert(0);
+            }
+        }
+        else{
+            /* 高位统一移至偶数位后做偶数位的相乘并拓2倍宽 */
+            switch (size){
+            case 0:
+                la_vilvh_b(vtemp, vzero, vreg_n);
+                la_vilvh_b(vtemp1, vzero, vreg_m);
+                la_vmulwev_h_bu(vreg_d, vtemp, vtemp1);
+                break;
+            case 1:
+                la_vilvh_h(vtemp, vzero, vreg_n);
+                la_vilvh_h(vtemp1, vzero, vreg_m);
+                la_vmulwev_w_hu(vreg_d, vtemp, vtemp1);
+                break;
+            case 2:
+                la_vilvh_w(vtemp, vzero, vreg_n);
+                la_vilvh_w(vtemp1, vzero, vreg_m);
+                la_vmulwev_d_wu(vreg_d, vtemp, vtemp1);
+                break;
+            case 3:
+                la_vilvh_d(vtemp, vzero, vreg_n);
+                la_vilvh_d(vtemp1, vzero, vreg_m);
+                la_vmulwev_q_du(vreg_d, vtemp, vtemp1);
+                break;
+            default:
+                assert(0);
+            }
+        }
+
         break;
     default:
-        accop = 0;
-        break;
+        g_assert_not_reached();
     }
 
-    if (accop != 0) {
-        read_vec_element(s, tcg_res[0], rd, 0, MO_64);
-        read_vec_element(s, tcg_res[1], rd, 1, MO_64);
-    }
-
-    /* size == 2 means two 32x32->64 operations; this is worth special
-     * casing because we can generally handle it inline.
-     */
-    if (size == 2) {
-        for (pass = 0; pass < 2; pass++) {
-            TCGv_i64 tcg_op1 = tcg_temp_new_i64();
-            TCGv_i64 tcg_op2 = tcg_temp_new_i64();
-            TCGv_i64 tcg_passres;
-            MemOp memop = MO_32 | (is_u ? 0 : MO_SIGN);
-
-            int elt = pass + is_q * 2;
-
-            read_vec_element(s, tcg_op1, rn, elt, memop);
-            read_vec_element(s, tcg_op2, rm, elt, memop);
-
-            if (accop == 0) {
-                tcg_passres = tcg_res[pass];
-            } else {
-                tcg_passres = tcg_temp_new_i64();
-            }
-
-            switch (opcode) {
-            case 0: /* SADDL, SADDL2, UADDL, UADDL2 */
-                tcg_gen_add_i64(tcg_passres, tcg_op1, tcg_op2);
-                break;
-            case 2: /* SSUBL, SSUBL2, USUBL, USUBL2 */
-                tcg_gen_sub_i64(tcg_passres, tcg_op1, tcg_op2);
-                break;
-            case 5: /* SABAL, SABAL2, UABAL, UABAL2 */
-            case 7: /* SABDL, SABDL2, UABDL, UABDL2 */
-            {
-                TCGv_i64 tcg_tmp1 = tcg_temp_new_i64();
-                TCGv_i64 tcg_tmp2 = tcg_temp_new_i64();
-
-                tcg_gen_sub_i64(tcg_tmp1, tcg_op1, tcg_op2);
-                tcg_gen_sub_i64(tcg_tmp2, tcg_op2, tcg_op1);
-                tcg_gen_movcond_i64(is_u ? TCG_COND_GEU : TCG_COND_GE,
-                                    tcg_passres,
-                                    tcg_op1, tcg_op2, tcg_tmp1, tcg_tmp2);
-                break;
-            }
-            case 8: /* SMLAL, SMLAL2, UMLAL, UMLAL2 */
-            case 10: /* SMLSL, SMLSL2, UMLSL, UMLSL2 */
-            case 12: /* UMULL, UMULL2, SMULL, SMULL2 */
-                tcg_gen_mul_i64(tcg_passres, tcg_op1, tcg_op2);
-                break;
-            case 9: /* SQDMLAL, SQDMLAL2 */
-            case 11: /* SQDMLSL, SQDMLSL2 */
-            case 13: /* SQDMULL, SQDMULL2 */
-                tcg_gen_mul_i64(tcg_passres, tcg_op1, tcg_op2);
-                gen_helper_neon_addl_saturate_s64(tcg_passres, cpu_env,
-                                                  tcg_passres, tcg_passres);
-                break;
-            default:
-                g_assert_not_reached();
-            }
-
-            if (opcode == 9 || opcode == 11) {
-                /* saturating accumulate ops */
-                if (accop < 0) {
-                    tcg_gen_neg_i64(tcg_passres, tcg_passres);
-                }
-                gen_helper_neon_addl_saturate_s64(tcg_res[pass], cpu_env,
-                                                  tcg_res[pass], tcg_passres);
-            } else if (accop > 0) {
-                tcg_gen_add_i64(tcg_res[pass], tcg_res[pass], tcg_passres);
-            } else if (accop < 0) {
-                tcg_gen_sub_i64(tcg_res[pass], tcg_res[pass], tcg_passres);
-            }
-        }
-    } else {
-        /* size 0 or 1, generally helper functions */
-        for (pass = 0; pass < 2; pass++) {
-            TCGv_i32 tcg_op1 = tcg_temp_new_i32();
-            TCGv_i32 tcg_op2 = tcg_temp_new_i32();
-            TCGv_i64 tcg_passres;
-            int elt = pass + is_q * 2;
-
-            read_vec_element_i32(s, tcg_op1, rn, elt, MO_32);
-            read_vec_element_i32(s, tcg_op2, rm, elt, MO_32);
-
-            if (accop == 0) {
-                tcg_passres = tcg_res[pass];
-            } else {
-                tcg_passres = tcg_temp_new_i64();
-            }
-
-            switch (opcode) {
-            case 0: /* SADDL, SADDL2, UADDL, UADDL2 */
-            case 2: /* SSUBL, SSUBL2, USUBL, USUBL2 */
-            {
-                TCGv_i64 tcg_op2_64 = tcg_temp_new_i64();
-                static NeonGenWidenFn * const widenfns[2][2] = {
-                    { gen_helper_neon_widen_s8, gen_helper_neon_widen_u8 },
-                    { gen_helper_neon_widen_s16, gen_helper_neon_widen_u16 },
-                };
-                NeonGenWidenFn *widenfn = widenfns[size][is_u];
-
-                widenfn(tcg_op2_64, tcg_op2);
-                widenfn(tcg_passres, tcg_op1);
-                gen_neon_addl(size, (opcode == 2), tcg_passres,
-                              tcg_passres, tcg_op2_64);
-                break;
-            }
-            case 5: /* SABAL, SABAL2, UABAL, UABAL2 */
-            case 7: /* SABDL, SABDL2, UABDL, UABDL2 */
-                if (size == 0) {
-                    if (is_u) {
-                        gen_helper_neon_abdl_u16(tcg_passres, tcg_op1, tcg_op2);
-                    } else {
-                        gen_helper_neon_abdl_s16(tcg_passres, tcg_op1, tcg_op2);
-                    }
-                } else {
-                    if (is_u) {
-                        gen_helper_neon_abdl_u32(tcg_passres, tcg_op1, tcg_op2);
-                    } else {
-                        gen_helper_neon_abdl_s32(tcg_passres, tcg_op1, tcg_op2);
-                    }
-                }
-                break;
-            case 8: /* SMLAL, SMLAL2, UMLAL, UMLAL2 */
-            case 10: /* SMLSL, SMLSL2, UMLSL, UMLSL2 */
-            case 12: /* UMULL, UMULL2, SMULL, SMULL2 */
-                if (size == 0) {
-                    if (is_u) {
-                        gen_helper_neon_mull_u8(tcg_passres, tcg_op1, tcg_op2);
-                    } else {
-                        gen_helper_neon_mull_s8(tcg_passres, tcg_op1, tcg_op2);
-                    }
-                } else {
-                    if (is_u) {
-                        gen_helper_neon_mull_u16(tcg_passres, tcg_op1, tcg_op2);
-                    } else {
-                        gen_helper_neon_mull_s16(tcg_passres, tcg_op1, tcg_op2);
-                    }
-                }
-                break;
-            case 9: /* SQDMLAL, SQDMLAL2 */
-            case 11: /* SQDMLSL, SQDMLSL2 */
-            case 13: /* SQDMULL, SQDMULL2 */
-                assert(size == 1);
-                gen_helper_neon_mull_s16(tcg_passres, tcg_op1, tcg_op2);
-                gen_helper_neon_addl_saturate_s32(tcg_passres, cpu_env,
-                                                  tcg_passres, tcg_passres);
-                break;
-            default:
-                g_assert_not_reached();
-            }
-
-            if (accop != 0) {
-                if (opcode == 9 || opcode == 11) {
-                    /* saturating accumulate ops */
-                    if (accop < 0) {
-                        gen_helper_neon_negl_u32(tcg_passres, tcg_passres);
-                    }
-                    gen_helper_neon_addl_saturate_s32(tcg_res[pass], cpu_env,
-                                                      tcg_res[pass],
-                                                      tcg_passres);
-                } else {
-                    gen_neon_addl(size, (accop < 0), tcg_res[pass],
-                                  tcg_res[pass], tcg_passres);
-                }
-            }
-        }
-    }
-
-    write_vec_element(s, tcg_res[0], rd, 0, MO_64);
-    write_vec_element(s, tcg_res[1], rd, 1, MO_64);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_m);
+    free_alloc_fpr(vtemp);
+    free_alloc_fpr(vtemp1);
+    free_alloc_fpr(vzero);
 }
 
 static void handle_3rd_wide(DisasContext *s, int is_q, int is_u, int size,
@@ -12298,7 +12362,7 @@ static void disas_simd_three_reg_diff(DisasContext *s, uint32_t insn)
     case 12: /* SMULL, SMULL2, UMULL, UMULL2 */
         /* 64 x 64 -> 128 */
         if (size == 3) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         if (!fp_access_check(s)) {
