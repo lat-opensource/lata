@@ -11656,59 +11656,98 @@ static void handle_vec_simd_shri(DisasContext *s, bool is_q, bool is_u,
 {
     int size = 32 - clz32(immh) - 1;
     int immhb = immh << 3 | immb;
-    int shift = 2 * (8 << size) - immhb;
-    GVecGen2iFn *gvec_fn;
+    int shift = 2 * (8 << size)- immhb;
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vtemp = ra_alloc_ftemp();
 
     if (extract32(immh, 3, 1) && !is_q) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
-    tcg_debug_assert(size <= 3);
 
     if (!fp_access_check(s)) {
         return;
     }
 
+    la_vbsrl_v(vtemp, vreg_n, 0);
+    /* 高位清零 */
+    if(!is_q){
+        la_vinsgr2vr_d(vtemp,zero_ir2_opnd,1);
+    }
+
     switch (opcode) {
     case 0x02: /* SSRA / USRA (accumulate) */
-        gvec_fn = is_u ? gen_gvec_usra : gen_gvec_ssra;
+        assert(0);
         break;
 
     case 0x08: /* SRI */
-        gvec_fn = gen_gvec_sri;
+        assert(0);
         break;
 
     case 0x00: /* SSHR / USHR */
         if (is_u) {
-            if (shift == 8 << size) {
-                /* Shift count the same size as element size produces zero.  */
-                tcg_gen_gvec_dup_imm(size, vec_full_reg_offset(s, rd),
-                                     is_q ? 16 : 8, vec_full_reg_size(s), 0);
-                return;
+            /* Shift count the same size as element size produces zero.  */
+            if(shift == 8 << size){
+                la_vandi_b(vreg_d, vtemp, 0);
+                break;
             }
-            gvec_fn = tcg_gen_gvec_shri;
+            switch (size){
+            case 0:
+                la_vsrli_b(vreg_d,vtemp,shift);
+                break;
+            case 1:
+                la_vsrli_h(vreg_d,vtemp,shift);
+                break;
+            case 2:
+                la_vsrli_w(vreg_d,vtemp,shift);
+                break;
+            case 3:
+                la_vsrli_d(vreg_d,vtemp,shift);
+                break;
+            default:
+                assert(0);
+            } 
         } else {
             /* Shift count the same size as element size produces all sign.  */
-            if (shift == 8 << size) {
+            if(shift == 8 << size){
                 shift -= 1;
             }
-            gvec_fn = tcg_gen_gvec_sari;
+            switch (size){
+            case 0:
+                la_vsrai_b(vreg_d,vtemp,shift);
+                break;
+            case 1:
+                la_vsrai_h(vreg_d,vtemp,shift);
+                break;
+            case 2:
+                la_vsrai_w(vreg_d,vtemp,shift);
+                break;
+            case 3:
+                la_vsrai_d(vreg_d,vtemp,shift);
+                break;
+            default:
+                assert(0);
+            } 
         }
         break;
 
     case 0x04: /* SRSHR / URSHR (rounding) */
-        gvec_fn = is_u ? gen_gvec_urshr : gen_gvec_srshr;
+        assert(0);
         break;
 
     case 0x06: /* SRSRA / URSRA (accum + rounding) */
-        gvec_fn = is_u ? gen_gvec_ursra : gen_gvec_srsra;
+        assert(0);
         break;
 
     default:
         g_assert_not_reached();
     }
 
-    gen_gvec_fn2i(s, is_q, rd, rn, shift, gvec_fn, size);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vtemp);
 }
 
 /* SHL/SLI - Vector shift left */
@@ -11745,7 +11784,6 @@ static void handle_vec_simd_wshli(DisasContext *s, bool is_q, bool is_u,
     int size = 32 - clz32(immh) - 1;
     int immhb = immh << 3 | immb;
     int shift = immhb - (8 << size);
-    int esize = 8 << size;
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vtemp = ra_alloc_ftemp();
