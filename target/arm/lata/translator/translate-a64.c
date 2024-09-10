@@ -11326,11 +11326,51 @@ static void handle_2misc_narrow(DisasContext *s, bool scalar,
     IR2_OPND vreg_d = alloc_fpr_src(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vtemp = ra_alloc_ftemp();
+    la_vandi_b(vtemp, vtemp, 0);
 
     switch (opcode) {
-    case 0x12: /* XTN, SQXTUN */
-    {
-        assert(0);
+    case 0x12: /* XTN,XTN2, SQXTUN */
+    {    
+        if(!is_q){
+            switch (size){
+            case 0:
+                la_vpickev_b(vreg_d, vtemp, vreg_n);
+                break;
+            case 1:
+                la_vpickev_h(vreg_d, vtemp, vreg_n);
+                break;
+            case 2:
+                la_vpickev_w(vreg_d, vtemp, vreg_n);
+                break;
+            case 3:
+                la_vpickev_d(vreg_d, vtemp, vreg_n);
+                break;
+            default:
+                assert(0);
+            }
+        }
+        else{
+            switch (size){
+            case 0:
+                la_vpickev_b(vtemp, vtemp, vreg_n);
+                la_vpickev_d(vreg_d, vtemp, vreg_d);
+                break;
+            case 1:
+                la_vpickev_h(vtemp, vtemp, vreg_n);
+                la_vpickev_d(vreg_d, vtemp, vreg_d);
+                break;
+            case 2:
+                la_vpickev_w(vtemp, vtemp, vreg_n);
+                la_vpickev_d(vreg_d, vtemp, vreg_d);
+                break;
+            case 3:
+                la_vpickev_d(vtemp, vtemp, vreg_n);
+                la_vpickev_d(vreg_d, vtemp, vreg_d);
+                break;
+            default:
+                assert(0);
+            }
+        }
         break;
     }
     case 0x14: /* SQXTN, UQXTN */
@@ -13788,7 +13828,7 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
     case 0x12: /* XTN, XTN2, SQXTUN, SQXTUN2 */
     case 0x14: /* SQXTN, SQXTN2, UQXTN, UQXTN2 */
         if (size == 3) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         if (!fp_access_check(s)) {
