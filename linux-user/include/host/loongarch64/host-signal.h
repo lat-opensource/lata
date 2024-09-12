@@ -61,6 +61,20 @@ static inline bool host_signal_write(siginfo_t *info, host_sigcontext *uc)
             return true;
         }
         break;
+    case 0b001011: /* vst, xvst */
+        switch ((insn >> 22) & 0b1111) {
+        case 0b0001: /* vst */
+        case 0b0011: /* xvst */
+            return true;
+        }
+        break;
+    case 0b001100: /* vstelm, xvstem */
+        switch ((insn >> 24) & 0b11) {
+        case 0b01: /* vstelm */
+        case 0b11: /* xvstelm */
+            return true;
+        }
+        break;
     case 0b001110: /* indexed, atomic, bounds-checking memory operations */
         switch ((insn >> 15) & 0b11111111111) {
         case 0b00000100000: /* stx.b */

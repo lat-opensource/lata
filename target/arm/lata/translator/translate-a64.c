@@ -4299,7 +4299,7 @@ static bool trans_LD_mult(DisasContext *s, arg_ldst_mult *a)
         gen_check_sp_alignment(s);
     }
 
-    reg_n = alloc_gpr_src(a->rn);
+    reg_n = alloc_gpr_src_sp(a->rn);
     if(a->selem == 1){ /* LD1(multiple structures) */
         int vbytes = (a->q ? 16 : 8); /* bytes per vector */
         total = a->rpt * vbytes;
@@ -4321,16 +4321,43 @@ static bool trans_LD_mult(DisasContext *s, arg_ldst_mult *a)
             free_alloc_fpr(vreg_d);
         }
     }else{ /* LD2/LD3/LD4, both are multiple structures */
-        assert(0);
-        /* TODO */
-        // int elements = (a->q ? 16 : 8) >> size; /* elements per vector */
-        // int ebytes = 1 << size; /* bytes per element */
+        int elements = (a->q ? 16 : 8) >> size; /* elements per vector */
+        int ebytes = 1 << size; /* bytes per element */
+        total = a->selem * elements * ebytes;
 
-        // for(int e = 0; e < elements; e++){
-        //     for(int r = 0; r < a->selem; r++){
+        IR2_OPND vtemp = ra_alloc_ftemp();
+        for(int r = 0; r < a->selem; r++){
+            int tt = (a->rt + r) % 32;
+            vreg_d = alloc_fpr_dst(tt);
+            for(int e = 0; e < elements; e++){
+                int offset = (e * a->selem + r) * ebytes;
+                la_vld(vtemp, reg_n, offset);
+                switch (ebytes)
+                {
+                case 1:
+                    la_vextrins_b(vreg_d, vtemp, e << 4);
+                    break;
+                case 2:
+                    la_vextrins_h(vreg_d, vtemp, e << 4);
+                    break;
+                case 4:
+                    la_vextrins_w(vreg_d, vtemp, e << 4);
+                    break;
+                case 8:
+                    la_vextrins_d(vreg_d, vtemp, e << 4);
+                    break;
+                default:
+                    break;
+                }
+            }
+            if(!a->q){
+                la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+            }
 
-        //     }
-        // }
+            store_fpr_dst(tt, vreg_d);
+            free_alloc_fpr(vreg_d);
+        }
+        free_alloc_fpr(vtemp);
     }
 
     if (a->p) {
@@ -4353,7 +4380,7 @@ static bool trans_LD_mult(DisasContext *s, arg_ldst_mult *a)
 
 static bool trans_ST_mult(DisasContext *s, arg_ldst_mult *a)
 {
-    assert(0);
+    // assert(0);
     IR2_OPND vreg_d, reg_n, reg_m;
 
     int total;    /* total bytes */
@@ -4374,7 +4401,7 @@ static bool trans_ST_mult(DisasContext *s, arg_ldst_mult *a)
         gen_check_sp_alignment(s);
     }
 
-    reg_n = alloc_gpr_src(a->rn);
+    reg_n = alloc_gpr_src_sp(a->rn);
     if(a->selem == 1){ /* ST1(multiple structures) */
         int vbytes = (a->q ? 16 : 8); /* bytes per vector */
         total = a->rpt * vbytes;
@@ -4396,16 +4423,36 @@ static bool trans_ST_mult(DisasContext *s, arg_ldst_mult *a)
             free_alloc_fpr(vreg_d);
         }
     }else{ /* ST2/ST3/ST4, both are multiple structures */
-        assert(0);
-        /* TODO */
-        // int elements = (a->q ? 16 : 8) >> size; /* elements per vector */
-        // int ebytes = 1 << size; /* bytes per element */
+        int elements = (a->q ? 16 : 8) >> size; /* elements per vector */
+        int ebytes = 1 << size; /* bytes per element */
+        total = a->selem * elements * ebytes;
 
-        // for(int e = 0; e < elements; e++){
-        //     for(int r = 0; r < a->selem; r++){
+        for(int r = 0; r < a->selem; r++){ /* structure elements 等于需要store的寄存器个数 */
+            int tt = (a->rt + r) % 32;
+            vreg_d = alloc_fpr_src(tt);
+            for(int e = 0; e < elements; e++){
+                int offset = e * a->selem + r;
+                switch (ebytes)
+                {
+                case 1:
+                    la_vstelm_b(vreg_d, reg_n, offset, e);
+                    break;
+                case 2:
+                    la_vstelm_h(vreg_d, reg_n, offset, e);
+                    break;
+                case 4:
+                    la_vstelm_w(vreg_d, reg_n, offset, e);
+                    break;
+                case 8:
+                    la_vstelm_d(vreg_d, reg_n, offset, e);
+                    break;
+                default:
+                    break;
+                }
+            }
 
-        //     }
-        // }
+            free_alloc_fpr(vreg_d);
+        }
     }
 
     if (a->p) {
