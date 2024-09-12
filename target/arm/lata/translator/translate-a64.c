@@ -4455,7 +4455,7 @@ static bool trans_ST_mult(DisasContext *s, arg_ldst_mult *a)
 
 static bool trans_ST_single(DisasContext *s, arg_ldst_single *a)
 {
-    IR2_OPND vreg_d, reg_n, reg_m, vtemp;
+    IR2_OPND vreg_d, reg_n, reg_m;
     int total;    /* total bytes */
     int esize;
     int xs, rt;
@@ -4474,7 +4474,6 @@ static bool trans_ST_single(DisasContext *s, arg_ldst_single *a)
     total = a->selem << a->scale;
     esize = 1 << a->scale;
     reg_n = alloc_gpr_src_sp(a->rn);
-    vtemp = ra_alloc_ftemp();
     for (xs = 0, rt = a->rt; xs < a->selem; xs++, rt = (rt + 1) % 32) {
         vreg_d = alloc_fpr_src(rt);
         switch (esize)
@@ -4511,7 +4510,6 @@ static bool trans_ST_single(DisasContext *s, arg_ldst_single *a)
 
     store_gpr_dst(a->rn, reg_n);
     free_alloc_gpr(reg_n);
-    free_alloc_fpr(vtemp);
     return true;
 }
 
@@ -4584,9 +4582,9 @@ static bool trans_LD_single(DisasContext *s, arg_ldst_single *a)
 
 static bool trans_LD_single_repl(DisasContext *s, arg_LD_single_repl *a)
 {
-    int xs, total, rt;
-    TCGv_i64 clean_addr, tcg_rn, tcg_ebytes;
-    MemOp mop;
+    IR2_OPND vreg_d, reg_n, reg_m;
+    int total;    /* total bytes */
+    int esize;
 
     if (!a->p && a->rm != 0) {
         return false;
@@ -4600,30 +4598,48 @@ static bool trans_LD_single_repl(DisasContext *s, arg_LD_single_repl *a)
     }
 
     total = a->selem << a->scale;
-    tcg_rn = cpu_reg_sp(s, a->rn);
-
-    mop = finalize_memop_asimd(s, a->scale);
-    clean_addr = gen_mte_checkN(s, tcg_rn, false, a->p || a->rn != 31,
-                                total, mop);
-
-    tcg_ebytes = tcg_constant_i64(1 << a->scale);
-    for (xs = 0, rt = a->rt; xs < a->selem; xs++, rt = (rt + 1) % 32) {
-        /* Load and replicate to all elements */
-        TCGv_i64 tcg_tmp = tcg_temp_new_i64();
-
-        tcg_gen_qemu_ld_i64(tcg_tmp, clean_addr, get_mem_index(s), mop);
-        tcg_gen_gvec_dup_i64(a->scale, vec_full_reg_offset(s, rt),
-                             (a->q + 1) * 8, vec_full_reg_size(s), tcg_tmp);
-        tcg_gen_add_i64(clean_addr, clean_addr, tcg_ebytes);
+    esize = 1 << a->scale;
+    reg_n = alloc_gpr_src_sp(a->rn);
+    vreg_d = alloc_fpr_dst(a->rt);
+    switch (esize)
+    {
+    case 1:
+        la_vldrepl_b(vreg_d, reg_n, 0);
+        break;
+    case 2:
+        la_vldrepl_h(vreg_d, reg_n, 0);
+        break;
+    case 4:
+        la_vldrepl_w(vreg_d, reg_n, 0);
+        break;
+    case 8:
+        la_vldrepl_d(vreg_d, reg_n, 0);
+        break;
+    default:
+        break;
     }
+
+    if(!a->q){
+        /* 高64位清零 */
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    }
+    store_fpr_dst(a->rt, vreg_d);
 
     if (a->p) {
         if (a->rm == 31) {
-            tcg_gen_addi_i64(tcg_rn, tcg_rn, total);
+            // tcg_gen_addi_i64(tcg_rn, tcg_rn, total);
+            assert(total <= 2047 && total >= -2048); /* addi的立即数是imm12 */
+            la_addi_d(reg_n, reg_n, total);
         } else {
-            tcg_gen_add_i64(tcg_rn, tcg_rn, cpu_reg(s, a->rm));
+            // tcg_gen_add_i64(tcg_rn, tcg_rn, cpu_reg(s, a->rm));
+            reg_m = alloc_gpr_src(a->rm);
+            la_add_d(reg_n, reg_n, reg_m);
+            free_alloc_gpr(reg_m);
         }
     }
+
+    store_gpr_dst(a->rn, reg_n);
+    free_alloc_gpr(reg_n);
     return true;
 }
 
