@@ -3135,11 +3135,33 @@ static bool trans_STLR(DisasContext *s, arg_stlr *a)
     return true;
 }
 
+// static bool trans_LDAR(DisasContext *s, arg_stlr *a)
+// {
+//     TCGv_i64 clean_addr;
+//     MemOp memop;
+//     bool iss_sf = ldst_iss_sf(a->sz, false, false);
+
+//     /* LoadLOAcquire is the same as Load-Acquire for QEMU.  */
+//     if (!a->lasr && !dc_isar_feature(aa64_lor, s)) {
+//         return false;
+//     }
+//     /* Generate ISS for non-exclusive accesses including LASR.  */
+//     if (a->rn == 31) {
+//         gen_check_sp_alignment(s);
+//     }
+//     memop = check_ordered_align(s, a->rn, 0, false, a->sz);
+//     clean_addr = gen_mte_check1(s, cpu_reg_sp(s, a->rn),
+//                                 false, a->rn != 31, memop);
+//     do_gpr_ld(s, cpu_reg(s, a->rt), clean_addr, memop, false, true,
+//               a->rt, iss_sf, a->lasr);
+//     tcg_gen_mb(TCG_MO_ALL | TCG_BAR_LDAQ);
+//     return true;
+// }
+
 static bool trans_LDAR(DisasContext *s, arg_stlr *a)
 {
-    TCGv_i64 clean_addr;
-    MemOp memop;
-    bool iss_sf = ldst_iss_sf(a->sz, false, false);
+    IR2_OPND reg_t = alloc_gpr_dst(a->rt);
+    IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
 
     /* LoadLOAcquire is the same as Load-Acquire for QEMU.  */
     if (!a->lasr && !dc_isar_feature(aa64_lor, s)) {
@@ -3149,12 +3171,27 @@ static bool trans_LDAR(DisasContext *s, arg_stlr *a)
     if (a->rn == 31) {
         gen_check_sp_alignment(s);
     }
-    memop = check_ordered_align(s, a->rn, 0, false, a->sz);
-    clean_addr = gen_mte_check1(s, cpu_reg_sp(s, a->rn),
-                                false, a->rn != 31, memop);
-    do_gpr_ld(s, cpu_reg(s, a->rt), clean_addr, memop, false, true,
-              a->rt, iss_sf, a->lasr);
-    tcg_gen_mb(TCG_MO_ALL | TCG_BAR_LDAQ);
+
+    switch(a->sz){
+        case 0:
+            la_ld_bu(reg_t, reg_n, 0);
+            break;
+        case 1:
+            la_ld_hu(reg_t, reg_n, 0);
+            break;
+        case 2:
+            la_ld_wu(reg_t, reg_n, 0);
+            break;
+        case 3:
+            la_ld_d(reg_t, reg_n, 0);
+            break;
+    }
+
+    lata_gen_mb();
+
+    store_gpr_dst(a->rt, reg_t);
+    free_alloc_gpr(reg_t);
+    free_alloc_gpr(reg_n);
     return true;
 }
 
