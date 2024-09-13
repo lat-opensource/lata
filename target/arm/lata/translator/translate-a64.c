@@ -3131,10 +3131,27 @@ static bool trans_STLR(DisasContext *s, arg_stlr *a)
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
     if(a->lasr){ /* no offset */
         offset = 0;
-        if(iss_sf){
-            la_st_d(reg_t, reg_n, offset);
-        }else{
+        // if(iss_sf){
+        //     la_st_d(reg_t, reg_n, offset);
+        // }else{
+        //     la_st_w(reg_t, reg_n, offset);
+        // }
+        switch (a->sz)
+        {
+        case 0:
+            la_st_b(reg_t, reg_n, offset);
+            break;
+        case 1:
+            la_st_h(reg_t, reg_n, offset);
+            break;
+        case 2:
             la_st_w(reg_t, reg_n, offset);
+            break;
+        case 3:
+            la_st_d(reg_t, reg_n, offset);
+            break;
+        default:
+            break;
         }
     }else{ /* pre-index */
         assert(0);
