@@ -3403,8 +3403,13 @@ static bool trans_LDP(DisasContext *s, arg_ldstpair *a)
             assert(0);
             break;
         case 4:
-            la_ld_w(reg_t, temp, 0);
-            la_ld_w(reg_t2, temp, dbytes);
+            if(a->sign){
+                la_ld_w(reg_t, temp, 0);
+                la_ld_w(reg_t2, temp, dbytes);
+            }else{
+                la_ld_wu(reg_t, temp, 0);
+                la_ld_wu(reg_t2, temp, dbytes);
+            }
             break;
         case 8:
             la_ld_d(reg_t, temp, 0);
