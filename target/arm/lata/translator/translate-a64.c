@@ -4142,8 +4142,11 @@ static bool trans_LDR_v(DisasContext *s, arg_ldst *a)
 
 static bool trans_STR_v(DisasContext *s, arg_ldst *a)
 {
-    TCGv_i64 clean_addr, dirty_addr;
-    MemOp memop;
+    IR2_OPND vreg_t = alloc_fpr_src(a->rt);
+    IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
+    IR2_OPND reg_m = alloc_gpr_src(a->rm);
+    IR2_OPND temp = ra_alloc_itemp();
+    IR2_OPND temp1 = ra_alloc_itemp();
 
     if (extract32(a->opt, 1, 1) == 0) {
         return false;
@@ -4153,9 +4156,37 @@ static bool trans_STR_v(DisasContext *s, arg_ldst *a)
         return true;
     }
 
-    memop = finalize_memop_asimd(s, a->sz);
-    op_addr_ldst_pre(s, a, &clean_addr, &dirty_addr, true, memop);
-    do_fp_st(s, a->rt, clean_addr, memop);
+    ext_and_shift_reg(&temp, &reg_m, a->opt, a->s ? a->sz : 0);
+    
+    /* LDR(register), */
+    switch (a->sz)
+    {
+    case 0:
+        la_vpickve2gr_bu(temp1, vreg_t, 0);
+        la_stx_b(temp1, reg_n, temp);
+        break;
+    case 1:
+        la_vpickve2gr_hu(temp1, vreg_t, 0);
+        la_stx_h(temp1, reg_n, temp);
+        break;
+    case 2:
+        la_fstx_s(vreg_t, reg_n, temp);
+        break;
+    case 3: 
+        la_fstx_d(vreg_t, reg_n, temp);
+        break;
+    case 4:
+        la_vstx(vreg_t, reg_n, temp);
+        break;
+    default:
+        break;
+    }
+
+    free_alloc_fpr(vreg_t);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(reg_m);
+    free_alloc_gpr(temp);
+    free_alloc_gpr(temp1);
     return true;
 }
 

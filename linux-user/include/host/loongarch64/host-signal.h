@@ -95,7 +95,8 @@ static inline bool host_signal_write(siginfo_t *info, host_sigcontext *uc)
         case 0b00011111101: /* stle.h */
         case 0b00011111110: /* stle.w */
         case 0b00011111111: /* stle.d */
-        case 0b00011000000 ... 0b00011100011: /* am* insns */
+        case 0b00010001000: /* vstx */
+        case 0b00010010000 ... 0b00011100011: /* am* insns */
             return true;
         }
         break;
