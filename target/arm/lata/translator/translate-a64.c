@@ -4012,7 +4012,6 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
     {
     case 0:
         if(a->sign){ // LDRSB
-            assert(0);
             la_ldx_b(reg_t, reg_n, temp);
             if(!iss_sf){
                 la_bstrpick_d(reg_t, reg_t, 31, 0);
@@ -4033,7 +4032,6 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
         break;
     case 2:
         if(a->sign){ // LDRSW
-            assert(0);
             la_ldx_w(reg_t, reg_n, temp);
             if(!iss_sf){
                 la_bstrpick_d(reg_t, reg_t, 31, 0);
@@ -4098,8 +4096,10 @@ static bool trans_STR(DisasContext *s, arg_ldst *a)
 
 static bool trans_LDR_v(DisasContext *s, arg_ldst *a)
 {
-    TCGv_i64 clean_addr, dirty_addr;
-    MemOp memop;
+    IR2_OPND vreg_t = alloc_fpr_dst(a->rt);
+    IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
+    IR2_OPND reg_m = alloc_gpr_src(a->rm);
+    IR2_OPND temp = ra_alloc_itemp();
 
     if (extract32(a->opt, 1, 1) == 0) {
         return false;
@@ -4109,9 +4109,42 @@ static bool trans_LDR_v(DisasContext *s, arg_ldst *a)
         return true;
     }
 
-    memop = finalize_memop_asimd(s, a->sz);
-    op_addr_ldst_pre(s, a, &clean_addr, &dirty_addr, false, memop);
-    do_fp_ld(s, a->rt, clean_addr, memop);
+    ext_and_shift_reg(&temp, &reg_m, a->opt, a->s ? a->sz : 0);
+    
+    /* LDR(register), */
+    switch (a->sz)
+    {
+    case 0:
+        la_vxor_v(vreg_t, vreg_t, vreg_t);
+        la_ldx_bu(temp, reg_n, temp);
+        la_vinsgr2vr_b(vreg_t, temp, 0);
+        break;
+    case 1:
+        la_vxor_v(vreg_t, vreg_t, vreg_t);
+        la_ldx_hu(temp, reg_n, temp);
+        la_vinsgr2vr_h(vreg_t, temp, 0);
+        break;
+    case 2:
+        la_vxor_v(vreg_t, vreg_t, vreg_t);
+        la_ldx_wu(temp, reg_n, temp);
+        la_vinsgr2vr_w(vreg_t, temp, 0);
+        break;
+    case 3: 
+        la_vldx(vreg_t, reg_n, temp);
+        la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
+        break;
+    case 4:
+        la_vldx(vreg_t, reg_n, temp);
+        break;
+    default:
+        break;
+    }
+
+    store_fpr_dst(a->rt, vreg_t);
+    free_alloc_fpr(vreg_t);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(reg_m);
+    free_alloc_gpr(temp);
     return true;
 }
 
