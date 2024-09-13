@@ -2964,10 +2964,28 @@ static void lata_load_exclusive(DisasContext *s, int rt, int rt2, int rn,
         store_fpr_dst(rt2, reg_t2);
         free_alloc_gpr(reg_t2);
     } else {
-        if(size == 2){
-            la_ll_w(reg_t, reg_n, 0);
-        }else{
-            la_ll_d(reg_t, reg_n, 0);
+        // if(size == 2){
+        //     la_ll_w(reg_t, reg_n, 0);
+        // }else{
+        //     la_ll_d(reg_t, reg_n, 0);
+        // }
+        /*  LL支持4字节和8字节，1字节和2字节使用普通的访存指令
+            在单线程下不会出现问题。
+            */
+        switch(size){
+            case 0:
+                la_ld_bu(reg_t, reg_n, 0);
+                break;
+            case 1:
+                la_ld_hu(reg_t, reg_n, 0);
+                break;
+            case 2:
+                la_ll_w(reg_t, reg_n, 0);
+                la_bstrpick_d(reg_t, reg_t, 31, 0);
+                break;
+            case 3:
+                la_ll_d(reg_t, reg_n, 0);
+                break;
         }
     }
     store_gpr_dst(rt, reg_t);
