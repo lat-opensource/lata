@@ -12448,32 +12448,98 @@ static void handle_3rd_widening(DisasContext *s, int is_q, int is_u, int size,
 static void handle_3rd_wide(DisasContext *s, int is_q, int is_u, int size,
                             int opcode, int rd, int rn, int rm)
 {
-    TCGv_i64 tcg_res[2];
-    int part = is_q ? 2 : 0;
-    int pass;
-
-    for (pass = 0; pass < 2; pass++) {
-        TCGv_i64 tcg_op1 = tcg_temp_new_i64();
-        TCGv_i32 tcg_op2 = tcg_temp_new_i32();
-        TCGv_i64 tcg_op2_wide = tcg_temp_new_i64();
-        static NeonGenWidenFn * const widenfns[3][2] = {
-            { gen_helper_neon_widen_s8, gen_helper_neon_widen_u8 },
-            { gen_helper_neon_widen_s16, gen_helper_neon_widen_u16 },
-            { tcg_gen_ext_i32_i64, tcg_gen_extu_i32_i64 },
-        };
-        NeonGenWidenFn *widenfn = widenfns[size][is_u];
-
-        read_vec_element(s, tcg_op1, rn, pass, MO_64);
-        read_vec_element_i32(s, tcg_op2, rm, part + pass, MO_32);
-        widenfn(tcg_op2_wide, tcg_op2);
-        tcg_res[pass] = tcg_temp_new_i64();
-        gen_neon_addl(size, (opcode == 3),
-                      tcg_res[pass], tcg_op1, tcg_op2_wide);
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    int is_sub = extract32(opcode, 1, 1);
+    
+    /* 统一移到高位处理*/
+    if(!is_q){
+        la_vbsll_v(vtemp, vreg_m, 8);
+    }
+    else{
+        la_vbsll_v(vtemp, vreg_m, 0);
     }
 
-    for (pass = 0; pass < 2; pass++) {
-        write_vec_element(s, tcg_res[pass], rd, pass, MO_64);
+    /* SSUBW/SSUBW2 */
+    if(!is_u){
+        switch (size){
+        case 0:
+            /* 高位扩展 */
+            la_vexth_h_b(vtemp, vtemp);
+            if (is_sub)
+                la_vsub_h(vreg_d, vreg_n, vtemp);
+            else
+                la_vadd_h(vreg_d, vreg_n, vtemp);
+            break;
+        case 1:
+            la_vexth_w_h(vtemp, vtemp);
+            if (is_sub)
+                la_vsub_w(vreg_d, vreg_n, vtemp);
+            else
+                la_vadd_w(vreg_d, vreg_n, vtemp);
+            break;
+        case 2:
+            la_vexth_d_w(vtemp, vtemp);
+            if (is_sub)
+                la_vsub_d(vreg_d, vreg_n, vtemp);
+            else
+                la_vadd_d(vreg_d, vreg_n, vtemp);
+            break;
+        case 3:
+            la_vexth_q_d(vtemp, vtemp);
+            if (is_sub)
+                la_vsub_q(vreg_d, vreg_n, vtemp);
+            else
+                la_vadd_q(vreg_d, vreg_n, vtemp);
+            break;
+        default:
+            assert(0);
+        }
     }
+    /* USUBW/USUBW2 */
+    else{
+        switch (size){
+        case 0:
+            /* 高位扩展 */
+            la_vexth_hu_bu(vtemp, vtemp);
+            if (is_sub)
+                la_vsub_h(vreg_d, vreg_n, vtemp);
+            else
+                la_vadd_h(vreg_d, vreg_n, vtemp);
+            break;
+        case 1:
+            la_vexth_wu_hu(vtemp, vtemp);
+            if (is_sub)
+                la_vsub_w(vreg_d, vreg_n, vtemp);
+            else
+                la_vadd_w(vreg_d, vreg_n, vtemp);
+            break;
+        case 2:
+            la_vexth_du_wu(vtemp, vtemp);
+            if (is_sub)
+                la_vsub_d(vreg_d, vreg_n, vtemp);
+            else
+                la_vadd_d(vreg_d, vreg_n, vtemp);
+            break;
+        case 3:
+            la_vexth_qu_du(vtemp, vtemp);
+            if (is_sub)
+                la_vsub_q(vreg_d, vreg_n, vtemp);
+            else
+                la_vadd_q(vreg_d, vreg_n, vtemp);
+            break;
+        default:
+            assert(0);
+        }
+    }
+
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_m);
+    free_alloc_fpr(vtemp);
 }
 
 static void do_narrow_round_high_u32(TCGv_i32 res, TCGv_i64 in)
@@ -12548,7 +12614,7 @@ static void disas_simd_three_reg_diff(DisasContext *s, uint32_t insn)
     case 3: /* SSUBW, SSUBW2, USUBW, USUBW2 */
         /* 64 x 128 -> 128 */
         if (size == 3) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         if (!fp_access_check(s)) {
@@ -12629,7 +12695,7 @@ static void disas_simd_three_reg_diff(DisasContext *s, uint32_t insn)
         break;
     default:
         /* opcode 15 not allocated */
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         break;
     }
 }
@@ -12926,7 +12992,7 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
     switch (opcode) {
     case 0x13: /* MUL, PMUL */
         if (u && size != 0) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         /* fall through */
@@ -13332,7 +13398,7 @@ static void disas_simd_three_reg_same(DisasContext *s, uint32_t insn)
         int rd = extract32(insn, 0, 5);
         if (opcode == 0x17) {
             if (u || (size == 3 && !is_q)) {
-                unallocated_encoding(s);
+                lata_unallocated_encoding(s);
                 return;
             }
         } else {
