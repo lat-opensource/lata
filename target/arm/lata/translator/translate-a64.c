@@ -3911,6 +3911,7 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND vreg_t = alloc_fpr_dst(a->rt);
     IR2_OPND temp = ra_alloc_itemp();
+    IR2_OPND temp1 = ra_alloc_itemp();
 
     la_or(temp, reg_n, zero_ir2_opnd);
     if(!a->p){ // postindex = false
@@ -3936,12 +3937,17 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
         scale = UInt(opc<1>:size);
     */
     switch(a->sz){
-        case 0: 
-        case 1: 
-            assert(0);
+        case 0:
+            la_vxor_v(vreg_t, vreg_t, vreg_t);
+            la_ld_bu(temp1, temp, 0);
+            la_vinsgr2vr_b(vreg_t, temp1, 0);
+            break;
+        case 1:
+            la_vxor_v(vreg_t, vreg_t, vreg_t);
+            la_ld_hu(temp1, temp, 0);
+            la_vinsgr2vr_h(vreg_t, temp1, 0);
             break;
         case 2:
-            assert(0);
             la_fst_s(vreg_t, temp, 0);
             la_movgr2frh_w(vreg_t, zero_ir2_opnd);
             break;
@@ -3951,7 +3957,6 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
             la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
             break;
         case 4:
-            assert(0);
             la_vld(vreg_t, temp, 0);
             break;
         default:
@@ -3970,6 +3975,7 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
     free_alloc_gpr(reg_n);
     free_alloc_fpr(vreg_t);
     free_alloc_gpr(temp);
+    free_alloc_gpr(temp1);
     return true;
 }
 
