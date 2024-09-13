@@ -1175,29 +1175,6 @@ static void do_gpr_ld(DisasContext *s, TCGv_i64 dest, TCGv_i64 tcg_addr,
 }
 
 /*
- * Store from FP register to memory
- */
-static void do_fp_st(DisasContext *s, int srcidx, TCGv_i64 tcg_addr, MemOp mop)
-{
-    /* This writes the bottom N bits of a 128 bit wide vector to memory */
-    TCGv_i64 tmplo = tcg_temp_new_i64();
-
-    tcg_gen_ld_i64(tmplo, cpu_env, fp_reg_offset(s, srcidx, MO_64));
-
-    if ((mop & MO_SIZE) < MO_128) {
-        tcg_gen_qemu_st_i64(tmplo, tcg_addr, get_mem_index(s), mop);
-    } else {
-        TCGv_i64 tmphi = tcg_temp_new_i64();
-        TCGv_i128 t16 = tcg_temp_new_i128();
-
-        tcg_gen_ld_i64(tmphi, cpu_env, fp_reg_hi_offset(s, srcidx));
-        tcg_gen_concat_i64_i128(t16, tmplo, tmphi);
-
-        tcg_gen_qemu_st_i128(t16, tcg_addr, get_mem_index(s), mop);
-    }
-}
-
-/*
  * Load from memory to FP register
  */
 static void do_fp_ld(DisasContext *s, int destidx, TCGv_i64 tcg_addr, MemOp mop)
@@ -3893,19 +3870,12 @@ static bool trans_STR_v_i(DisasContext *s, arg_ldst_imm *a)
     */
     switch(a->sz){
         case 0: 
+            la_vstelm_b(vreg_t, temp, 0, 0);
+            break;
         case 1: 
-            assert(0);
-            IR2_OPND temp_n = ra_alloc_itemp();
-            la_vpickve2gr_hu(temp_n, vreg_t, 0);
-            if(a->sz == 1){
-                la_st_b(temp_n, temp, 0);
-            }else{
-                la_st_h(temp_n, temp, 0);
-            }
-            free_alloc_gpr(temp_n);
+            la_vstelm_h(vreg_t, temp, 0, 0);
             break;
         case 2:
-            assert(0);
             la_fst_s(vreg_t, temp, 0);
             break;
         case 3:
@@ -4012,25 +3982,6 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
     free_alloc_gpr(temp);
     free_alloc_gpr(temp1);
     return true;
-}
-
-static void op_addr_ldst_pre(DisasContext *s, arg_ldst *a,
-                             TCGv_i64 *clean_addr, TCGv_i64 *dirty_addr,
-                             bool is_store, MemOp memop)
-{
-    assert(0);
-    // TCGv_i64 tcg_rm;
-
-    // if (a->rn == 31) {
-    //     gen_check_sp_alignment(s);
-    // }
-    // *dirty_addr = read_cpu_reg_sp(s, a->rn, 1);
-
-    // tcg_rm = read_cpu_reg(s, a->rm, 1);
-    // ext_and_shift_reg(tcg_rm, tcg_rm, a->opt, a->s ? a->sz : 0);
-
-    // tcg_gen_add_i64(*dirty_addr, *dirty_addr, tcg_rm);
-    // *clean_addr = gen_mte_check1(s, *dirty_addr, is_store, true, memop);
 }
 
 static bool trans_LDR(DisasContext *s, arg_ldst *a)
