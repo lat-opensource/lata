@@ -3072,15 +3072,33 @@ static void lata_store_exclusive(DisasContext *s, int rs, int rt, int rt2,
         free_alloc_gpr(reg_t2);
     } else {
         assert(rs != rt);
-        la_or(reg_s, reg_t, zero_ir2_opnd);
-        if(size == 2){
-            la_sc_w(reg_s, reg_n, 0);
-        }else{
-            la_sc_d(reg_s, reg_n, 0);
+        /*  LL/SC支持4字节和8字节，1字节和2字节使用普通的访存指令
+            在单线程下不会出现问题。
+        */
+        switch(size){
+            case 0:
+                assert(0);
+                la_st_b(reg_t, reg_n, 0);
+                la_xor(reg_s, reg_s, reg_s);
+                break;
+            case 1:
+                assert(0);
+                la_st_h(reg_t, reg_n, 0);
+                la_xor(reg_s, reg_s, reg_s);
+                break;
+            case 2:
+                la_or(reg_s, reg_t, zero_ir2_opnd);
+                la_sc_w(reg_s, reg_n, 0);
+                la_xori(reg_s, reg_s, 1); /* 龙芯的SC返回值和arm相反 */
+                break;
+            case 3:
+                la_or(reg_s, reg_t, zero_ir2_opnd);
+                la_sc_d(reg_s, reg_n, 0);
+                la_xori(reg_s, reg_s, 1); /* 龙芯的SC返回值和arm相反 */
+                break;
         }
     }
 
-    la_xori(reg_s, reg_s, 1); /* 龙芯的SC返回值和arm相反 */
     store_gpr_dst(rs, reg_s);
     free_alloc_gpr(reg_s);
     free_alloc_gpr(reg_n);
