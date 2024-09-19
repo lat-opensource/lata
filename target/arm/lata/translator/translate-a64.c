@@ -1588,6 +1588,7 @@ static bool trans_TBZ(DisasContext *s, arg_tbz *a)
     s->base.is_jmp = DISAS_NORETURN;
 
     free_alloc_gpr(reg_t);
+    free_alloc_gpr(temp);
     return true;
 }
 
@@ -6820,7 +6821,6 @@ static void disas_data_proc_2src(DisasContext *s, uint32_t insn)
         handle_shift_reg(s, A64_SHIFT_TYPE_LSR, sf, rm, rn, rd);
         break;
     case 10: /* ASRV */
-        assert(0);
         handle_shift_reg(s, A64_SHIFT_TYPE_ASR, sf, rm, rn, rd);
         break;
     case 11: /* RORV */
@@ -8305,7 +8305,7 @@ static void disas_fp_fixed_conv(DisasContext *s, uint32_t insn)
     bool itof;
 
     if (sbit || (!sf && scale < 32)) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -8319,7 +8319,7 @@ static void disas_fp_fixed_conv(DisasContext *s, uint32_t insn)
         }
         /* fallthru */
     default:
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -8333,7 +8333,7 @@ static void disas_fp_fixed_conv(DisasContext *s, uint32_t insn)
         itof = false;
         break;
     default:
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -8417,7 +8417,7 @@ static void handle_fmov(DisasContext *s, int rd, int rn, int type, bool itof)
         store_gpr_dst(rd, reg_d);
         free_alloc_gpr(reg_d);
         free_alloc_fpr(vreg_n);
-        free_alloc_fpr(temp);
+        free_alloc_gpr(temp);
     }
 }
 
@@ -9579,6 +9579,7 @@ static void disas_simd_mod_imm(DisasContext *s, uint32_t insn)
     }
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
+    free_alloc_gpr(temp);
 }
 
 /* AdvSIMD scalar copy
@@ -10621,23 +10622,27 @@ static void handle_3same_64(DisasContext *s, int opcode, bool u,
 static void handle_3same_float(DisasContext *s, int size, int elements,
                                int fpopcode, int rd, int rn, int rm)
 {
-    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    // IR2_OPND vreg_d = alloc_fpr_dst(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vtemp = ra_alloc_ftemp();
 
+    IR2_OPND vreg_d;
+    if(fpopcode == 0x39 || fpopcode == 0x19){
+        vreg_d = alloc_fpr_src(rd);
+    }else{
+        vreg_d = alloc_fpr_dst(rd);
+    }
     if (size) {
         /* Double */
 
         switch (fpopcode) {
         case 0x39: /* FMLS */
-            vreg_d = alloc_fpr_src(rd);
             la_vxor_v(vtemp, vtemp, vtemp);
             la_vfsub_d(vtemp, vtemp, vreg_n);
             la_vfmadd_d(vreg_d, vtemp, vreg_m, vreg_d);
             break;
         case 0x19: /* FMLA */
-            vreg_d = alloc_fpr_src(rd);
             la_vfmadd_d(vreg_d, vreg_n, vreg_m, vreg_d);
             break;
         case 0x18: /* FMAXNM */
@@ -10700,13 +10705,11 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
 
         switch (fpopcode) {
         case 0x39: /* FMLS */
-            vreg_d = alloc_fpr_src(rd);
             la_vxor_v(vtemp, vtemp, vtemp);
             la_vfsub_s(vtemp, vtemp, vreg_n);
             la_vfmadd_s(vreg_d, vtemp, vreg_m, vreg_d);
             break;
         case 0x19: /* FMLA */
-            vreg_d = alloc_fpr_src(rd);
             la_vfmadd_s(vreg_d, vreg_n, vreg_m, vreg_d);
             break;
         case 0x1a: /* FADD */
@@ -11397,6 +11400,7 @@ static void handle_2misc_fcmp_zero(DisasContext *s, int opcode,
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vtemp);
 }
 
 static void handle_2misc_reciprocal(DisasContext *s, int opcode,
