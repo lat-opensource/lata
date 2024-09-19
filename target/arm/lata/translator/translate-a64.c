@@ -9047,140 +9047,88 @@ static void disas_simd_across_lanes(DisasContext *s, uint32_t insn)
     int opcode = extract32(insn, 12, 5);
     bool is_q = extract32(insn, 30, 1);
     bool is_u = extract32(insn, 29, 1);
-    bool is_fp = false;
     bool is_min = false;
-    int esize;
-    int elements;
+    int esize = 8 << size;
+    int elements = (is_q ? 128 : 64) / esize;
     int i;
-    TCGv_i64 tcg_res, tcg_elt;
-
-    switch (opcode) {
-    case 0x1b: /* ADDV */
-        if (is_u) {
-            unallocated_encoding(s);
-            return;
-        }
-        /* fall through */
-    case 0x3: /* SADDLV, UADDLV */
-    case 0xa: /* SMAXV, UMAXV */
-    case 0x1a: /* SMINV, UMINV */
-        if (size == 3 || (size == 2 && !is_q)) {
-            unallocated_encoding(s);
-            return;
-        }
-        break;
-    case 0xc: /* FMAXNMV, FMINNMV */
-    case 0xf: /* FMAXV, FMINV */
-        /* Bit 1 of size field encodes min vs max and the actual size
-         * depends on the encoding of the U bit. If not set (and FP16
-         * enabled) then we do half-precision float instead of single
-         * precision.
-         */
-        is_min = extract32(size, 1, 1);
-        is_fp = true;
-        if (!is_u && dc_isar_feature(aa64_fp16, s)) {
-            size = 1;
-        } else if (!is_u || !is_q || extract32(size, 0, 1)) {
-            unallocated_encoding(s);
-            return;
-        } else {
-            size = 2;
-        }
-        break;
-    default:
-        unallocated_encoding(s);
-        return;
-    }
 
     if (!fp_access_check(s)) {
         return;
     }
 
-    esize = 8 << size;
-    elements = (is_q ? 128 : 64) / esize;
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vsum = ra_alloc_ftemp();
+    
 
-    tcg_res = tcg_temp_new_i64();
-    tcg_elt = tcg_temp_new_i64();
+    switch (opcode) {
+    case 0x1b: /* ADDV */
+        if (is_u || size == 3 || (size == 2 && !is_q)) {
+            lata_unallocated_encoding(s);
+            return;
+        }
 
-    /* These instructions operate across all lanes of a vector
-     * to produce a single result. We can guarantee that a 64
-     * bit intermediate is sufficient:
-     *  + for [US]ADDLV the maximum element size is 32 bits, and
-     *    the result type is 64 bits
-     *  + for FMAX*V, FMIN*V, ADDV the intermediate type is the
-     *    same as the element size, which is 32 bits at most
-     * For the integer operations we can choose to work at 64
-     * or 32 bits and truncate at the end; for simplicity
-     * we use 64 bits always. The floating point
-     * ops do require 32 bit intermediates, though.
-     */
-    if (!is_fp) {
-        read_vec_element(s, tcg_res, rn, 0, size | (is_u ? 0 : MO_SIGN));
-
+        la_vslli_d(vsum, vreg_n, 0);
         for (i = 1; i < elements; i++) {
-            read_vec_element(s, tcg_elt, rn, i, size | (is_u ? 0 : MO_SIGN));
-
-            switch (opcode) {
-            case 0x03: /* SADDLV / UADDLV */
-            case 0x1b: /* ADDV */
-                tcg_gen_add_i64(tcg_res, tcg_res, tcg_elt);
+            if(is_q && i >= elements/2){
+                la_vpickod_d(vtemp, vreg_n, vreg_n);
+                la_vsrli_d(vtemp, vtemp, esize * (i - elements/2) );
+            }
+            else{
+                la_vpickev_d(vtemp, vreg_n, vreg_n);
+                la_vsrli_d(vtemp, vtemp, esize * i);
+            }
+            switch (size) {
+            case 0: 
+                la_vadd_b(vsum, vsum, vtemp);
                 break;
-            case 0x0a: /* SMAXV / UMAXV */
-                if (is_u) {
-                    tcg_gen_umax_i64(tcg_res, tcg_res, tcg_elt);
-                } else {
-                    tcg_gen_smax_i64(tcg_res, tcg_res, tcg_elt);
-                }
+            case 1: 
+                la_vadd_h(vsum, vsum, vtemp);
                 break;
-            case 0x1a: /* SMINV / UMINV */
-                if (is_u) {
-                    tcg_gen_umin_i64(tcg_res, tcg_res, tcg_elt);
-                } else {
-                    tcg_gen_smin_i64(tcg_res, tcg_res, tcg_elt);
-                }
+            case 2: 
+                la_vadd_w(vsum, vsum, vtemp);
                 break;
             default:
-                g_assert_not_reached();
+                assert(0);
             }
-
         }
-    } else {
-        /* Floating point vector reduction ops which work across 32
-         * bit (single) or 16 bit (half-precision) intermediates.
-         * Note that correct NaN propagation requires that we do these
-         * operations in exactly the order specified by the pseudocode.
-         */
-        TCGv_ptr fpst = fpstatus_ptr(size == MO_16 ? FPST_FPCR_F16 : FPST_FPCR);
-        int fpopcode = opcode | is_min << 4 | is_u << 5;
-        int vmap = (1 << elements) - 1;
-        TCGv_i32 tcg_res32 = do_reduction_op(s, fpopcode, rn, esize,
-                                             (is_q ? 128 : 64), vmap, fpst);
-        tcg_gen_extu_i32_i64(tcg_res, tcg_res32);
-    }
 
-    /* Now truncate the result to the width required for the final output */
-    if (opcode == 0x03) {
-        /* SADDLV, UADDLV: result is 2*esize */
-        size++;
-    }
+        la_vslli_d(vsum, vsum, 64-esize);
+        la_vsrli_d(vreg_d, vsum, 64-esize);
+        la_vinsgr2vr_d(vreg_d,zero_ir2_opnd,1);
 
-    switch (size) {
-    case 0:
-        tcg_gen_ext8u_i64(tcg_res, tcg_res);
         break;
-    case 1:
-        tcg_gen_ext16u_i64(tcg_res, tcg_res);
+    case 0x3: /* SADDLV, UADDLV */
+    case 0xa: /* SMAXV, UMAXV */
+    case 0x1a: /* SMINV, UMINV */
+        if (size == 3 || (size == 2 && !is_q)) {
+            lata_unallocated_encoding(s);
+            return;
+        }
         break;
-    case 2:
-        tcg_gen_ext32u_i64(tcg_res, tcg_res);
-        break;
-    case 3:
+    case 0xc: /* FMAXNMV, FMINNMV */
+    case 0xf: /* FMAXV, FMINV */
+        is_min = extract32(size, 1, 1);
+        if (!is_u && dc_isar_feature(aa64_fp16, s)) {
+            size = 1;
+        } else if (!is_u || !is_q || extract32(size, 0, 1)) {
+            lata_unallocated_encoding(s);
+            return;
+        } else {
+            size = 2;
+        }   
         break;
     default:
-        g_assert_not_reached();
+        lata_unallocated_encoding(s);
+        return;
     }
 
-    write_fp_dreg(s, rd, tcg_res);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vtemp);
+    free_alloc_fpr(vsum);
 }
 
 /* DUP (Element, Vector)
@@ -12858,9 +12806,9 @@ static void disas_simd_3same_logic(DisasContext *s, uint32_t insn)
 static void handle_simd_3same_pair(DisasContext *s, int is_q, int u, int opcode,
                                    int size, int rn, int rm, int rd)
 {
-    if(!is_q){
-        assert(0);
-    }
+    // if(!is_q){
+    //     assert(0);
+    // }
 
     if (!fp_access_check(s)) {
         return;
@@ -12903,6 +12851,11 @@ static void handle_simd_3same_pair(DisasContext *s, int is_q, int u, int opcode,
         default:
             assert(0);
         }
+
+        if(!is_q){
+            la_vpickev_w(vreg_d,vreg_d,vreg_d);
+        }
+
         break;
     }
     case 0x14: /* SMAXP, UMAXP */
