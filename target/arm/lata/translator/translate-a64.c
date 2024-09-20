@@ -9560,11 +9560,7 @@ static void disas_simd_mod_imm(DisasContext *s, uint32_t insn)
         /* MOVI or MVNI, with MVNI negation handled above.  */
         // tcg_gen_gvec_dup_imm(MO_64, vec_full_reg_offset(s, rd), is_q ? 16 : 8,
         //                      vec_full_reg_size(s), imm);
-        if(is_neg){
-            la_vreplgr2vr_d(vreg_d, temp);
-        }else{
-            la_vreplgr2vr_w(vreg_d, temp);
-        }
+        la_vreplgr2vr_d(vreg_d, temp);
     } else {
         assert(0);
         /* ORR or BIC, with BIC negation to AND handled above.  */
