@@ -14349,10 +14349,17 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
     switch (opcode) {
     case 0x5:
         if (u && size == 0) { /* NOT */
-            gen_gvec_fn2(s, is_q, rd, rn, tcg_gen_gvec_not, 0);
-            return;
+            // gen_gvec_fn2(s, is_q, rd, rn, tcg_gen_gvec_not, 0);
+            la_vnori_b(vreg_d, vreg_n, 0);
         }
-        break;
+        if(!is_q){
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        }
+        store_fpr_dst(rd, vreg_d);
+        free_alloc_fpr(vreg_d);
+        free_alloc_fpr(vreg_n);
+        return;
     case 0x8: /* CMGT, CMGE */
         switch (size)
         {
