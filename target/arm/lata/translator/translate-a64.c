@@ -13025,19 +13025,18 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
     case 0xf: /* SABA, UABA */
     case 0x12: /* MLA, MLS */
         if (size == 3) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
     case 0x16: /* SQDMULH, SQRDMULH */
         if (size == 0 || size == 3) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
     default:
         if (size == 3 && !is_q) {
-            // unallocated_encoding(s);
             lata_unallocated_encoding(s);
             return;
         }
@@ -13048,9 +13047,14 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
         return;
     }
 
-    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_d;
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
+    if(opcode == 0x12){
+        vreg_d = alloc_fpr_src(rd);
+    }else{
+        vreg_d = alloc_fpr_dst(rd);
+    }
     switch (opcode) {
     case 0x01: /* SQADD, UQADD */
         if (u) {
@@ -13144,12 +13148,40 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
         }
         return;
     case 0x12: /* MLA, MLS */
-        if (u) {
-            gen_gvec_fn3(s, is_q, rd, rn, rm, gen_gvec_mls, size);
-        } else {
-            gen_gvec_fn3(s, is_q, rd, rn, rm, gen_gvec_mla, size);
+        switch(size){
+            case 0:
+                if(u){
+                    la_vmsub_b(vreg_d, vreg_n, vreg_m);
+                }else{
+                    la_vmadd_b(vreg_d, vreg_n, vreg_m);
+                }
+                break;
+            case 1:
+                if(u){
+                    la_vmsub_h(vreg_d, vreg_n, vreg_m);
+                }else{
+                    la_vmadd_h(vreg_d, vreg_n, vreg_m);
+                }
+                break;
+            case 2:
+                if(u){
+                    la_vmsub_w(vreg_d, vreg_n, vreg_m);
+                }else{
+                    la_vmadd_w(vreg_d, vreg_n, vreg_m);
+                }
+                break;
+            case 3:
+                assert(is_q);
+                if(u){
+                    la_vmsub_d(vreg_d, vreg_n, vreg_m);
+                }else{
+                    la_vmadd_d(vreg_d, vreg_n, vreg_m);
+                }
+                break;
+            default:
+                assert(0);
         }
-        return;
+        goto do_gvec_end;
     case 0x16: /* SQDMULH, SQRDMULH */
         {
             static gen_helper_gvec_3_ptr * const fns[2][2] = {
