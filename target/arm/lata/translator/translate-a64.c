@@ -13138,11 +13138,28 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
         goto do_gvec_end;
     case 0x13: /* MUL, PMUL */
         if (!u) { /* MUL */
-            gen_gvec_fn3(s, is_q, rd, rn, rm, tcg_gen_gvec_mul, size);
+            // gen_gvec_fn3(s, is_q, rd, rn, rm, tcg_gen_gvec_mul, size);
+            switch(size){
+                case 0:
+                    la_vmul_b(vreg_d, vreg_n, vreg_m);
+                    break;
+                case 1:
+                    la_vmul_h(vreg_d, vreg_n, vreg_m);
+                    break;
+                case 2:
+                    la_vmul_w(vreg_d, vreg_n, vreg_m);
+                    break;
+                case 3:
+                    la_vmul_d(vreg_d, vreg_n, vreg_m);
+                    break;
+                default:
+                    assert(0);
+            }
         } else {  /* PMUL */
-            gen_gvec_op3_ool(s, is_q, rd, rn, rm, 0, gen_helper_gvec_pmul_b);
+            assert(0);
+            // gen_gvec_op3_ool(s, is_q, rd, rn, rm, 0, gen_helper_gvec_pmul_b);
         }
-        return;
+        goto do_gvec_end;
     case 0x12: /* MLA, MLS */
         switch(size){
             case 0:
@@ -15114,6 +15131,12 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
         return;
     }
 
+    IR2_OPND vreg_d;
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vtemp1 = ra_alloc_ftemp();
+
     switch (16 * u + opcode) {
     case 0x0e: /* SDOT */
     case 0x1e: /* UDOT */
@@ -15152,9 +15175,25 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
 
     case 0x08: /* MUL */
         if (!is_long && !is_scalar) {
-            assert(0);
-            return;
+            vreg_d = alloc_fpr_dst(rd);
+            switch (size) {
+            case 1:
+                la_vreplvei_h(vtemp1, vreg_m, index);
+                la_vmul_h(vreg_d, vreg_n, vtemp1);
+                break;
+            case 2:
+                la_vreplvei_w(vtemp1, vreg_m, index);
+                la_vmul_w(vreg_d, vreg_n, vtemp1);
+                break;
+            case 3:
+                la_vreplvei_d(vtemp1, vreg_m, index);
+                la_vmul_d(vreg_d, vreg_n, vtemp1);
+                break;
+            default:
+                g_assert_not_reached();
+            }
         }
+        goto do_gvec_end;
         break;
 
     case 0x10: /* MLA */
@@ -15171,12 +15210,6 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
         }
         break;
     }
-
-    IR2_OPND vreg_d = alloc_fpr_dst(rd);
-    IR2_OPND vreg_n = alloc_fpr_src(rn);
-    IR2_OPND vreg_m = alloc_fpr_src(rm);
-    IR2_OPND vtemp = ra_alloc_ftemp();
-    IR2_OPND vtemp1 = ra_alloc_ftemp();
 
     if (size == 3) {
 
@@ -15196,6 +15229,7 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
             la_vfmadd_d(vreg_d, vreg_n, vtemp1, vreg_d);
             break;
         case 0x09: /* FMUL */
+            vreg_d = alloc_fpr_dst(rd);
             la_vreplvei_d(vtemp1, vreg_m, index);
             la_vfmul_d(vreg_d, vreg_n, vtemp1);
             break;
@@ -15260,6 +15294,7 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
             }
             break;
         case 0x09: /* FMUL */
+            vreg_d = alloc_fpr_dst(rd);
             la_vreplvei_w(vtemp1, vreg_m, index);
             la_vfmul_s(vreg_d, vreg_n, vtemp1);
             break;
@@ -15447,7 +15482,11 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
     //         write_vec_element(s, tcg_res[pass], rd, pass, MO_64);
     //     }
     }
-
+do_gvec_end:
+    if(!is_q){
+        /* 高64位清零 */
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    }
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
