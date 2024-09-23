@@ -8956,64 +8956,64 @@ static void disas_simd_zip_trn(DisasContext *s, uint32_t insn)
  * This is a recursive function, TCG temps should be freed by the
  * calling function once it is done with the values.
  */
-static TCGv_i32 do_reduction_op(DisasContext *s, int fpopcode, int rn,
-                                int esize, int size, int vmap, TCGv_ptr fpst)
-{
-    if (esize == size) {
-        int element;
-        MemOp msize = esize == 16 ? MO_16 : MO_32;
-        TCGv_i32 tcg_elem;
+// static TCGv_i32 do_reduction_op(DisasContext *s, int fpopcode, int rn,
+//                                 int esize, int size, int vmap, TCGv_ptr fpst)
+// {
+//     if (esize == size) {
+//         int element;
+//         MemOp msize = esize == 16 ? MO_16 : MO_32;
+//         TCGv_i32 tcg_elem;
 
-        /* We should have one register left here */
-        assert(ctpop8(vmap) == 1);
-        element = ctz32(vmap);
-        assert(element < 8);
+//         /* We should have one register left here */
+//         assert(ctpop8(vmap) == 1);
+//         element = ctz32(vmap);
+//         assert(element < 8);
 
-        tcg_elem = tcg_temp_new_i32();
-        read_vec_element_i32(s, tcg_elem, rn, element, msize);
-        return tcg_elem;
-    } else {
-        int bits = size / 2;
-        int shift = ctpop8(vmap) / 2;
-        int vmap_lo = (vmap >> shift) & vmap;
-        int vmap_hi = (vmap & ~vmap_lo);
-        TCGv_i32 tcg_hi, tcg_lo, tcg_res;
+//         tcg_elem = tcg_temp_new_i32();
+//         read_vec_element_i32(s, tcg_elem, rn, element, msize);
+//         return tcg_elem;
+//     } else {
+//         int bits = size / 2;
+//         int shift = ctpop8(vmap) / 2;
+//         int vmap_lo = (vmap >> shift) & vmap;
+//         int vmap_hi = (vmap & ~vmap_lo);
+//         TCGv_i32 tcg_hi, tcg_lo, tcg_res;
 
-        tcg_hi = do_reduction_op(s, fpopcode, rn, esize, bits, vmap_hi, fpst);
-        tcg_lo = do_reduction_op(s, fpopcode, rn, esize, bits, vmap_lo, fpst);
-        tcg_res = tcg_temp_new_i32();
+//         tcg_hi = do_reduction_op(s, fpopcode, rn, esize, bits, vmap_hi, fpst);
+//         tcg_lo = do_reduction_op(s, fpopcode, rn, esize, bits, vmap_lo, fpst);
+//         tcg_res = tcg_temp_new_i32();
 
-        switch (fpopcode) {
-        case 0x0c: /* fmaxnmv half-precision */
-            gen_helper_advsimd_maxnumh(tcg_res, tcg_lo, tcg_hi, fpst);
-            break;
-        case 0x0f: /* fmaxv half-precision */
-            gen_helper_advsimd_maxh(tcg_res, tcg_lo, tcg_hi, fpst);
-            break;
-        case 0x1c: /* fminnmv half-precision */
-            gen_helper_advsimd_minnumh(tcg_res, tcg_lo, tcg_hi, fpst);
-            break;
-        case 0x1f: /* fminv half-precision */
-            gen_helper_advsimd_minh(tcg_res, tcg_lo, tcg_hi, fpst);
-            break;
-        case 0x2c: /* fmaxnmv */
-            gen_helper_vfp_maxnums(tcg_res, tcg_lo, tcg_hi, fpst);
-            break;
-        case 0x2f: /* fmaxv */
-            gen_helper_vfp_maxs(tcg_res, tcg_lo, tcg_hi, fpst);
-            break;
-        case 0x3c: /* fminnmv */
-            gen_helper_vfp_minnums(tcg_res, tcg_lo, tcg_hi, fpst);
-            break;
-        case 0x3f: /* fminv */
-            gen_helper_vfp_mins(tcg_res, tcg_lo, tcg_hi, fpst);
-            break;
-        default:
-            g_assert_not_reached();
-        }
-        return tcg_res;
-    }
-}
+//         switch (fpopcode) {
+//         case 0x0c: /* fmaxnmv half-precision */
+//             gen_helper_advsimd_maxnumh(tcg_res, tcg_lo, tcg_hi, fpst);
+//             break;
+//         case 0x0f: /* fmaxv half-precision */
+//             gen_helper_advsimd_maxh(tcg_res, tcg_lo, tcg_hi, fpst);
+//             break;
+//         case 0x1c: /* fminnmv half-precision */
+//             gen_helper_advsimd_minnumh(tcg_res, tcg_lo, tcg_hi, fpst);
+//             break;
+//         case 0x1f: /* fminv half-precision */
+//             gen_helper_advsimd_minh(tcg_res, tcg_lo, tcg_hi, fpst);
+//             break;
+//         case 0x2c: /* fmaxnmv */
+//             gen_helper_vfp_maxnums(tcg_res, tcg_lo, tcg_hi, fpst);
+//             break;
+//         case 0x2f: /* fmaxv */
+//             gen_helper_vfp_maxs(tcg_res, tcg_lo, tcg_hi, fpst);
+//             break;
+//         case 0x3c: /* fminnmv */
+//             gen_helper_vfp_minnums(tcg_res, tcg_lo, tcg_hi, fpst);
+//             break;
+//         case 0x3f: /* fminv */
+//             gen_helper_vfp_mins(tcg_res, tcg_lo, tcg_hi, fpst);
+//             break;
+//         default:
+//             g_assert_not_reached();
+//         }
+//         return tcg_res;
+//     }
+// }
 
 /* AdvSIMD across lanes
  *   31  30  29 28       24 23  22 21       17 16    12 11 10 9    5 4    0
@@ -9029,7 +9029,7 @@ static void disas_simd_across_lanes(DisasContext *s, uint32_t insn)
     int opcode = extract32(insn, 12, 5);
     bool is_q = extract32(insn, 30, 1);
     bool is_u = extract32(insn, 29, 1);
-    bool is_min = false;
+    // bool is_min = false;
     int esize = 8 << size;
     int elements = (is_q ? 128 : 64) / esize;
     int i;
@@ -9091,7 +9091,7 @@ static void disas_simd_across_lanes(DisasContext *s, uint32_t insn)
         break;
     case 0xc: /* FMAXNMV, FMINNMV */
     case 0xf: /* FMAXV, FMINV */
-        is_min = extract32(size, 1, 1);
+        // is_min = extract32(size, 1, 1);
         if (!is_u && dc_isar_feature(aa64_fp16, s)) {
             size = 1;
         } else if (!is_u || !is_q || extract32(size, 0, 1)) {
@@ -10130,91 +10130,45 @@ static void handle_simd_intfp_conv(DisasContext *s, int rd, int rn,
                                    int elements, int is_signed,
                                    int fracbits, int size)
 {
-    TCGv_ptr tcg_fpst = fpstatus_ptr(size == MO_16 ? FPST_FPCR_F16 : FPST_FPCR);
-    TCGv_i32 tcg_shift = NULL;
-
-    MemOp mop = size | (is_signed ? MO_SIGN : 0);
-    int pass;
-
-    if (fracbits || size == MO_64) {
-        tcg_shift = tcg_constant_i32(fracbits);
-    }
+    assert(!fracbits);
+    
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
 
     if (size == MO_64) {
-        TCGv_i64 tcg_int64 = tcg_temp_new_i64();
-        TCGv_i64 tcg_double = tcg_temp_new_i64();
 
-        for (pass = 0; pass < elements; pass++) {
-            read_vec_element(s, tcg_int64, rn, pass, mop);
-
-            if (is_signed) {
-                gen_helper_vfp_sqtod(tcg_double, tcg_int64,
-                                     tcg_shift, tcg_fpst);
-            } else {
-                gen_helper_vfp_uqtod(tcg_double, tcg_int64,
-                                     tcg_shift, tcg_fpst);
-            }
-            if (elements == 1) {
-                write_fp_dreg(s, rd, tcg_double);
-            } else {
-                write_vec_element(s, tcg_double, rd, pass, MO_64);
-            }
+        if (is_signed) {
+            la_vffint_d_l(vreg_d, vreg_n);
+        } else {
+            la_vffint_d_lu(vreg_d, vreg_n);
         }
+
     } else {
-        TCGv_i32 tcg_int32 = tcg_temp_new_i32();
-        TCGv_i32 tcg_float = tcg_temp_new_i32();
 
-        for (pass = 0; pass < elements; pass++) {
-            read_vec_element_i32(s, tcg_int32, rn, pass, mop);
-
-            switch (size) {
-            case MO_32:
-                if (fracbits) {
-                    if (is_signed) {
-                        gen_helper_vfp_sltos(tcg_float, tcg_int32,
-                                             tcg_shift, tcg_fpst);
-                    } else {
-                        gen_helper_vfp_ultos(tcg_float, tcg_int32,
-                                             tcg_shift, tcg_fpst);
-                    }
-                } else {
-                    if (is_signed) {
-                        gen_helper_vfp_sitos(tcg_float, tcg_int32, tcg_fpst);
-                    } else {
-                        gen_helper_vfp_uitos(tcg_float, tcg_int32, tcg_fpst);
-                    }
-                }
-                break;
-            case MO_16:
-                if (fracbits) {
-                    if (is_signed) {
-                        gen_helper_vfp_sltoh(tcg_float, tcg_int32,
-                                             tcg_shift, tcg_fpst);
-                    } else {
-                        gen_helper_vfp_ultoh(tcg_float, tcg_int32,
-                                             tcg_shift, tcg_fpst);
-                    }
-                } else {
-                    if (is_signed) {
-                        gen_helper_vfp_sitoh(tcg_float, tcg_int32, tcg_fpst);
-                    } else {
-                        gen_helper_vfp_uitoh(tcg_float, tcg_int32, tcg_fpst);
-                    }
-                }
-                break;
-            default:
-                g_assert_not_reached();
-            }
-
-            if (elements == 1) {
-                write_fp_sreg(s, rd, tcg_float);
+        switch (size) {
+        case MO_32:
+            if (is_signed) {
+                la_vffint_s_w(vreg_d, vreg_n);
             } else {
-                write_vec_element_i32(s, tcg_float, rd, pass, size);
+                la_vffint_s_wu(vreg_d, vreg_n);
             }
+            break;
+        case MO_16:
+            assert(0);
+            break;
+        default:
+            g_assert_not_reached();
         }
+
     }
 
-    clear_vec_high(s, elements << size == 16, rd);
+    if(elements * (8 << size) < 128){
+        /* 高64位清零 */
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    }
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
 }
 
 /* UCVTF/SCVTF - Integer to FP conversion */
@@ -14155,7 +14109,7 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
             bool is_signed = (opcode == 0x1d) ? true : false;
             int elements = is_double ? 2 : is_q ? 4 : 2;
             if (is_double && !is_q) {
-                unallocated_encoding(s);
+                lata_unallocated_encoding(s);
                 return;
             }
             if (!fp_access_check(s)) {
