@@ -8663,7 +8663,7 @@ static void disas_simd_tb(DisasContext *s, uint32_t insn)
     int len = (extract32(insn, 13, 2) + 1) * 16;
 
     if (op2 != 0) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -10532,87 +10532,61 @@ static void disas_simd_scalar_three_reg_diff(DisasContext *s, uint32_t insn)
 }
 
 static void handle_3same_64(DisasContext *s, int opcode, bool u,
-                            TCGv_i64 tcg_rd, TCGv_i64 tcg_rn, TCGv_i64 tcg_rm)
+                            int rd, int rn, int rm)
 {
     /* Handle 64x64->64 opcodes which are shared between the scalar
      * and vector 3-same groups. We cover every opcode where size == 3
      * is valid in either the three-reg-same (integer, not pairwise)
      * or scalar-three-reg-same groups.
      */
-    TCGCond cond;
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
 
     switch (opcode) {
     case 0x1: /* SQADD */
-        if (u) {
-            gen_helper_neon_qadd_u64(tcg_rd, cpu_env, tcg_rn, tcg_rm);
-        } else {
-            gen_helper_neon_qadd_s64(tcg_rd, cpu_env, tcg_rn, tcg_rm);
-        }
+        assert(0);
         break;
     case 0x5: /* SQSUB */
-        if (u) {
-            gen_helper_neon_qsub_u64(tcg_rd, cpu_env, tcg_rn, tcg_rm);
-        } else {
-            gen_helper_neon_qsub_s64(tcg_rd, cpu_env, tcg_rn, tcg_rm);
-        }
+        assert(0);
         break;
     case 0x6: /* CMGT, CMHI */
-        /* 64 bit integer comparison, result = test ? (2^64 - 1) : 0.
-         * We implement this using setcond (test) and then negating.
-         */
-        cond = u ? TCG_COND_GTU : TCG_COND_GT;
-    do_cmop:
-        tcg_gen_setcond_i64(cond, tcg_rd, tcg_rn, tcg_rm);
-        tcg_gen_neg_i64(tcg_rd, tcg_rd);
+        assert(0);
         break;
     case 0x7: /* CMGE, CMHS */
-        cond = u ? TCG_COND_GEU : TCG_COND_GE;
-        goto do_cmop;
+        assert(0);
+        break;
     case 0x11: /* CMTST, CMEQ */
-        if (u) {
-            cond = TCG_COND_EQ;
-            goto do_cmop;
-        }
-        gen_cmtst_i64(tcg_rd, tcg_rn, tcg_rm);
+        assert(0);
         break;
     case 0x8: /* SSHL, USHL */
-        if (u) {
-            gen_ushl_i64(tcg_rd, tcg_rn, tcg_rm);
-        } else {
-            gen_sshl_i64(tcg_rd, tcg_rn, tcg_rm);
-        }
+        assert(0);
         break;
     case 0x9: /* SQSHL, UQSHL */
-        if (u) {
-            gen_helper_neon_qshl_u64(tcg_rd, cpu_env, tcg_rn, tcg_rm);
-        } else {
-            gen_helper_neon_qshl_s64(tcg_rd, cpu_env, tcg_rn, tcg_rm);
-        }
+        assert(0);
         break;
     case 0xa: /* SRSHL, URSHL */
-        if (u) {
-            gen_helper_neon_rshl_u64(tcg_rd, tcg_rn, tcg_rm);
-        } else {
-            gen_helper_neon_rshl_s64(tcg_rd, tcg_rn, tcg_rm);
-        }
+        assert(0);
         break;
     case 0xb: /* SQRSHL, UQRSHL */
-        if (u) {
-            gen_helper_neon_qrshl_u64(tcg_rd, cpu_env, tcg_rn, tcg_rm);
-        } else {
-            gen_helper_neon_qrshl_s64(tcg_rd, cpu_env, tcg_rn, tcg_rm);
-        }
+        assert(0);
         break;
     case 0x10: /* ADD, SUB */
         if (u) {
-            tcg_gen_sub_i64(tcg_rd, tcg_rn, tcg_rm);
+            la_vsub_d(vreg_d, vreg_n, vreg_m);
         } else {
-            tcg_gen_add_i64(tcg_rd, tcg_rn, tcg_rm);
+            la_vadd_d(vreg_d, vreg_n, vreg_m);
         }
+        la_vinsgr2vr_d(vreg_d,zero_ir2_opnd,1);
         break;
     default:
         g_assert_not_reached();
     }
+
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_m);
 }
 
 static void handle_3same_float(DisasContext *s, int size, int elements,
@@ -10922,18 +10896,18 @@ static void disas_simd_scalar_three_reg_same(DisasContext *s, uint32_t insn)
     case 0x11: /* CMTST, CMEQ */
     case 0x10: /* ADD, SUB (vector) */
         if (size != 3) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
     case 0x16: /* SQDMULH, SQRDMULH (vector) */
         if (size != 1 && size != 2) {
-            unallocated_encoding(s);
+            lata_unallocated_encoding(s);
             return;
         }
         break;
     default:
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -10944,10 +10918,7 @@ static void disas_simd_scalar_three_reg_same(DisasContext *s, uint32_t insn)
     tcg_rd = tcg_temp_new_i64();
 
     if (size == 3) {
-        TCGv_i64 tcg_rn = read_fp_dreg(s, rn);
-        TCGv_i64 tcg_rm = read_fp_dreg(s, rm);
-
-        handle_3same_64(s, opcode, u, tcg_rd, tcg_rn, tcg_rm);
+        handle_3same_64(s, opcode, u, rd, rn, rm);
     } else {
         /* Do a single operation on the lowest element in the vector.
          * We use the standard Neon helpers and rely on 0 OP 0 == 0 with
