@@ -5434,30 +5434,28 @@ static bool trans_SBFM(DisasContext *s, arg_SBFM *a)
 
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
-    if (si >= ri) {
-        /* Wd<s-r:0> = Wn<s:r> */
-        if(bitsize == 32 && si == 31){ // 32-bit ASR
-            la_srai_w(reg_d, reg_n, ri);
-        }else if(bitsize == 64 && si == 63){ // 64-bit ASR
-            la_srai_d(reg_d, reg_n, ri);
-        }else if(ri == 0 && si == 7){ // SXTB
-            la_ext_w_b(reg_d, reg_n);
-        }else if(ri == 0 && si == 15){ // SXTH
-            la_ext_w_h(reg_d, reg_n);
-        }else if(ri == 0 && si == 31){ // SXTW
-            la_add_w(reg_d, zero_ir2_opnd, reg_n);
-        }else{ // SBFX
-            if(bitsize == 64){
-                la_slli_d(reg_d, reg_n, 63 - si);
-                la_srai_d(reg_d, reg_d, 63 - si + ri);
-            }else {
-                la_slli_d(reg_d, reg_n, 31 - si);
-                la_srai_d(reg_d, reg_d, 31 - si + ri);
-            }
+    if(bitsize == 32 && si == 31){ // 32-bit ASR
+        la_srai_w(reg_d, reg_n, ri);
+    } else if (bitsize == 64 && si == 63){ // 64-bit ASR
+        la_srai_d(reg_d, reg_n, ri);
+    } 
+    /* Wd<s-r:0> = Wn<s:r> */
+    else if(ri == 0 && si == 7){ // SXTB
+        la_ext_w_b(reg_d, reg_n);
+    }else if(ri == 0 && si == 15){ // SXTH
+        la_ext_w_h(reg_d, reg_n);
+    }else if(ri == 0 && si == 31){ // SXTW
+        la_add_w(reg_d, zero_ir2_opnd, reg_n);
+    }else if(si >= ri){ // SBFX           
+        if(bitsize == 64){
+            la_slli_d(reg_d, reg_n, 63 - si);
+            la_srai_d(reg_d, reg_d, 63 - si + ri);
+        }else {
+            la_slli_w(reg_d, reg_n, 31 - si);
+            la_srai_w(reg_d, reg_d, 31 - si + ri);
         }
-    } else { // SBFIZ
+    } else { // SBFIZ 
         /* Wd<32+s-r,32-r> = Wn<s:0> */
-
         if(bitsize == 64){
             la_slli_d(reg_d, reg_n, 63 - si);
             la_srai_d(reg_d, reg_d, ri - si -1);
