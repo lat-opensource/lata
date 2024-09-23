@@ -6617,21 +6617,21 @@ static void handle_div(DisasContext *s, bool is_signed, unsigned int sf,
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND reg_n = alloc_gpr_src(rn);
     IR2_OPND reg_m = alloc_gpr_src(rm);
-
+    IR2_OPND temp_m = ra_alloc_itemp();
+    IR2_OPND temp_n = ra_alloc_itemp();
+    
     if (is_signed) {
         if(sf){
             la_div_d(reg_d, reg_n, reg_m);
         }else{
-            la_div_w(reg_d, reg_n, reg_m);
+            la_bstrpick_w(temp_m, reg_m, 31, 0);
+            la_bstrpick_w(temp_n, reg_n, 31, 0);
+            la_div_d(reg_d, temp_n, temp_m);
         }
     } else {
-        if(sf){
-            la_div_du(reg_d, reg_n, reg_m);
-        }else{
-            la_div_wu(reg_d, reg_n, reg_m);
-        }
+        la_div_du(reg_d, reg_n, reg_m);
     }
-
+    
     if (!sf) { /* zero extend final result */
         la_bstrpick_d(reg_d, reg_d, 31, 0);
     }
@@ -6640,6 +6640,8 @@ static void handle_div(DisasContext *s, bool is_signed, unsigned int sf,
     free_alloc_gpr(reg_d);
     free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_m);
+    free_alloc_gpr(temp_m);
+    free_alloc_gpr(temp_n);
 }
 
 /* LSLV, LSRV, ASRV, RORV */
