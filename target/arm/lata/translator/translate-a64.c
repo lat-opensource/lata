@@ -8024,24 +8024,37 @@ static void handle_fpfpcvt(DisasContext *s, int rd, int rn, int opcode,
         case 1: /* float64 */
             if(sf){
                 la_movgr2fr_d(vtemp, reg_n);
-                la_ffint_d_l(vreg_d, vtemp);
+                if(is_signed){
+                    la_vffint_d_l(vreg_d, vtemp);
+                }else{
+                    la_vffint_d_lu(vreg_d, vtemp);
+                }
             }else{
-                /*  虽然movgr2fr_w高32位不确定，
-                    但是ffint_d_w只会对低32位进行操作，
-                    所以vtemp是否是符号拓展没有影响；
-                    float32同理。
-                */
                 la_movgr2fr_w(vtemp, reg_n);
-                la_ffint_d_w(vreg_d, vtemp);
+                if(is_signed){
+                    la_ffint_d_w(vreg_d, vtemp);
+                }else{
+                    la_movgr2frh_w(vtemp, zero_ir2_opnd);
+                    la_vffint_d_lu(vreg_d, vtemp);
+                }
             }
             break;
         case 0: /* float32 */
             if(sf){
                 la_movgr2fr_d(vtemp, reg_n);
-                la_ffint_s_l(vreg_d, vtemp);
+                if(is_signed){
+                    la_ffint_s_l(vreg_d, vtemp);
+                }else{
+                    la_vffint_d_lu(vtemp, vtemp);
+                    la_fcvt_s_d(vreg_d, vtemp);
+                }
             }else{
                 la_movgr2fr_w(vtemp, reg_n);
-                la_ffint_s_w(vreg_d, vtemp);
+                if(is_signed){
+                    la_vffint_s_w(vreg_d, vtemp);
+                }else{
+                    la_vffint_s_wu(vreg_d, vtemp);
+                }
             }
             break;
 
