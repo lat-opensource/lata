@@ -13907,69 +13907,59 @@ static void handle_rev(DisasContext *s, int opcode, bool u,
 {
     int op = (opcode << 1) | u;
     int opsz = op + size;
-    int grp_size = 3 - opsz;
-    int dsize = is_q ? 128 : 64;
+    // int grp_size = 3 - opsz;
+    // int dsize = is_q ? 128 : 64;
     int i;
 
     if (opsz >= 3) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
     if (!fp_access_check(s)) {
         return;
     }
+    
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND temp = ra_alloc_itemp();
 
-    if (size == 0) {
-        /* Special case bytes, use bswap op on each group of elements */
-        int groups = dsize / (8 << grp_size);
-
-        for (i = 0; i < groups; i++) {
-            TCGv_i64 tcg_tmp = tcg_temp_new_i64();
-
-            read_vec_element(s, tcg_tmp, rn, i, grp_size);
-            switch (grp_size) {
-            case MO_16:
-                tcg_gen_bswap16_i64(tcg_tmp, tcg_tmp, TCG_BSWAP_IZ);
-                break;
-            case MO_32:
-                tcg_gen_bswap32_i64(tcg_tmp, tcg_tmp, TCG_BSWAP_IZ);
-                break;
-            case MO_64:
-                tcg_gen_bswap64_i64(tcg_tmp, tcg_tmp);
-                break;
-            default:
-                g_assert_not_reached();
+    switch(op){
+        case 0: /* REV64 */
+            for(i = 0; i < (is_q ? 2 : 1); ++i){
+                la_vpickve2gr_d(temp, vreg_n, i);
+                switch (size)
+                {
+                case 0:
+                    la_revb_d(temp, temp);
+                    break;
+                case 1:
+                    la_revh_d(temp, temp);
+                    break;
+                case 2:
+                    la_rotri_d(temp, temp, 32);
+                    break;
+                default:
+                    break;
+                }
+                la_vinsgr2vr_d(vreg_d, temp, i);
             }
-            write_vec_element(s, tcg_tmp, rd, i, grp_size);
-        }
-        clear_vec_high(s, is_q, rd);
-    } else {
-        int revmask = (1 << grp_size) - 1;
-        int esize = 8 << size;
-        int elements = dsize / esize;
-        TCGv_i64 tcg_rn = tcg_temp_new_i64();
-        TCGv_i64 tcg_rd[2];
-
-        for (i = 0; i < 2; i++) {
-            tcg_rd[i] = tcg_temp_new_i64();
-            tcg_gen_movi_i64(tcg_rd[i], 0);
-        }
-
-        for (i = 0; i < elements; i++) {
-            int e_rev = (i & 0xf) ^ revmask;
-            int w = (e_rev * esize) / 64;
-            int o = (e_rev * esize) % 64;
-
-            read_vec_element(s, tcg_rn, rn, i, size);
-            tcg_gen_deposit_i64(tcg_rd[w], tcg_rd[w], tcg_rn, o, esize);
-        }
-
-        for (i = 0; i < 2; i++) {
-            write_vec_element(s, tcg_rd[i], rd, i, MO_64);
-        }
-        clear_vec_high(s, true, rd);
+            break;
+        case 1: /* REV32 */
+            assert(0);
+            break;
+        case 2: /* REV16 */
+            assert(0);
+            break;
     }
+
+    if(!is_q){
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    }
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_gpr(temp);
 }
 
 static void handle_2misc_pairwise(DisasContext *s, int opcode, bool u,
