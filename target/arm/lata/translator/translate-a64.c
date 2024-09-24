@@ -9642,21 +9642,27 @@ static void disas_simd_mod_imm(DisasContext *s, uint32_t insn)
     } else {
         imm = asimd_imm_const(abcdefgh, cmode, is_neg);
     }
-    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_d;
+    IR2_OPND vtemp = ra_alloc_ftemp();
     IR2_OPND temp = ra_alloc_itemp();
     li_d(temp, (int64_t)imm);
     if (!((cmode & 0x9) == 0x1 || (cmode & 0xd) == 0x9)) {
         /* MOVI or MVNI, with MVNI negation handled above.  */
         // tcg_gen_gvec_dup_imm(MO_64, vec_full_reg_offset(s, rd), is_q ? 16 : 8,
         //                      vec_full_reg_size(s), imm);
+        vreg_d = alloc_fpr_dst(rd);
         la_vreplgr2vr_d(vreg_d, temp);
     } else {
-        assert(0);
+        // assert(0);
         /* ORR or BIC, with BIC negation to AND handled above.  */
+        vreg_d = alloc_fpr_src(rd);
+        la_vreplgr2vr_d(vtemp, temp);
         if (is_neg) {
-            gen_gvec_fn2i(s, is_q, rd, rd, imm, tcg_gen_gvec_andi, MO_64);
+            // gen_gvec_fn2i(s, is_q, rd, rd, imm, tcg_gen_gvec_andi, MO_64);
+            la_vand_v(vreg_d, vreg_d, vtemp);
         } else {
-            gen_gvec_fn2i(s, is_q, rd, rd, imm, tcg_gen_gvec_ori, MO_64);
+            la_vor_v(vreg_d, vreg_d, vtemp);
+            // gen_gvec_fn2i(s, is_q, rd, rd, imm, tcg_gen_gvec_ori, MO_64);
         }
     }
 
@@ -9666,6 +9672,7 @@ static void disas_simd_mod_imm(DisasContext *s, uint32_t insn)
     }
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vtemp);
     free_alloc_gpr(temp);
 }
 
