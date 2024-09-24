@@ -9042,7 +9042,7 @@ static void disas_simd_across_lanes(DisasContext *s, uint32_t insn)
     int opcode = extract32(insn, 12, 5);
     bool is_q = extract32(insn, 30, 1);
     bool is_u = extract32(insn, 29, 1);
-    // bool is_min = false;
+    bool is_min = extract32(insn, 16, 1);;
     int esize = 8 << size;
     int elements = (is_q ? 128 : 64) / esize;
     int i;
@@ -9054,7 +9054,7 @@ static void disas_simd_across_lanes(DisasContext *s, uint32_t insn)
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vtemp = ra_alloc_ftemp();
-    IR2_OPND vsum = ra_alloc_ftemp();
+    IR2_OPND vtemp2 = ra_alloc_ftemp();
     
 
     switch (opcode) {
@@ -9064,7 +9064,7 @@ static void disas_simd_across_lanes(DisasContext *s, uint32_t insn)
             return;
         }
 
-        la_vslli_d(vsum, vreg_n, 0);
+        la_vslli_d(vtemp2, vreg_n, 0);
         for (i = 1; i < elements; i++) {
             if(is_q && i >= elements/2){
                 la_vpickod_d(vtemp, vreg_n, vreg_n);
@@ -9076,21 +9076,21 @@ static void disas_simd_across_lanes(DisasContext *s, uint32_t insn)
             }
             switch (size) {
             case 0: 
-                la_vadd_b(vsum, vsum, vtemp);
+                la_vadd_b(vtemp2, vtemp2, vtemp);
                 break;
             case 1: 
-                la_vadd_h(vsum, vsum, vtemp);
+                la_vadd_h(vtemp2, vtemp2, vtemp);
                 break;
             case 2: 
-                la_vadd_w(vsum, vsum, vtemp);
+                la_vadd_w(vtemp2, vtemp2, vtemp);
                 break;
             default:
                 assert(0);
             }
         }
 
-        la_vslli_d(vsum, vsum, 64-esize);
-        la_vsrli_d(vreg_d, vsum, 64-esize);
+        la_vslli_d(vtemp2, vtemp2, 64-esize);
+        la_vsrli_d(vreg_d, vtemp2, 64-esize);
         la_vinsgr2vr_d(vreg_d,zero_ir2_opnd,1);
 
         break;
@@ -9101,6 +9101,84 @@ static void disas_simd_across_lanes(DisasContext *s, uint32_t insn)
             lata_unallocated_encoding(s);
             return;
         }
+        la_vslli_d(vtemp2, vreg_n, 64 - esize);
+        la_vsrli_d(vtemp2, vtemp2, 64 - esize);
+        for (i = 1; i < elements; i++) {
+            if(is_q && i >= elements/2){
+                la_vpickod_d(vtemp, vreg_n, vreg_n);
+                la_vsrli_d(vtemp, vtemp, esize * (i - elements/2) );
+            }
+            else{
+                la_vpickev_d(vtemp, vreg_n, vreg_n);
+                la_vsrli_d(vtemp, vtemp, esize * i);
+            }
+            /* SMINV, UMINV */
+            if(is_min){
+                switch (size) {
+                case 0: 
+                    if(is_u){
+                        la_vmin_bu(vtemp2, vtemp2, vtemp); 
+                    }
+                    else{
+                        la_vmin_b(vtemp2, vtemp2, vtemp); 
+                    }
+                    break;
+                case 1: 
+                    if(is_u){
+                        la_vmin_hu(vtemp2, vtemp2, vtemp); 
+                    }
+                    else{
+                        la_vmin_h(vtemp2, vtemp2, vtemp); 
+                    }
+                    break;
+                case 2: 
+                    if(is_u){
+                        la_vmin_wu(vtemp2, vtemp2, vtemp); 
+                    }
+                    else{
+                        la_vmin_w(vtemp2, vtemp2, vtemp); 
+                    }
+                    break;
+                default:
+                    assert(0);
+                }
+            }
+            /* SMAXV, UMAXV */
+            else{
+                switch (size) {
+                case 0: 
+                    if(is_u){
+                        la_vmax_bu(vtemp2, vtemp2, vtemp); 
+                    }
+                    else{
+                        la_vmax_b(vtemp2, vtemp2, vtemp); 
+                    }
+                    break;
+                case 1: 
+                    if(is_u){
+                        la_vmax_hu(vtemp2, vtemp2, vtemp); 
+                    }
+                    else{
+                        la_vmax_h(vtemp2, vtemp2, vtemp); 
+                    }
+                    break;
+                case 2: 
+                    if(is_u){
+                        la_vmax_wu(vtemp2, vtemp2, vtemp); 
+                    }
+                    else{
+                        la_vmax_w(vtemp2, vtemp2, vtemp); 
+                    }
+                    break;
+                default:
+                    assert(0);
+                }                
+            }
+        }
+
+        la_vslli_d(vtemp2, vtemp2, 64-esize);
+        la_vsrli_d(vreg_d, vtemp2, 64-esize);
+        la_vinsgr2vr_d(vreg_d,zero_ir2_opnd,1);
         break;
     case 0xc: /* FMAXNMV, FMINNMV */
     case 0xf: /* FMAXV, FMINV */
@@ -9123,7 +9201,7 @@ static void disas_simd_across_lanes(DisasContext *s, uint32_t insn)
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
     free_alloc_fpr(vtemp);
-    free_alloc_fpr(vsum);
+    free_alloc_fpr(vtemp2);
 }
 
 /* DUP (Element, Vector)
