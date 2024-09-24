@@ -10000,14 +10000,16 @@ static void handle_scalar_simd_shli(DisasContext *s, bool insert,
                                     int immh, int immb, int opcode,
                                     int rn, int rd)
 {
+    assert(!insert);
+
     int size = 32 - clz32(immh) - 1;
     int immhb = immh << 3 | immb;
     int shift = immhb - (8 << size);
-    TCGv_i64 tcg_rn;
-    TCGv_i64 tcg_rd;
+    // TCGv_i64 tcg_rn;
+    // TCGv_i64 tcg_rd;
 
     if (!extract32(immh, 3, 1)) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -10015,16 +10017,16 @@ static void handle_scalar_simd_shli(DisasContext *s, bool insert,
         return;
     }
 
-    tcg_rn = read_fp_dreg(s, rn);
-    tcg_rd = insert ? read_fp_dreg(s, rd) : tcg_temp_new_i64();
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
 
-    if (insert) {
-        tcg_gen_deposit_i64(tcg_rd, tcg_rd, tcg_rn, shift, 64 - shift);
-    } else {
-        tcg_gen_shli_i64(tcg_rd, tcg_rn, shift);
-    }
+    la_vslli_d(vreg_d, vreg_n, shift);
+    /* 高64位清零 */
+    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
 
-    write_fp_dreg(s, rd, tcg_rd);
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
 }
 
 /* SQSHRN/SQSHRUN - Saturating (signed/unsigned) shift right with
@@ -11973,6 +11975,8 @@ static void handle_vec_simd_shri(DisasContext *s, bool is_q, bool is_u,
 static void handle_vec_simd_shli(DisasContext *s, bool is_q, bool insert,
                                  int immh, int immb, int opcode, int rn, int rd)
 {
+    assert(!insert);
+
     int size = 32 - clz32(immh) - 1;
     int immhb = immh << 3 | immb;
     int shift = immhb - (8 << size);
@@ -11981,19 +11985,38 @@ static void handle_vec_simd_shli(DisasContext *s, bool is_q, bool insert,
     assert(size >= 0 && size <= 3);
 
     if (extract32(immh, 3, 1) && !is_q) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
-    if (!fp_access_check(s)) {
-        return;
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+
+    switch (size)
+    {
+    case 0:
+        la_vslli_b(vreg_d, vreg_n, shift);
+        break;
+    case 1:
+        la_vslli_h(vreg_d, vreg_n, shift);
+        break;
+    case 2:
+        la_vslli_w(vreg_d, vreg_n, shift);
+        break;
+    case 3:
+        la_vslli_d(vreg_d, vreg_n, shift);
+        break;
+    default:
+        break;
     }
 
-    if (insert) {
-        gen_gvec_fn2i(s, is_q, rd, rn, shift, gen_gvec_sli, size);
-    } else {
-        gen_gvec_fn2i(s, is_q, rd, rn, shift, tcg_gen_gvec_shli, size);
+    if(!is_q){
+        /* 高64位清零 */
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
     }
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
 }
 
 /* USHLL/SSHLL - Vector shift left with widening */
