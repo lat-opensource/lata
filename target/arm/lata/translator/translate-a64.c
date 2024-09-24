@@ -13088,19 +13088,59 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
         }
         return;
     case 0x0c: /* SMAX, UMAX */
-        if (u) {
-            gen_gvec_fn3(s, is_q, rd, rn, rm, tcg_gen_gvec_umax, size);
-        } else {
-            gen_gvec_fn3(s, is_q, rd, rn, rm, tcg_gen_gvec_smax, size);
+        switch(size){
+            case 0:
+                if(u){
+                    la_vmax_bu(vreg_d, vreg_n, vreg_m);
+                }else{
+                    la_vmax_b(vreg_d, vreg_n, vreg_m);
+                }
+                break;
+            case 1:
+                if(u){
+                    la_vmax_hu(vreg_d, vreg_n, vreg_m);
+                }else{
+                    la_vmax_h(vreg_d, vreg_n, vreg_m);
+                }
+                break;
+            case 2:
+                if(u){
+                    la_vmax_wu(vreg_d, vreg_n, vreg_m);
+                }else{
+                    la_vmax_w(vreg_d, vreg_n, vreg_m);
         }
-        return;
+                break;
+            default:
+                assert(0);
+        }
+        goto do_gvec_end;
     case 0x0d: /* SMIN, UMIN */
-        if (u) {
-            gen_gvec_fn3(s, is_q, rd, rn, rm, tcg_gen_gvec_umin, size);
-        } else {
-            gen_gvec_fn3(s, is_q, rd, rn, rm, tcg_gen_gvec_smin, size);
+        switch(size){
+            case 0:
+                if(u){
+                    la_vmin_bu(vreg_d, vreg_n, vreg_m);
+                }else{
+                    la_vmin_b(vreg_d, vreg_n, vreg_m);
+                }
+                break;
+            case 1:
+                if(u){
+                    la_vmin_hu(vreg_d, vreg_n, vreg_m);
+                }else{
+                    la_vmin_h(vreg_d, vreg_n, vreg_m);
+                }
+                break;
+            case 2:
+                if(u){
+                    la_vmin_wu(vreg_d, vreg_n, vreg_m);
+                }else{
+                    la_vmin_w(vreg_d, vreg_n, vreg_m);
         }
-        return;
+                break;
+            default:
+                assert(0);
+        }
+        goto do_gvec_end;
     case 0xe: /* SABD, UABD */
         if (u) {
             gen_gvec_fn3(s, is_q, rd, rn, rm, gen_gvec_uabd, size);
