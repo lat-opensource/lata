@@ -10650,6 +10650,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vtemp1 = ra_alloc_ftemp();
 
     IR2_OPND vreg_d;
     if(fpopcode == 0x39 || fpopcode == 0x19){
@@ -10712,7 +10713,11 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             la_vfdiv_d(vreg_d, vreg_n, vreg_m);
             break;
         case 0x7a: /* FABD */
-            assert(0);
+            la_vfsub_d(vreg_d, vreg_n, vreg_m);
+            la_vreplvei_d(vtemp, vreg_d, 1);
+            la_fabs_d(vreg_d, vreg_d);
+            la_fabs_d(vtemp, vtemp);
+            la_vextrins_d(vreg_d, vtemp, 1 << 4);
             break;
         case 0x7c: /* FCMGT */
             la_vfcmp_cond_d(vreg_d, vreg_m, vreg_n, FCMP_COND_SLT);
@@ -10779,7 +10784,12 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             la_vfdiv_s(vreg_d, vreg_n, vreg_m);
             break;
         case 0x7a: /* FABD */
-            assert(0);
+            la_vfsub_s(vtemp1, vreg_n, vreg_m);
+            for(int i = 0; i < elements; ++i){
+                la_vreplvei_w(vtemp, vtemp1, i);
+                la_fabs_s(vtemp, vtemp);
+                la_vextrins_w(vreg_d, vtemp, i << 4);
+            }
             break;
         case 0x7c: /* FCMGT */
             la_vfcmp_cond_s(vreg_d, vreg_m, vreg_n, FCMP_COND_SLT);
@@ -10802,6 +10812,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
     free_alloc_fpr(vreg_n);
     free_alloc_fpr(vreg_m);
     free_alloc_fpr(vtemp);
+    free_alloc_fpr(vtemp1);
 }
 
 static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode, 
