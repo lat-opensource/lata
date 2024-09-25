@@ -11275,13 +11275,16 @@ static void handle_2misc_64(DisasContext *s, int opcode, bool u,
         break;
     case 0x2f: /* FABS */
         // gen_helper_vfp_absd(tcg_rd, tcg_rn);
+        la_vreplvei_d(vtemp, *vreg_n, 1);
+        la_fabs_d(*vreg_d, *vreg_n);
+        la_fabs_d(vtemp, vtemp);
+        la_vextrins_d(*vreg_d, vtemp, 1 << 4);
         break;
     case 0x6f: /* FNEG */
-        for(int i = 0; i < 2; ++i){
-            la_vreplvei_d(vtemp, *vreg_n, i);
-            la_fneg_d(vtemp, vtemp);
-            la_vextrins_d(*vreg_d, vtemp, i << 4);
-        }
+        la_vreplvei_d(vtemp, *vreg_n, 1);
+        la_fneg_d(*vreg_d, *vreg_n);
+        la_fneg_d(vtemp, vtemp);
+        la_vextrins_d(*vreg_d, vtemp, 1 << 4);
         break;
     case 0x7f: /* FSQRT */
         la_vfsqrt_d(*vreg_d, *vreg_n);
@@ -14602,7 +14605,11 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
                 // }
                 break;
             case 0x2f: /* FABS */
-                // gen_helper_vfp_abss(tcg_res, tcg_op);
+                for(int i = 0; i < (is_q ? 4 : 2); ++i){
+                    la_vreplvei_w(vtemp, vreg_n, i);
+                    la_fabs_s(vtemp, vtemp);
+                    la_vextrins_w(vreg_d, vtemp, i << 4);
+                }
                 break;
             case 0x6f: /* FNEG */
                 for(int i = 0; i < (is_q ? 4 : 2); ++i){
