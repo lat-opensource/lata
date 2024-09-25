@@ -9182,7 +9182,7 @@ static void disas_simd_across_lanes(DisasContext *s, uint32_t insn)
         break;
     case 0xc: /* FMAXNMV, FMINNMV */
     case 0xf: /* FMAXV, FMINV */
-        // is_min = extract32(size, 1, 1);
+        is_min = extract32(size, 1, 1);
         if (!is_u && dc_isar_feature(aa64_fp16, s)) {
             size = 1;
         } else if (!is_u || !is_q || extract32(size, 0, 1)) {
@@ -9191,6 +9191,20 @@ static void disas_simd_across_lanes(DisasContext *s, uint32_t insn)
         } else {
             size = 2;
         }   
+        assert(opcode == 0xc && size == 2);
+
+        la_vori_b(vtemp2, vreg_n, 0);
+        la_vreplvei_w(vreg_d, vreg_n, 0);
+        for(i = 1; i < (is_q ? 4 : 2); ++i){
+            la_vreplvei_w(vtemp, vtemp2, i);
+            if(is_min){
+                la_fmin_s(vreg_d, vreg_d, vtemp);
+            }else{
+                la_fmax_s(vreg_d, vreg_d, vtemp);
+            }
+        }
+        la_movgr2frh_w(vreg_d, zero_ir2_opnd);
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
         break;
     default:
         lata_unallocated_encoding(s);
