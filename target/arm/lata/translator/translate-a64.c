@@ -7316,9 +7316,11 @@ static void handle_fp_1src_single(DisasContext *s, int opcode, int rd, int rn)
         break;
     case 0xa: /* FRINTM */
         la_vfrintrm_s(vreg_d, vreg_n);
+        goto done;
         break;
     case 0xb: /* FRINTZ */
         la_vfrintrz_s(vreg_d, vreg_n);
+        goto done;
         break;
     case 0xc: /* FRINTA */
         // rmode = opcode & 7;
@@ -7385,9 +7387,11 @@ static void handle_fp_1src_double(DisasContext *s, int opcode, int rd, int rn)
         break;
     case 0xa: /* FRINTM */
         la_vfrintrm_d(vreg_d, vreg_n);
+        goto done;
         break;
     case 0xb: /* FRINTZ */
         la_vfrintrz_d(vreg_d, vreg_n);
+        goto done;
         break;
     case 0xc: /* FRINTA */
         // rmode = opcode & 7;
@@ -8683,12 +8687,31 @@ static void disas_simd_tb(DisasContext *s, uint32_t insn)
     if (!fp_access_check(s)) {
         return;
     }
+    IR2_OPND temp = ra_alloc_itemp();
 
-    tcg_gen_gvec_2_ptr(vec_full_reg_offset(s, rd),
-                       vec_full_reg_offset(s, rm), cpu_env,
-                       is_q ? 16 : 8, vec_full_reg_size(s),
-                       (len << 6) | (is_tbx << 5) | rn,
-                       gen_helper_simd_tblx);
+    li_d(temp, s->base.pc_next);
+    la_st_d(temp, env_ir2_opnd, env_offset_pc());
+
+    lata_gen_call_helper_prologue(tcg_ctx);
+    /* void HELPER(simd_tblx)(void *vd, void *vm, void *venv, uint32_t desc) */
+    la_mov64(a2_ir2_opnd, env_ir2_opnd);
+    li_d(a0_ir2_opnd, vec_full_reg_offset(s, rd));
+    li_d(a1_ir2_opnd, vec_full_reg_offset(s, rm));
+    la_add_d(a0_ir2_opnd, a0_ir2_opnd, a2_ir2_opnd);
+    la_add_d(a1_ir2_opnd, a1_ir2_opnd, a2_ir2_opnd);
+    li_d(a3_ir2_opnd, simd_desc(is_q ? 16 : 8, 
+                                vec_full_reg_size(s), 
+                                (len << 6) | (is_tbx << 5) | rn));
+    li_d(temp, (int64_t)helper_simd_tblx);
+    la_jirl(ra_ir2_opnd, temp, 0);
+    lata_gen_call_helper_epilogue(tcg_ctx);
+
+    free_alloc_gpr(temp);
+    // tcg_gen_gvec_2_ptr(vec_full_reg_offset(s, rd),
+    //                    vec_full_reg_offset(s, rm), cpu_env,
+    //                    is_q ? 16 : 8, vec_full_reg_size(s),
+    //                    (len << 6) | (is_tbx << 5) | rn,
+    //                    gen_helper_simd_tblx);
 }
 
 /* ZIP/UZP/TRN
