@@ -12919,6 +12919,11 @@ static void handle_simd_3same_pair(DisasContext *s, int is_q, int u, int opcode,
         default:
             assert(0);
         }
+
+        if(!is_q){
+            la_vpickev_w(vreg_d, vreg_d, vreg_d);
+        }
+        
         break;
     case 0x5e: /* FMAXP */
         assert(0);
