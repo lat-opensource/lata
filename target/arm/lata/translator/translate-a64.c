@@ -8369,9 +8369,14 @@ static void handle_fmov(DisasContext *s, int rd, int rn, int type, bool itof)
 
     if (itof) {
         IR2_OPND reg_n = alloc_gpr_src(rn);
-        IR2_OPND vreg_d = alloc_fpr_dst(rd);
+        IR2_OPND vreg_d;
         IR2_OPND temp = ra_alloc_itemp();
 
+        if(type == 2){
+            vreg_d = alloc_fpr_src(rd);
+        }else{
+            vreg_d = alloc_fpr_dst(rd);
+        }
         switch (type) {
         case 0:
             /* 32 bit */
@@ -8386,18 +8391,19 @@ static void handle_fmov(DisasContext *s, int rd, int rn, int type, bool itof)
             /* 64 bit to top half. */
             // tcg_gen_st_i64(tcg_rn, cpu_env, fp_reg_hi_offset(s, rd));
             // clear_vec_high(s, true, rd);
-            assert(0);
+            la_vinsgr2vr_d(vreg_d, reg_n, 1);
             break;
         case 3:
             /* 16 bit */
-            assert(0);
             la_bstrpick_d(temp, reg_n, 16, 0);
             la_movgr2fr_d(vreg_d, temp);
             break;
         default:
             g_assert_not_reached();
         }
-        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        if(type != 2){
+            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        }
 
         store_fpr_dst(rd, vreg_d);
         free_alloc_fpr(vreg_d);
@@ -8421,7 +8427,7 @@ static void handle_fmov(DisasContext *s, int rd, int rn, int type, bool itof)
         case 2:
             /* 64 bits from top half */
             // tcg_gen_ld_i64(tcg_rd, cpu_env, fp_reg_hi_offset(s, rn));
-            assert(0);
+            la_vpickve2gr_du(reg_d, vreg_n, 1);
             break;
         case 3:
             /* 16 bit */
