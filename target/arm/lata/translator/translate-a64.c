@@ -3954,8 +3954,10 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
             la_vinsgr2vr_h(vreg_t, temp1, 0);
             break;
         case 2:
-            la_fst_s(vreg_t, temp, 0);
+            la_fld_s(vreg_t, temp, 0);
             la_movgr2frh_w(vreg_t, zero_ir2_opnd);
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
             break;
         case 3:
             la_fld_d(vreg_t, temp, 0);
