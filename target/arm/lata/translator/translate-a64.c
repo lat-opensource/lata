@@ -11397,7 +11397,6 @@ static void handle_2misc_fcmp_zero(DisasContext *s, int opcode,
                                    bool is_scalar, bool is_u, bool is_q,
                                    int size, int rn, int rd)
 {
-    assert(!is_scalar);
     bool is_double = (size == MO_64);
 
     if (!fp_access_check(s)) {
@@ -11475,6 +11474,16 @@ static void handle_2misc_fcmp_zero(DisasContext *s, int opcode,
     /* 高64位清零 */
     if(!is_q){
         la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    }
+
+    if(is_scalar){
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        if(!is_double){
+            la_vinsgr2vr_w(vreg_d, zero_ir2_opnd, 1);
+            if(size == MO_16){
+                la_vinsgr2vr_h(vreg_d, zero_ir2_opnd, 1);
+            }
+        }
     }
 
     store_fpr_dst(rd, vreg_d);
