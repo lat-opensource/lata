@@ -13168,6 +13168,11 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
     }else{
         vreg_d = alloc_fpr_dst(rd);
     }
+    /* 分别执行左移和右移 */
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vleft = ra_alloc_ftemp();
+    IR2_OPND vright = ra_alloc_ftemp();
+
     switch (opcode) {
     case 0x01: /* SQADD, UQADD */
         if (u) {
@@ -13184,12 +13189,168 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
         }
         return;
     case 0x08: /* SSHL, USHL */
-        if (u) {
-            gen_gvec_fn3(s, is_q, rd, rn, rm, gen_gvec_ushl, size);
-        } else {
-            gen_gvec_fn3(s, is_q, rd, rn, rm, gen_gvec_sshl, size);
+        switch (size){
+            case 0:
+                /* 取元素中shift */
+                la_vslli_b(vleft, vreg_m, 0);
+                la_vsrli_b(vleft, vleft, 0);
+
+                /* 正数放vleft左移，负数取反后放vright右移，vtemp存放符号位*/
+                la_vslti_b(vtemp, vleft, 0);
+                la_vand_v(vright, vtemp, vleft);
+                la_vsub_b(vleft, vleft, vright);
+                la_vsigncov_b(vright, vtemp, vright);
+
+                /* ARM 移位量不做模运算，这里需要特殊处理，左移大于等于元素长度对应清零，右移大于等于元素长度shift-1*/
+                la_vsll_b(vreg_d, vreg_n, vleft);
+                if(!u){
+                    la_vsra_b(vreg_d, vreg_d, vright);
+                }
+                else{
+                    la_vsrl_b(vreg_d, vreg_d, vright);
+                }
+                la_vslei_bu(vleft, vleft, 7);
+                la_vslei_bu(vright, vright, 7);                
+                la_vand_v(vtemp, vreg_d, vleft);
+
+                /* 正常右移 */
+                
+                la_vand_v(vtemp, vtemp, vright);
+                /* 满位右移 */
+                la_vnori_b(vright, vright, 0);
+                if(!u){
+                    la_vsrai_b(vleft, vreg_n, 7); 
+                }
+                else{
+                    la_vandi_b(vleft, vreg_n, 0);
+                }
+                la_vand_v(vleft, vright, vleft);
+                la_vadd_b(vreg_d, vtemp, vleft);
+
+                break;
+            case 1:
+                /* 取元素中shift */
+                la_vslli_h(vleft, vreg_m, 8);
+                la_vsrli_h(vleft, vleft, 8);
+
+                /* 正数放vleft左移，负数取反后放vright右移，vtemp存放符号位*/
+                la_vslti_b(vtemp, vleft, 0);
+                la_vand_v(vright, vtemp, vleft);
+                la_vsub_b(vleft, vleft, vright);
+                la_vsigncov_b(vright, vtemp, vright);
+
+                /* ARM 移位量不做模运算，这里需要特殊处理，左移大于等于元素长度对应清零，右移大于等于元素长度shift-1*/
+                la_vsll_h(vreg_d, vreg_n, vleft);
+                if(!u){
+                    la_vsra_h(vreg_d, vreg_d, vright);
+                }
+                else{
+                    la_vsrl_h(vreg_d, vreg_d, vright);
+                }
+                la_vslei_hu(vleft, vleft, 15);
+                la_vslei_hu(vright, vright, 15);                
+                la_vand_v(vtemp, vreg_d, vleft);
+
+                /* 正常右移 */
+                
+                la_vand_v(vtemp, vtemp, vright);
+                /* 满位右移 */
+                la_vnori_b(vright, vright, 0);
+                if(!u){
+                    la_vsrai_h(vleft, vreg_n, 15); 
+                }
+                else{
+                    la_vandi_b(vleft, vreg_n, 0);
+                }
+                la_vand_v(vleft, vright, vleft);
+                la_vadd_h(vreg_d, vtemp, vleft);
+
+                break;
+            case 2:
+                /* 取元素中shift */
+                la_vslli_w(vleft, vreg_m, 24);
+                la_vsrli_w(vleft, vleft, 24);
+
+                /* 正数放vleft左移，负数取反后放vright右移，vtemp存放符号位*/
+                la_vslti_b(vtemp, vleft, 0);
+                la_vand_v(vright, vtemp, vleft);
+                la_vsub_b(vleft, vleft, vright);
+                la_vsigncov_b(vright, vtemp, vright);
+
+                /* ARM 移位量不做模运算，这里需要特殊处理，左移大于等于元素长度对应清零，右移大于等于元素长度shift-1*/
+                la_vsll_w(vreg_d, vreg_n, vleft);
+                if(!u){
+                    la_vsra_w(vreg_d, vreg_d, vright);
+                }
+                else{
+                    la_vsrl_w(vreg_d, vreg_d, vright);
+                }
+                la_vslei_wu(vleft, vleft, 31);
+                la_vslei_wu(vright, vright, 31);                
+                la_vand_v(vtemp, vreg_d, vleft);
+
+                /* 正常右移 */
+                
+                la_vand_v(vtemp, vtemp, vright);
+                /* 满位右移 */
+                la_vnori_b(vright, vright, 0);
+                if(!u){
+                    la_vsrai_w(vleft, vreg_n, 31); 
+                }
+                else{
+                    la_vandi_b(vleft, vreg_n, 0);
+                }
+                la_vand_v(vleft, vright, vleft);
+                la_vadd_w(vreg_d, vtemp, vleft);
+
+                break;
+            case 3:
+                /* 取元素中shift */
+                la_vslli_d(vleft, vreg_m, 56);
+                la_vsrli_d(vleft, vleft, 56);
+
+                /* 正数放vleft左移，负数取反后放vright右移，vtemp存放符号位*/
+                la_vslti_b(vtemp, vleft, 0);
+                la_vand_v(vright, vtemp, vleft);
+                la_vsub_b(vleft, vleft, vright);
+                la_vsigncov_b(vright, vtemp, vright);
+
+                /* ARM 移位量不做模运算，这里需要特殊处理，左移大于等于元素长度对应清零，右移大于等于元素长度shift-1*/
+                /* vslti的立即数限制5位，进行特殊处理，右移缩小2倍与16比较 */
+                la_vsll_d(vreg_d, vreg_n, vleft);
+                if(!u){
+                    la_vsra_d(vreg_d, vreg_d, vright);
         }
-        return;
+                else{
+                    la_vsrl_d(vreg_d, vreg_d, vright);
+                }
+                la_vsrli_b(vtemp, vleft, 2);
+                la_vslti_du(vleft, vtemp, 16);
+                la_vsrli_b(vright, vright, 2);
+                la_vslti_du(vright, vright, 16);
+
+                // la_vsll_d(vtemp, vreg_n, vleft);
+                la_vand_v(vtemp, vreg_d, vleft);
+
+                /* 正常右移 */
+                la_vand_v(vtemp, vtemp, vright);
+                /* 满位右移 */
+                la_vnori_b(vright, vright, 0);
+                if(!u){
+                    la_vsrai_d(vleft, vreg_n, 63); 
+                }
+                else{
+                    la_vandi_b(vleft, vreg_n, 0);
+                }
+                la_vand_v(vleft, vright, vleft);
+                la_vadd_d(vreg_d, vtemp, vleft);
+
+                break;
+            default:
+                assert(0);
+            }    
+
+        goto do_gvec_end;
     case 0x0c: /* SMAX, UMAX */
         switch(size){
             case 0:
@@ -13488,6 +13649,9 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
         free_alloc_fpr(vreg_d);
         free_alloc_fpr(vreg_n);
         free_alloc_fpr(vreg_m);
+        free_alloc_fpr(vtemp);
+        free_alloc_fpr(vleft);
+        free_alloc_fpr(vright);
         return;
     }
 
