@@ -11640,7 +11640,14 @@ static void handle_2misc_narrow(DisasContext *s, bool scalar,
             }
 
         } else {
-            assert(0);
+            if(is_q){
+                la_vori_b(vtemp, vreg_d, 0);
+                la_vfcvt_h_s(vreg_d, vreg_n, vreg_n);     
+                la_vextrins_d(vreg_d, vtemp, 0);
+            }else{
+                la_vfcvt_h_s(vreg_d, vreg_n, vreg_n);
+                la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+            }
         }
         break;
     case 0x36: /* BFCVTN, BFCVTN2 */
