@@ -1555,18 +1555,31 @@ static bool trans_CBZ(DisasContext *s, arg_cbz *a)
 {
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
     IR2_OPND label = ir2_opnd_new_type(IR2_OPND_LABEL); 
+    IR2_OPND temp;
 
-    if(a->nz){ // CBNZ
-        la_bnez(reg_t, label);
-    }else{ // CBZ
-        la_beqz(reg_t, label);
+    if(a->sf){
+        if(a->nz){ // CBNZ
+            la_bnez(reg_t, label);
+        }else{ // CBZ
+            la_beqz(reg_t, label);
+        }
+    }else{
+        temp = ra_alloc_itemp();
+        la_bstrpick_d(temp, reg_t, 31, 0);
+        if(a->nz){ // CBNZ
+            la_bnez(temp, label);
+        }else{ // CBZ
+            la_beqz(temp, label);
+        }
     }
+
     gen_goto_tb(s, 0, 4);
     la_label(label);
     gen_goto_tb(s, 1, a->imm);
     s->base.is_jmp = DISAS_NORETURN;
 
     free_alloc_gpr(reg_t);
+    free_alloc_gpr(temp);
     return true;
 }
 
