@@ -3544,9 +3544,11 @@ static bool trans_LDP_v(DisasContext *s, arg_ldstpair *a)
         case 4:
             la_fld_s(vreg_t, temp, 0);
             la_fld_s(vreg_t2, temp, dbytes);
-            /* 高64位清零 */
+            /* 只保留低32位 */
             la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
+            la_vinsgr2vr_w(vreg_t, zero_ir2_opnd, 1);
             la_vinsgr2vr_d(vreg_t2, zero_ir2_opnd, 1);
+            la_vinsgr2vr_w(vreg_t2, zero_ir2_opnd, 1);
             break;
         case 8:
             la_fld_d(vreg_t, temp, 0);
