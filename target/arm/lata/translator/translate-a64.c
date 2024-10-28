@@ -14566,7 +14566,7 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
             // need_fpstatus = true;
             // rmode = extract32(opcode, 5, 1) | (extract32(opcode, 0, 1) << 1);
             if (size == 3 && !is_q) {
-                unallocated_encoding(s);
+                lata_unallocated_encoding(s);
                 return;
             }
             break;
@@ -14828,6 +14828,21 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
             gen_gvec_fn2(s, is_q, rd, rn, tcg_gen_gvec_abs, size);
         }
         return;
+    case 0x3b:  /* FCVTZS */ 
+        if(size == 3){
+            la_ftintrz_l_d(vreg_d, vreg_n);       
+        }
+        else {
+            la_ftintrz_w_s(vreg_d, vreg_n);            
+        }
+        if(!is_q){
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        }
+        store_fpr_dst(rd, vreg_d);
+        free_alloc_fpr(vreg_d);
+        free_alloc_fpr(vreg_n);
+        return;
     }
 
     if (size == 3) {
@@ -14882,10 +14897,6 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
             case 0x1b: /* FCVTMS */
             case 0x1c: /* FCVTAS */
             case 0x3a: /* FCVTPS */
-            case 0x3b: /* FCVTZS */
-                // gen_helper_vfp_tosls(tcg_res, tcg_op,
-                //                         tcg_constant_i32(0), tcg_fpstatus);
-                break;
             case 0x5a: /* FCVTNU */
             case 0x5b: /* FCVTMU */
             case 0x5c: /* FCVTAU */
