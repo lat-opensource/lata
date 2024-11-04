@@ -8099,7 +8099,7 @@ static void handle_fpfpcvt(DisasContext *s, int rd, int rn, int opcode,
              */
             rmode = FPROUNDING_TIEAWAY;
         }
-        if(is_signed && extract32(opcode, 2, 1) != 1){ /* FCVT[NPMZ]S */
+        if(is_signed && extract32(opcode, 2, 1) != 1 && scale == 64){ /* FCVT[NPMZ]S && SHIFT == 0 */
             IR2_OPND reg_d = alloc_gpr_dst(rd);
             IR2_OPND vreg_n = alloc_fpr_src(rn);
             IR2_OPND vtemp = ra_alloc_ftemp();
@@ -8233,7 +8233,7 @@ static void handle_fpfpcvt(DisasContext *s, int rd, int rn, int opcode,
             free_alloc_gpr(reg_d);
             free_alloc_fpr(vreg_n);
             free_alloc_fpr(vtemp);
-        }else{  /* FCVT[NPMZ]U */
+        }else{  /* FCVT[NPMZ]U || (FCVT[NPMZ]S && SHIFT != 0) || FCVTA[U/S]*/
             /* 龙芯没有对应浮点数转成无符号整数的指令，
             当大于最大的无符号浮点数(0xffffffff或0xffffffffffffffff), arm64会置成最大的无符号整数。
             当小于0的浮点数转成无符号整数时， arm64直接置0。
