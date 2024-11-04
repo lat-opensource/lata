@@ -11362,18 +11362,27 @@ static void handle_2misc_64(DisasContext *s, int opcode, bool u,
         // gen_helper_vfp_sqrtd(tcg_rd, tcg_rn, cpu_env);
         break;
     case 0x1a: /* FCVTNS */
+        la_vftintrne_l_d(*vreg_d, *vreg_n);
+        break;
     case 0x1b: /* FCVTMS */
+        la_vftintrm_l_d(*vreg_d, *vreg_n);
+        break;
     case 0x1c: /* FCVTAS */
+        assert(0);
+        break;
     case 0x3a: /* FCVTPS */
+        la_vftintrp_l_d(*vreg_d, *vreg_n);
+        break;;
     case 0x3b: /* FCVTZS */
-        // gen_helper_vfp_tosqd(tcg_rd, tcg_rn, tcg_constant_i32(0), tcg_fpstatus);
+        la_vftintrz_l_d(*vreg_d, *vreg_n);
         break;
     case 0x5a: /* FCVTNU */
     case 0x5b: /* FCVTMU */
     case 0x5c: /* FCVTAU */
     case 0x7a: /* FCVTPU */
+        assert(0);
     case 0x7b: /* FCVTZU */
-        // gen_helper_vfp_touqd(tcg_rd, tcg_rn, tcg_constant_i32(0), tcg_fpstatus);
+        la_vftintrz_lu_d(*vreg_d, *vreg_n);
         break;
     case 0x18: /* FRINTN */
         break;
@@ -14828,21 +14837,6 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
             gen_gvec_fn2(s, is_q, rd, rn, tcg_gen_gvec_abs, size);
         }
         return;
-    case 0x3b:  /* FCVTZS */ 
-        if(size == 3){
-            la_ftintrz_l_d(vreg_d, vreg_n);       
-        }
-        else {
-            la_ftintrz_w_s(vreg_d, vreg_n);            
-        }
-        if(!is_q){
-            /* 高64位清零 */
-            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
-        }
-        store_fpr_dst(rd, vreg_d);
-        free_alloc_fpr(vreg_d);
-        free_alloc_fpr(vreg_n);
-        return;
     }
 
     if (size == 3) {
@@ -14894,16 +14888,27 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
                 // gen_helper_vfp_sqrts(tcg_res, tcg_op, cpu_env);
                 break;
             case 0x1a: /* FCVTNS */
+                la_vftintrne_w_s(vreg_d, vreg_n);
+                break;
             case 0x1b: /* FCVTMS */
+                la_vftintrm_w_s(vreg_d, vreg_n);
+                break;
             case 0x1c: /* FCVTAS */
+                assert(0);
+                break;
             case 0x3a: /* FCVTPS */
+                la_vftintrp_w_s(vreg_d, vreg_n);
+                break;;
+            case 0x3b: /* FCVTZS */
+                la_vftintrz_w_s(vreg_d, vreg_n);
+                break;
             case 0x5a: /* FCVTNU */
             case 0x5b: /* FCVTMU */
             case 0x5c: /* FCVTAU */
             case 0x7a: /* FCVTPU */
+                assert(0);
             case 0x7b: /* FCVTZU */
-                // gen_helper_vfp_touls(tcg_res, tcg_op,
-                //                         tcg_constant_i32(0), tcg_fpstatus);
+                la_vftintrz_wu_s(vreg_d, vreg_n);
                 break;
             case 0x18: /* FRINTN */
                 break;
