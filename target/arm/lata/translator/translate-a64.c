@@ -9332,10 +9332,10 @@ static void handle_simd_dupes(DisasContext *s, int rd, int rn,
 {
     int size = ctz32(imm5);
     int index;
-    TCGv_i64 tmp;
+    // TCGv_i64 tmp;
 
     if (size > 3) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
@@ -9345,12 +9345,68 @@ static void handle_simd_dupes(DisasContext *s, int rd, int rn,
 
     index = imm5 >> (size + 1);
 
-    /* This instruction just extracts the specified element and
-     * zero-extends it into the bottom of the destination register.
-     */
-    tmp = tcg_temp_new_i64();
-    read_vec_element(s, tmp, rn, index, size);
-    write_fp_dreg(s, rd, tmp);
+    // /* This instruction just extracts the specified element and
+    //  * zero-extends it into the bottom of the destination register.
+    //  */
+    // tmp = tcg_temp_new_i64();
+    // read_vec_element(s, tmp, rn, index, size);
+    // write_fp_dreg(s, rd, tmp);
+
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vtemp;
+
+    if(rd != rn){
+        la_vxor_v(vreg_d, vreg_d, vreg_d);
+        switch (size)
+        {
+        case 0:
+            la_vextrins_b(vreg_d, vreg_n, index);
+            break;
+        case 1:
+            la_vextrins_h(vreg_d, vreg_n, index);
+            break;
+        case 2:
+            la_vextrins_w(vreg_d, vreg_n, index);
+            break;
+        case 3:
+            la_vextrins_d(vreg_d, vreg_n, index);
+            break;
+        default:
+            assert(0);
+            break;
+        }
+    }else{
+        vtemp = ra_alloc_ftemp();
+        
+        la_vori_b(vtemp, vreg_n, 0);
+        la_vxor_v(vreg_d, vreg_d, vreg_d);
+        switch (size)
+        {
+        case 0:
+            la_vextrins_b(vreg_d, vtemp, index);
+            break;
+        case 1:
+            la_vextrins_h(vreg_d, vtemp, index);
+            break;
+        case 2:
+            la_vextrins_w(vreg_d, vtemp, index);
+            break;
+        case 3:
+            la_vextrins_d(vreg_d, vtemp, index);
+            break;
+        default:
+            assert(0);
+            break;
+        }
+    }
+
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    if(rd == rn){
+        free_alloc_fpr(vtemp);
+    }
 }
 
 /* DUP (General)
@@ -9751,7 +9807,7 @@ static void disas_simd_scalar_copy(DisasContext *s, uint32_t insn)
     int op = extract32(insn, 29, 1);
 
     if (op != 0 || imm4 != 0) {
-        unallocated_encoding(s);
+        lata_unallocated_encoding(s);
         return;
     }
 
