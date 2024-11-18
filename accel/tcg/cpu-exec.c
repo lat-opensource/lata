@@ -239,7 +239,7 @@ static TranslationBlock *tb_htable_lookup(CPUState *cpu, vaddr pc,
 
 #ifdef CONFIG_LATA
 static inline void setup_pcmap(CPUState *cpu, uint64_t guest_pc, uint64_t host_pc) {
-    #define LATA_PC_LOW_BIT 1
+    #define LATA_PC_LOW_BIT 2
 
     int64_t index = ((guest_pc >> LATA_PC_LOW_BIT) & (TB_JMP_CACHE_SIZE - 1)) << 4;
     *(uint64_t*)((uint8_t*)cpu->pc_map_cache + index) = guest_pc;

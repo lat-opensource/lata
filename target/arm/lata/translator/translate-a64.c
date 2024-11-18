@@ -562,7 +562,7 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
             la_st_d(guest_pc, env_ir2_opnd, env_offset(jr_cnt));
         }
 
-        la_bstrpick_d(guest_pc, a0_ir2_opnd, 1 + TB_JMP_CACHE_BITS - 1, 1);
+        la_bstrpick_d(guest_pc, a0_ir2_opnd, LATA_PC_LOW_BIT + TB_JMP_CACHE_BITS - 1, LATA_PC_LOW_BIT);
         li_d(host_pc, (uint64_t)(current_cpu->pc_map_cache));
         la_alsl_d(host_pc, guest_pc, host_pc, 3);
         la_ld_d(guest_pc, host_pc, 0); // guest pc

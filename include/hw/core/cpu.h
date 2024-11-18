@@ -376,7 +376,8 @@ struct CPUState {
     CPUJumpCache *tb_jmp_cache;
 
 #ifdef CONFIG_LATA
-    #define TB_JMP_CACHE_BITS 12
+    #define LATA_PC_LOW_BIT 2
+    #define TB_JMP_CACHE_BITS 16
     #define TB_JMP_CACHE_SIZE (1 << TB_JMP_CACHE_BITS)
     uint64_t pc_map_cache[TB_JMP_CACHE_SIZE * 2]  __attribute__ ((aligned (1 << 12)));
 #endif
