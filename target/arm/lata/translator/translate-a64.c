@@ -3355,9 +3355,11 @@ static bool trans_STP(DisasContext *s, arg_ldstpair *a)
     IR2_OPND reg_t2 = alloc_gpr_src(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
 
-    la_or(temp,reg_n,zero_ir2_opnd);
     if(!a->p){ // postindex = false
-        la_addi_d(temp,temp,offset);
+        la_addi_d(temp,reg_n,offset);
+    }
+    else{
+        la_or(temp,reg_n,zero_ir2_opnd);
     }
     int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
     switch(dbytes){
@@ -3416,9 +3418,11 @@ static bool trans_LDP(DisasContext *s, arg_ldstpair *a)
     IR2_OPND reg_t2 = alloc_gpr_dst(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
 
-    la_or(temp,reg_n, zero_ir2_opnd);
     if(!a->p){ // postindex = false
-        la_addi_d(temp, temp, offset);
+        la_addi_d(temp, reg_n, offset);
+    }
+    else{
+        la_or(temp,reg_n, zero_ir2_opnd);
     }
     int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
     switch(dbytes){
@@ -3480,9 +3484,11 @@ static bool trans_STP_v(DisasContext *s, arg_ldstpair *a)
     IR2_OPND vreg_t2 = alloc_fpr_src(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
 
-    la_or(temp,reg_n,zero_ir2_opnd);
     if(!a->p){ // postindex = false
-        la_addi_d(temp,temp,offset);
+        la_addi_d(temp,reg_n,offset);
+    }
+    else{
+        la_or(temp,reg_n,zero_ir2_opnd);
     }
     int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
     switch(dbytes){
@@ -3535,9 +3541,11 @@ static bool trans_LDP_v(DisasContext *s, arg_ldstpair *a)
     IR2_OPND vreg_t2 = alloc_fpr_dst(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
 
-    la_or(temp,reg_n, zero_ir2_opnd);
     if(!a->p){ // postindex = false
-        la_addi_d(temp, temp, offset);
+        la_addi_d(temp, reg_n, offset);
+    }
+    else{
+        la_or(temp,reg_n, zero_ir2_opnd);
     }
     int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
     switch(dbytes){
@@ -3700,7 +3708,6 @@ static bool trans_STR_i(DisasContext *s, arg_ldst_imm *a)
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
     IR2_OPND temp = ra_alloc_itemp();
 
-    la_or(temp, reg_n, zero_ir2_opnd);
     if(!a->p){ // postindex = false
         if(a->w){
             la_addi_d(temp, reg_n, offset);
@@ -3709,12 +3716,19 @@ static bool trans_STR_i(DisasContext *s, arg_ldst_imm *a)
             la_addi_d立即数是imm12，需要将立即数加载到寄存器
             而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
             */
-            IR2_OPND temp_offset = ra_alloc_itemp();
-            li_d(temp_offset, a->imm);
-            la_add_d(temp, temp, temp_offset);
-
-            free_alloc_gpr(temp_offset);
+            if(a->imm > 0x7ff){
+                IR2_OPND temp_offset = ra_alloc_itemp();
+                li_d(temp_offset, a->imm);  
+                la_add_d(temp, reg_n, temp_offset);
+                free_alloc_gpr(temp_offset);
+            }
+            else{
+                la_addi_d(temp, reg_n, a->imm);
+            }
         }
+    }
+    else{
+        la_or(temp, reg_n, zero_ir2_opnd);
     }
 
     switch(a->sz){
@@ -3776,7 +3790,6 @@ static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
         gen_check_sp_alignment(s);
     }
 
-    la_or(temp, zero_ir2_opnd, reg_n);
     if(!a->p){ // postindex = false
         if(a->w){
             la_addi_d(temp, reg_n, offset);
@@ -3785,12 +3798,19 @@ static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
             la_addi_d立即数是imm12，需要将立即数加载到寄存器
             而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
             */
-            IR2_OPND temp_offset = ra_alloc_itemp();
-            li_d(temp_offset, a->imm);
-            la_add_d(temp, temp, temp_offset);
-
-            free_alloc_gpr(temp_offset);
+            if(a->imm > 0x7ff){
+                IR2_OPND temp_offset = ra_alloc_itemp();
+                li_d(temp_offset, a->imm);  
+                la_add_d(temp, reg_n, temp_offset);
+                free_alloc_gpr(temp_offset);
+            }
+            else{
+                la_addi_d(temp, reg_n, a->imm);
+            }
         }
+    }
+    else{
+        la_or(temp, zero_ir2_opnd, reg_n);
     }
 
     switch(a->sz){
@@ -3861,7 +3881,6 @@ static bool trans_STR_v_i(DisasContext *s, arg_ldst_imm *a)
     IR2_OPND vreg_t = alloc_fpr_src(a->rt);
     IR2_OPND temp = ra_alloc_itemp();
 
-    la_or(temp, reg_n, zero_ir2_opnd);
     if(!a->p){ // postindex = false
         if(a->w){
             la_addi_d(temp, reg_n, offset);
@@ -3870,12 +3889,19 @@ static bool trans_STR_v_i(DisasContext *s, arg_ldst_imm *a)
             la_addi_d立即数是imm12，需要将立即数加载到寄存器
             而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
             */
-            IR2_OPND temp_offset = ra_alloc_itemp();
-            li_d(temp_offset, a->imm);
-            la_add_d(temp, temp, temp_offset);
-
-            free_alloc_gpr(temp_offset);
+            if(a->imm > 0x7ff){
+                IR2_OPND temp_offset = ra_alloc_itemp();
+                li_d(temp_offset, a->imm);  
+                la_add_d(temp, reg_n, temp_offset);
+                free_alloc_gpr(temp_offset);
+            }
+            else{
+                la_addi_d(temp, reg_n, a->imm);
+            }
         }
+    }
+    else{
+        la_or(temp, zero_ir2_opnd, reg_n);
     }
     /*  8-bit (size == 00 && opc == 01)
         16-bit (size == 01 && opc == 01)
@@ -3934,7 +3960,6 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
     IR2_OPND temp = ra_alloc_itemp();
     IR2_OPND temp1 = ra_alloc_itemp();
 
-    la_or(temp, reg_n, zero_ir2_opnd);
     if(!a->p){ // postindex = false
         if(a->w){
             la_addi_d(temp, reg_n, offset);
@@ -3943,12 +3968,19 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
             la_addi_d立即数是imm12，需要将立即数加载到寄存器
             而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
             */
-            IR2_OPND temp_offset = ra_alloc_itemp();
-            li_d(temp_offset, a->imm);
-            la_add_d(temp, temp, temp_offset);
-
-            free_alloc_gpr(temp_offset);
+            if(a->imm > 0x7ff){
+                IR2_OPND temp_offset = ra_alloc_itemp();
+                li_d(temp_offset, a->imm);  
+                la_add_d(temp, reg_n, temp_offset);
+                free_alloc_gpr(temp_offset);
+            }
+            else{
+                la_addi_d(temp, reg_n, a->imm);
+            }
         }
+    }
+    else{
+        la_or(temp, zero_ir2_opnd, reg_n);
     }
     /*  8-bit (size == 00 && opc == 01)
         16-bit (size == 01 && opc == 01)
@@ -5277,16 +5309,22 @@ static bool trans_AND_i(DisasContext *s, arg_AND_i *a){
 
     IR2_OPND reg_d = alloc_gpr_dst_sp(a->rd);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
-    IR2_OPND temp = ra_alloc_itemp();
-    li_d(temp, imm);
-    la_and(reg_d, reg_n, temp);
+
+    if(imm > 0xfff){
+        IR2_OPND temp = ra_alloc_itemp();
+        li_d(temp, imm);
+        la_and(reg_d, reg_n, temp);  
+        free_alloc_gpr(temp);
+    }   
+    else{
+        la_andi(reg_d, reg_n, imm);  
+    }
     if(!a->sf)
         la_bstrpick_d(reg_d, reg_d, 31, 0);
 
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_d);
-    free_alloc_gpr(temp);
     return true;
 }
 
@@ -5306,16 +5344,22 @@ static bool trans_ORR_i(DisasContext *s, arg_ORR_i *a){
 
     IR2_OPND reg_d = alloc_gpr_dst_sp(a->rd);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
-    IR2_OPND temp = ra_alloc_itemp();
-    li_d(temp, imm);
-    la_or(reg_d, reg_n, temp);
+
+    if(imm > 0xfff){
+        IR2_OPND temp = ra_alloc_itemp();
+        li_d(temp, imm);
+        la_or(reg_d, reg_n, temp);  
+        free_alloc_gpr(temp);
+    }   
+    else{
+        la_ori(reg_d, reg_n, imm);  
+    }
     if(!a->sf)
         la_bstrpick_d(reg_d, reg_d, 31, 0);
 
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_d);
-    free_alloc_gpr(temp);
     return true;
 }
 
@@ -5336,9 +5380,16 @@ static bool trans_EOR_i(DisasContext *s, arg_EOR_i *a) {
     
     IR2_OPND reg_d = alloc_gpr_dst_sp(a->rd);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
-    IR2_OPND temp = ra_alloc_itemp();
-    li_d(temp, imm);
-    la_xor(reg_d, reg_n, temp);
+
+    if(imm > 0xfff){
+        IR2_OPND temp = ra_alloc_itemp();
+        li_d(temp, imm);
+        la_xor(reg_d, reg_n, temp);  
+        free_alloc_gpr(temp);
+    }   
+    else{
+        la_xori(reg_d, reg_n, imm);  
+    }
 
     if(!a->sf){
         la_bstrpick_d(reg_d, reg_d, 31, 0);
@@ -5347,8 +5398,6 @@ static bool trans_EOR_i(DisasContext *s, arg_EOR_i *a) {
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_d);
-    free_alloc_gpr(temp);
-    return true;
     return true;
 }
     
@@ -5888,11 +5937,11 @@ static void disas_add_sub_reg(DisasContext *s, uint32_t insn)
     IR2_OPND temp = ra_alloc_itemp();
     if(imm6){
         shift_reg_imm(&temp, &reg_m, sf, shift_type, imm6);
+        gen_add_sub_reg_result(setflags, sub_op, sf, &reg_d, &reg_n, &temp);
     }else{
-        la_or(temp, zero_ir2_opnd, reg_m);
-    }
 
-    gen_add_sub_reg_result(setflags, sub_op, sf, &reg_d, &reg_n, &temp);
+        gen_add_sub_reg_result(setflags, sub_op, sf, &reg_d, &reg_n, &reg_m);
+    }
 
     store_gpr_dst(rd, reg_d);
     free_alloc_gpr(reg_d);
@@ -13407,7 +13456,7 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
                 la_vsll_d(vreg_d, vreg_n, vleft);
                 if(!u){
                     la_vsra_d(vreg_d, vreg_d, vright);
-        }
+                }
                 else{
                     la_vsrl_d(vreg_d, vreg_d, vright);
                 }
