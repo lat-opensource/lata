@@ -1571,6 +1571,7 @@ static bool trans_CBZ(DisasContext *s, arg_cbz *a)
         }else{ // CBZ
             la_beqz(temp, label);
         }
+        free_alloc_gpr(temp);
     }
 
     gen_goto_tb(s, 0, 4);
@@ -1579,7 +1580,6 @@ static bool trans_CBZ(DisasContext *s, arg_cbz *a)
     s->base.is_jmp = DISAS_NORETURN;
 
     free_alloc_gpr(reg_t);
-    free_alloc_gpr(temp);
     return true;
 }
 
