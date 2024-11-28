@@ -870,12 +870,12 @@ static void gen_gvec_fn2(DisasContext *s, bool is_q, int rd, int rn,
 /* Expand a 2-operand + immediate AdvSIMD vector operation using
  * an expander function.
  */
-static void gen_gvec_fn2i(DisasContext *s, bool is_q, int rd, int rn,
-                          int64_t imm, GVecGen2iFn *gvec_fn, int vece)
-{
-    gvec_fn(vece, vec_full_reg_offset(s, rd), vec_full_reg_offset(s, rn),
-            imm, is_q ? 16 : 8, vec_full_reg_size(s));
-}
+// static void gen_gvec_fn2i(DisasContext *s, bool is_q, int rd, int rn,
+//                           int64_t imm, GVecGen2iFn *gvec_fn, int vece)
+// {
+//     gvec_fn(vece, vec_full_reg_offset(s, rd), vec_full_reg_offset(s, rn),
+//             imm, is_q ? 16 : 8, vec_full_reg_size(s));
+// }
 
 /* Expand a 3-operand AdvSIMD vector operation using an expander function.  */
 static void gen_gvec_fn3(DisasContext *s, bool is_q, int rd, int rn, int rm,
@@ -8301,7 +8301,7 @@ static void handle_fpfpcvt(DisasContext *s, int rd, int rn, int opcode,
             la_stx_w(a1_ir2_opnd, env_ir2_opnd, a0_ir2_opnd);
 
             /* a2: fpstatus */
-            li_d(temp, offsetof(CPUARMState, vfp.fp_status));
+            li_d(temp, env_offset_fpstatus());
             la_add_d(a2_ir2_opnd, env_ir2_opnd, temp);
             /* a1: shift */
             li_d(a1_ir2_opnd, 64 - scale);
@@ -13801,7 +13801,7 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
             read_vec_element(s, tcg_op1, rn, pass, MO_64);
             read_vec_element(s, tcg_op2, rm, pass, MO_64);
 
-            handle_3same_64(s, opcode, u, tcg_res, tcg_op1, tcg_op2);
+            // handle_3same_64(s, opcode, u, tcg_res, tcg_op1, tcg_op2);
 
             write_vec_element(s, tcg_res, rd, pass, MO_64);
         }

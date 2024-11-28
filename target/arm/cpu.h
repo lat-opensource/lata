@@ -198,12 +198,12 @@ typedef struct ARMGenericTimer {
  * Align the data for use with TCG host vector operations.
  */
 
-#ifdef TARGET_AARCH64
-# define ARM_MAX_VQ    16
-#else
-# define ARM_MAX_VQ    1
-#endif
-
+// #ifdef TARGET_AARCH64
+// # define ARM_MAX_VQ    16
+// #else
+// # define ARM_MAX_VQ    1
+// #endif
+#define ARM_MAX_VQ 1
 typedef struct ARMVectorReg {
     uint64_t d[2 * ARM_MAX_VQ] QEMU_ALIGNED(16);
 } ARMVectorReg;
@@ -295,6 +295,64 @@ typedef struct CPUArchState {
     long jr_cnt;
     long jr_hit;
 #endif
+
+    /* VFP coprocessor state.  */
+    struct {
+        ARMVectorReg zregs[32];
+
+#ifdef TARGET_AARCH64
+        /* Store FFR as pregs[16] to make it easier to treat as any other.  */
+#define FFR_PRED_NUM 16
+        ARMPredicateReg pregs[17];
+        /* Scratch space for aa64 sve predicate temporary.  */
+        ARMPredicateReg preg_tmp;
+#endif
+
+        /* We store these fpcsr fields separately for convenience.  */
+        uint32_t qc[4] QEMU_ALIGNED(16);
+        int vec_len;
+        int vec_stride;
+
+        uint32_t xregs[16];
+
+        /* Scratch space for aa32 neon expansion.  */
+        uint32_t scratch[8];
+
+        /* There are a number of distinct float control structures:
+         *
+         *  fp_status: is the "normal" fp status.
+         *  fp_status_fp16: used for half-precision calculations
+         *  standard_fp_status : the ARM "Standard FPSCR Value"
+         *  standard_fp_status_fp16 : used for half-precision
+         *       calculations with the ARM "Standard FPSCR Value"
+         *
+         * Half-precision operations are governed by a separate
+         * flush-to-zero control bit in FPSCR:FZ16. We pass a separate
+         * status structure to control this.
+         *
+         * The "Standard FPSCR", ie default-NaN, flush-to-zero,
+         * round-to-nearest and is used by any operations (generally
+         * Neon) which the architecture defines as controlled by the
+         * standard FPSCR value rather than the FPSCR.
+         *
+         * The "standard FPSCR but for fp16 ops" is needed because
+         * the "standard FPSCR" tracks the FPSCR.FZ16 bit rather than
+         * using a fixed value for it.
+         *
+         * To avoid having to transfer exception bits around, we simply
+         * say that the FPSCR cumulative exception flags are the logical
+         * OR of the flags in the four fp statuses. This relies on the
+         * only thing which needs to read the exception flags being
+         * an explicit FPSCR read.
+         */
+        float_status fp_status;
+        float_status fp_status_f16;
+        float_status standard_fp_status;
+        float_status standard_fp_status_f16;
+
+        uint64_t zcr_el[4];   /* ZCR_EL[1-3] */
+        uint64_t smcr_el[4];  /* SMCR_EL[1-3] */
+    } vfp;
 
     /* System control coprocessor (cp15) */
     struct {
@@ -630,64 +688,6 @@ typedef struct CPUArchState {
     /* Thumb-2 EE state.  */
     uint32_t teecr;
     uint32_t teehbr;
-
-    /* VFP coprocessor state.  */
-    struct {
-        ARMVectorReg zregs[32];
-
-#ifdef TARGET_AARCH64
-        /* Store FFR as pregs[16] to make it easier to treat as any other.  */
-#define FFR_PRED_NUM 16
-        ARMPredicateReg pregs[17];
-        /* Scratch space for aa64 sve predicate temporary.  */
-        ARMPredicateReg preg_tmp;
-#endif
-
-        /* We store these fpcsr fields separately for convenience.  */
-        uint32_t qc[4] QEMU_ALIGNED(16);
-        int vec_len;
-        int vec_stride;
-
-        uint32_t xregs[16];
-
-        /* Scratch space for aa32 neon expansion.  */
-        uint32_t scratch[8];
-
-        /* There are a number of distinct float control structures:
-         *
-         *  fp_status: is the "normal" fp status.
-         *  fp_status_fp16: used for half-precision calculations
-         *  standard_fp_status : the ARM "Standard FPSCR Value"
-         *  standard_fp_status_fp16 : used for half-precision
-         *       calculations with the ARM "Standard FPSCR Value"
-         *
-         * Half-precision operations are governed by a separate
-         * flush-to-zero control bit in FPSCR:FZ16. We pass a separate
-         * status structure to control this.
-         *
-         * The "Standard FPSCR", ie default-NaN, flush-to-zero,
-         * round-to-nearest and is used by any operations (generally
-         * Neon) which the architecture defines as controlled by the
-         * standard FPSCR value rather than the FPSCR.
-         *
-         * The "standard FPSCR but for fp16 ops" is needed because
-         * the "standard FPSCR" tracks the FPSCR.FZ16 bit rather than
-         * using a fixed value for it.
-         *
-         * To avoid having to transfer exception bits around, we simply
-         * say that the FPSCR cumulative exception flags are the logical
-         * OR of the flags in the four fp statuses. This relies on the
-         * only thing which needs to read the exception flags being
-         * an explicit FPSCR read.
-         */
-        float_status fp_status;
-        float_status fp_status_f16;
-        float_status standard_fp_status;
-        float_status standard_fp_status_f16;
-
-        uint64_t zcr_el[4];   /* ZCR_EL[1-3] */
-        uint64_t smcr_el[4];  /* SMCR_EL[1-3] */
-    } vfp;
 
     uint64_t exclusive_addr;
     uint64_t exclusive_val;

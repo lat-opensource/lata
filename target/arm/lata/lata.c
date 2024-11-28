@@ -712,12 +712,15 @@ IR2_OPND alloc_fpr_src(int i) {
         return ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]);
     } else {
         IR2_OPND t = ra_alloc_ftemp();
-        IR2_OPND offset = ra_alloc_itemp();
+        // IR2_OPND offset = ra_alloc_itemp();
 
-        li_d(offset, env_offset_fpr(i));
-        la_vldx(t, env_ir2_opnd, offset);
+        // li_d(offset, env_offset_fpr(i));
+        // la_vldx(t, env_ir2_opnd, offset);
+        // int offset = env_offset_fpr(i);
+        // assert(offset >= -(1 << 11) && offset <= (1 << 11) - 1 );
+        la_vld(t, env_ir2_opnd, env_offset_fpr(i));
 
-        ra_free_temp(offset);
+        // ra_free_temp(offset);
         return t;
     }
 }
@@ -732,12 +735,15 @@ IR2_OPND alloc_fpr_dst(int i) {
 
 void store_fpr_dst(int i, IR2_OPND opnd) {
     if (arm_la_fmap[i] < 0) {
-        IR2_OPND offset = ra_alloc_itemp();
+        // int offset = env_offset_fpr(i);
+        // assert(offset >= -(1 << 11) && offset <= (1 << 11) - 1 );
+        la_vst(opnd, env_ir2_opnd, env_offset_fpr(i));
+        // IR2_OPND offset = ra_alloc_itemp();
 
-        li_d(offset, env_offset_fpr(i));
-        la_vstx(opnd, env_ir2_opnd, offset);
+        // li_d(offset, env_offset_fpr(i));
+        // la_vstx(opnd, env_ir2_opnd, offset);
 
-        ra_free_temp(offset);
+        // ra_free_temp(offset);
     }
 }
 
