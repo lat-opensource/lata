@@ -5590,11 +5590,11 @@ static bool trans_BFM(DisasContext *s, arg_BFM *a)
     unsigned int si = a->imms;
 
     IR2_OPND reg_d = alloc_gpr_src(a->rd);
-    IR2_OPND reg_n, temp;
+    IR2_OPND reg_n = alloc_gpr_src(a->rn);
+    IR2_OPND temp;
 
     if (si >= ri) { // BFXIL
         /* Wd<s-r:0> = Wn<s:r> */
-        reg_n = alloc_gpr_src(a->rn);
         temp = ra_alloc_itemp();
         if( a->sf ){
             la_srli_d(temp, reg_n, ri);
@@ -5603,25 +5603,28 @@ static bool trans_BFM(DisasContext *s, arg_BFM *a)
             la_srli_w(temp, reg_n, ri);
             la_bstrins_w(reg_d, temp, si - ri, 0);
         }
-
-        free_alloc_gpr(reg_n);
         free_alloc_gpr(temp);
     } else {
         /* Wd<32+s-r,32-r> = Wn<s:0> */
-        if(a->rn == 31){ // BFC
-            if(a->sf){
-                la_bstrins_d(reg_d, zero_ir2_opnd, bitsize + si - ri, bitsize - ri);
-            }else{
-                la_bstrins_w(reg_d, zero_ir2_opnd, bitsize + si - ri, bitsize - ri);
-            }
-        }else{ // BFI
-            reg_n = alloc_gpr_src(a->rn);
-            if(a->sf){
-                la_bstrins_d(reg_d, reg_n, bitsize + si - ri, bitsize - ri);
-            }else{
-                la_bstrins_w(reg_d, reg_n, bitsize + si - ri, bitsize - ri);
-            }
-            free_alloc_gpr(reg_n);
+        // if(a->rn == 31){ // BFC
+        //     if(a->sf){
+        //         la_bstrins_d(reg_d, zero_ir2_opnd, bitsize + si - ri, bitsize - ri);
+        //     }else{
+        //         la_bstrins_w(reg_d, zero_ir2_opnd, bitsize + si - ri, bitsize - ri);
+        //     }
+        // }else{ // BFI
+        //     reg_n = alloc_gpr_src(a->rn);
+        //     if(a->sf){
+        //         la_bstrins_d(reg_d, reg_n, bitsize + si - ri, bitsize - ri);
+        //     }else{
+        //         la_bstrins_w(reg_d, reg_n, bitsize + si - ri, bitsize - ri);
+        //     }
+        //     free_alloc_gpr(reg_n);
+        // }
+        if(a->sf){
+            la_bstrins_d(reg_d, reg_n, bitsize + si - ri, bitsize - ri);
+        }else{
+            la_bstrins_w(reg_d, reg_n, bitsize + si - ri, bitsize - ri);
         }
     }
 
@@ -5630,6 +5633,7 @@ static bool trans_BFM(DisasContext *s, arg_BFM *a)
     }
 
     store_gpr_dst(a->rd, reg_d);
+    free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_d);
     return true;
 }
