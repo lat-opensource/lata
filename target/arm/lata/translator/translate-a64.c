@@ -5741,24 +5741,24 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
         return;
     }
 
+    IR2_OPND reg_d = alloc_gpr_dst(rd);
+    IR2_OPND reg_m = alloc_gpr_src(rm);
 
     if (opc == 1 && shift_amount == 0 && shift_type == 0 && rn == 31) {
         /* Unshifted ORR and ORN with WZR/XZR is the standard encoding for
          * register-register MOV and MVN, so it is worth special casing.
          */
-        IR2_OPND reg_d = alloc_gpr_dst(rd);
-        IR2_OPND reg_m = alloc_gpr_src(rm);
+        // IR2_OPND reg_d = alloc_gpr_dst(rd);
+        // IR2_OPND reg_m = alloc_gpr_src(rm);
 
         if (invert) {
             la_orn(reg_d, zero_ir2_opnd, reg_m);
-            if (!sf) {
-                la_bstrpick_d(reg_d, reg_d, 31, 0);
-            }
         } else {
             la_or(reg_d, zero_ir2_opnd, reg_m);
-            if (!sf) {
-                la_bstrpick_d(reg_d, reg_d, 31, 0);
-            }
+        }
+
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
         }
 
         store_gpr_dst(rd, reg_d);
@@ -5767,58 +5767,95 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
         return;
     }
 
-    IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND reg_n = alloc_gpr_src(rn);
-    IR2_OPND reg_m = alloc_gpr_src(rm);
     IR2_OPND temp = ra_alloc_itemp();
 
     if (shift_amount) {
         shift_reg_imm(&temp, &reg_m, sf, shift_type, shift_amount);
-    }else{
-        la_or(temp, zero_ir2_opnd, reg_m);
-    }
 
-
-    switch (opc | (invert << 2)) {
-    case 0: /* AND */
-    case 3: /* ANDS */
-        la_and(reg_d, reg_n, temp);
-        if(opc==3){
-            if(sf){
-                la_x86and_d(reg_n, temp);
-            }else{
-                la_x86and_w(reg_n, temp);
+        switch (opc | (invert << 2)) {
+        case 0: /* AND */
+        case 3: /* ANDS */
+            if(opc==3){
+                if(sf){
+                    la_x86and_d(reg_n, temp);
+                }else{
+                    la_x86and_w(reg_n, temp);
+                }
             }
-        }
-        break;
-    case 1: /* ORR */
-        la_or(reg_d, reg_n, temp);
-        break;
-    case 2: /* EOR */
-        la_xor(reg_d, reg_n, temp);
-        break;
-    case 4: /* BIC */
-    case 7: /* BICS */
-        la_andn(reg_d, reg_n, temp);
-        if(opc==3){
+            la_and(reg_d, reg_n, temp);
+            break;
+        case 1: /* ORR */
+            la_or(reg_d, reg_n, temp);
+            break;
+        case 2: /* EOR */
+            la_xor(reg_d, reg_n, temp);
+            break;
+        case 4: /* BIC */
+        case 7: /* BICS */
+            la_andn(reg_d, reg_n, temp);
+            if(opc==3){
+                la_nor(temp, zero_ir2_opnd, temp);
+                if(sf){
+                    la_x86and_d(reg_n, temp);
+                }else{
+                    la_x86and_w(reg_n, temp);
+                }
+            }
+            break;
+        case 5: /* ORN */
+            la_orn(reg_d, reg_n, temp);
+            break;
+        case 6: /* EON */
             la_nor(temp, zero_ir2_opnd, temp);
-            if(sf){
-                la_x86and_d(reg_n, temp);
-            }else{
-                la_x86and_w(reg_n, temp);
-            }
+            la_xor(reg_d, reg_n, temp);
+            break;
+        default:
+            assert(FALSE);
+            break;
         }
-        break;
-    case 5: /* ORN */
-        la_orn(reg_d, reg_n, temp);
-        break;
-    case 6: /* EON */
-        la_nor(temp, zero_ir2_opnd, temp);
-        la_xor(reg_d, reg_n, temp);
-        break;
-    default:
-        assert(FALSE);
-        break;
+    }else{
+        switch (opc | (invert << 2)) {
+        case 0: /* AND */
+        case 3: /* ANDS */
+            if(opc==3){
+                if(sf){
+                    la_x86and_d(reg_n, reg_m);
+                }else{
+                    la_x86and_w(reg_n, reg_m);
+                }
+            }
+            la_and(reg_d, reg_n, reg_m);
+            break;
+        case 1: /* ORR */
+            la_or(reg_d, reg_n, reg_m);
+            break;
+        case 2: /* EOR */
+            la_xor(reg_d, reg_n, reg_m);
+            break;
+        case 4: /* BIC */
+        case 7: /* BICS */
+            if(opc==3){
+                la_nor(temp, zero_ir2_opnd, reg_m);
+                if(sf){
+                    la_x86and_d(reg_n, temp);
+                }else{
+                    la_x86and_w(reg_n, temp);
+                }
+            }
+            la_andn(reg_d, reg_n, reg_m);
+            break;
+        case 5: /* ORN */
+            la_orn(reg_d, reg_n, reg_m);
+            break;
+        case 6: /* EON */
+            la_nor(temp, zero_ir2_opnd, reg_m);
+            la_xor(reg_d, reg_n, temp);
+            break;
+        default:
+            assert(FALSE);
+            break;
+        }
     }
 
     if (!sf) {
