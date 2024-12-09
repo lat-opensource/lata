@@ -6137,36 +6137,44 @@ static void disas_adc_sbc(DisasContext *s, uint32_t insn)
     IR2_OPND reg_m = alloc_gpr_src(rm);
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND temp = ra_alloc_itemp();
-    IR2_OPND temp2 = ra_alloc_itemp();
 
     if (op) {
         la_orn(temp, zero_ir2_opnd, reg_m);
+        if (setflags) {
+            if (sf) {
+                la_x86adc_d(reg_n, temp);
+            } else {
+                la_x86adc_w(reg_n, temp);
+            }
+        }
+        if (sf) {
+                la_adc_d(reg_d, reg_n, temp);
+        } else {
+                la_adc_w(reg_d, reg_n, temp);
+        }
     } else {
-        la_or(temp, zero_ir2_opnd, reg_m);
-    }
-
-    if(sf){
-        la_adc_d(temp2, reg_n, temp);
-    }else{
-        la_adc_w(temp2, reg_n, temp);
-        la_bstrpick_d(temp2, temp2, 31, 0);
-    }
-
-    if(setflags){
-        if(sf){
-            la_x86adc_d(reg_n, temp);
-        }else{
-            la_x86adc_w(reg_n, temp);
+        if (setflags) {
+            if (sf) {
+                la_x86adc_d(reg_n, reg_m);
+            } else {
+                la_x86adc_w(reg_n, reg_m);
+            }
+        }
+        if (sf) {
+                la_adc_d(reg_d, reg_n, reg_m);
+        } else {
+                la_adc_w(reg_d, reg_n, reg_m);
         }
     }
-    
-    la_or(reg_d, zero_ir2_opnd, temp2);
+
+    if (!sf) {
+        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    }
 
     free_alloc_gpr(reg_d);
     free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_m);
     free_alloc_gpr(temp);
-    free_alloc_gpr(temp2);
     store_gpr_dst(rd, reg_d);
 }
 
