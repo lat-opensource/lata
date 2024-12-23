@@ -458,7 +458,7 @@ cpu_tb_exec(CPUState *cpu, TranslationBlock *itb, int *tb_exit)
     uintptr_t ret;
     TranslationBlock *last_tb;
     const void *tb_ptr = itb->tc.ptr;
-
+  
     if (qemu_loglevel_mask(CPU_LOG_TB_CPU | CPU_LOG_EXEC)) {
         log_cpu_exec(log_pc(cpu, itb), cpu, itb);
     }
@@ -660,6 +660,20 @@ void tb_set_jmp_target(TranslationBlock *tb, int n, uintptr_t addr)
 // #endif
 }
 
+void tb_nzcv_jmp(TranslationBlock *tb, int n, bool isjmp){
+    uintptr_t offset = tb->nzcv_save[n];
+    uintptr_t jmp_rx = (uintptr_t)tb->tc.ptr + offset;
+    uintptr_t jmp_rw = jmp_rx - tcg_splitwx_diff;
+    tcg_insn_unit insn = 0x50000400;
+    if(isjmp){
+        insn = 0x50001400; 
+    }
+
+    qatomic_set((tcg_insn_unit *)jmp_rw, insn);
+    flush_idcache_range(jmp_rx, jmp_rw, 4);
+}
+
+
 static inline void tb_add_jump(TranslationBlock *tb, int n,
                                TranslationBlock *tb_next)
 {
@@ -678,6 +692,13 @@ static inline void tb_add_jump(TranslationBlock *tb, int n,
                           (uintptr_t)tb_next);
     if (old) {
         goto out_unlock_next;
+    }
+
+    if(insts_pattern_opt && tb->nzcv_save[n]!= TB_JMP_OFFSET_INVALID){
+        if (!tb_next->nzcv_use){
+            // ignore nzcv calculate
+            tb_nzcv_jmp(tb, n ,true);
+        }
     }
 
     /* patch the native jump address */

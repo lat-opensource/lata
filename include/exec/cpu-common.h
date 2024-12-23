@@ -170,6 +170,7 @@ void list_cpus(void);
 #ifdef CONFIG_LATA
 extern int indirect_jmp_opt;
 extern int indirect_jmp_opt_profile;
+extern int insts_pattern_opt;
 #endif
 
 #endif /* CPU_COMMON_H */

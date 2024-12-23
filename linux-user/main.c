@@ -75,6 +75,7 @@ char real_exec_path[PATH_MAX];
 #ifdef CONFIG_LATA
 int indirect_jmp_opt = 0;
 int indirect_jmp_opt_profile = 0;
+int insts_pattern_opt = 0;
 #endif
 
 static bool opt_one_insn_per_tb;
@@ -473,6 +474,10 @@ static void handle_arg_indirect_jmp_opt_profile(const char *arg)
     indirect_jmp_opt = 1;
     indirect_jmp_opt_profile = 1;
 }
+static void handle_arg_insts_pattern_opt(const char *arg)
+{
+    insts_pattern_opt = 1;
+}
 #endif
 
 struct qemu_argument {
@@ -534,6 +539,8 @@ static const struct qemu_argument arg_table[] = {
      "",           "run in indirect_jmp_opt mode"},
     {"indirect_jmp_opt_profile", "QEMU_INDIRECT_JMP_OPT_PROFILE",  false, handle_arg_indirect_jmp_opt_profile,
      "",           "run in indirect_jmp_opt_profile mode"},
+    {"insts_pattern_opt", "QEMU_INSTS_PATTERN_OPT", false, handle_arg_insts_pattern_opt,
+     "",           "run in insts_pattern_opt mode"},
 #endif
 #ifdef CONFIG_PLUGIN
     {"plugin",     "QEMU_PLUGIN",      true,  handle_arg_plugin,

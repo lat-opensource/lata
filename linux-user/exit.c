@@ -47,5 +47,6 @@ void preexit_cleanup(CPUArchState *env, int code)
                 long jr_hit = thread_cpu->env_ptr->jr_hit;
                 qemu_log("jr_cnt:%ld, jr_hit:%ld, hit_ratio:%f\n", jr_cnt, jr_hit, (double)jr_hit / jr_cnt);
         }
+        
 #endif
 }

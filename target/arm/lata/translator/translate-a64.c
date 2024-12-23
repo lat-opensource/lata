@@ -28,6 +28,7 @@
 
 #ifdef CONFIG_LATA
 #include "target/arm/lata/include/translate.h"
+#include "target/arm/lata/include/insts-pattern.h"
 #endif
 
 static TCGv_i64 cpu_X[32];
@@ -16792,6 +16793,19 @@ static void aarch64_tr_translate_insn(DisasContextBase *dcbase, CPUState *cpu)
     s->is_nonstreaming = false;
     if (s->sme_trap_nonstreaming) {
         disas_sme_fa64(s, insn);
+    }
+
+    // Scan pattern
+    if(insts_pattern_opt){
+        nzcv_use(s->base.tb , insn);
+        if(insts_pattern(s, cpu, insn)){
+            //count recovery
+            s->pc_curr = pc + 4;
+            s->base.pc_next = pc + 8;
+            dcbase->num_insns++;
+            return;
+        }
+        
     }
 
     if (!disas_a64(s, insn) &&

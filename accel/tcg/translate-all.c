@@ -283,6 +283,9 @@ static int setjmp_gen_code(CPUArchState *env, TranslationBlock *tb,
     tb->jmp_reset_offset[1] = TB_JMP_OFFSET_INVALID;
     tb->jmp_insn_offset[0] = TB_JMP_OFFSET_INVALID;
     tb->jmp_insn_offset[1] = TB_JMP_OFFSET_INVALID;
+    tb->nzcv_save[0] = TB_JMP_OFFSET_INVALID;
+    tb->nzcv_save[1] = TB_JMP_OFFSET_INVALID;
+    tb->nzcv_use = true ;
 #endif
 
     gen_intermediate_code(env_cpu(env), tb, max_insns, pc, host_pc);
