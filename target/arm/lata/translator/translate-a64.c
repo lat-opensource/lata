@@ -5069,17 +5069,36 @@ static bool trans_ADD_i(DisasContext *s, arg_ADD_i *a)
     uint8_t shift = extract32(s->insn, 22, 1);
     switch(shift){
         case 0:
-            la_ori(temp, zero_ir2_opnd, a->imm);
+            if(a->imm <= 0x7ff){
+                if(a->sf){
+                    la_addi_d(reg_d, reg_n, a->imm);
+                }else{
+                    la_addi_w(reg_d, reg_n, a->imm);
+                    la_bstrpick_d(reg_d, reg_d, 31, 0);
+                }
+            }else {
+                la_ori(temp, zero_ir2_opnd, a->imm);
+                if(a->sf){
+                    la_add_d(reg_d, reg_n, temp);
+                }else{
+                    la_add_w(reg_d, reg_n, temp);
+                    la_bstrpick_d(reg_d, reg_d, 31, 0);
+                }               
+            }
             break;
         case 1:
             la_lu12i_w(temp, a->imm >> 12);
+            if(a->sf){
+                la_add_d(reg_d, reg_n, temp);
+            }else{
+                la_add_w(reg_d, reg_n, temp);
+                la_bstrpick_d(reg_d, reg_d, 31, 0);
+            }
             break;
         default:
             assert(0);
             break;
     }
-
-    gen_add(&reg_d, &reg_n, &temp, a->sf);
 
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(temp);
@@ -5098,17 +5117,36 @@ static bool trans_SUB_i(DisasContext *s, arg_SUB_i *a)
     uint8_t shift = extract32(s->insn, 22, 1);
     switch(shift){
         case 0:
-            la_ori(temp, zero_ir2_opnd, a->imm);
+            if(a->imm <= 0x7ff){
+                if(a->sf){
+                    la_addi_d(reg_d, reg_n, -a->imm);
+                }else{
+                    la_addi_w(reg_d, reg_n, -a->imm);
+                    la_bstrpick_d(reg_d, reg_d, 31, 0);
+                }
+            }else {
+                la_ori(temp, zero_ir2_opnd, a->imm);
+                if(a->sf){
+                    la_sub_d(reg_d, reg_n, temp);
+                }else{
+                    la_sub_w(reg_d, reg_n, temp);
+                    la_bstrpick_d(reg_d, reg_d, 31, 0);
+                }               
+            }
             break;
         case 1:
             la_lu12i_w(temp, a->imm >> 12);
+            if(a->sf){
+                la_sub_d(reg_d, reg_n, temp);
+            }else{
+                la_sub_w(reg_d, reg_n, temp);
+                la_bstrpick_d(reg_d, reg_d, 31, 0);
+            }
             break;
         default:
             assert(0);
             break;
     }
-
-    gen_sub(&reg_d, &reg_n, &temp, a->sf);
 
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_d);
