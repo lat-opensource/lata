@@ -5481,11 +5481,15 @@ static bool trans_ANDS_i(DisasContext *s, arg_ANDS_i *a) {
 static bool trans_MOVZ(DisasContext *s, arg_MOVZ *a)
 {
     int pos = a->hw << 4;
+    uint64_t imm =  (uint64_t)a->imm << pos;
     //tcg_gen_movi_i64(cpu_reg(s, a->rd), (uint64_t)a->imm << pos);
 
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);
-    li_d(reg_d,(uint64_t)a->imm << pos);
-    
+    if(imm > 0xfff){
+        li_d(reg_d,imm);
+    }else{
+        la_ori(reg_d, zero_ir2_opnd, imm);
+    }
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_d);
 
@@ -5499,7 +5503,11 @@ static bool trans_MOVN(DisasContext *s, arg_movw *a)
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);    
 
     uint64_t imm = a->imm;
-    li_d(reg_d, ~(imm << pos));
+    if( ~(imm << pos) > 0xfff){
+        li_d(reg_d, ~(imm << pos));
+    }else{
+        la_ori(reg_d, zero_ir2_opnd,  ~(imm << pos));
+    }
     if(!a->sf){
         la_bstrpick_d(reg_d, reg_d, 31, 0);
     }
@@ -5514,7 +5522,11 @@ static bool trans_MOVK(DisasContext *s, arg_movw *a)
     IR2_OPND reg_d = alloc_gpr_src(a->rd);    
     IR2_OPND temp = ra_alloc_itemp();
 
-    li_d(temp, a->imm);
+    if(a->imm > 0xfff){
+        li_d(temp,a->imm);
+    }else{
+        la_ori(temp, zero_ir2_opnd, a->imm);
+    }
     if(a->sf){
         la_bstrins_d(reg_d, temp, pos + 15, pos);
     }else{
