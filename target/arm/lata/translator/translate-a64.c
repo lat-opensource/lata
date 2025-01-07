@@ -3290,13 +3290,20 @@ static bool trans_LD_lit(DisasContext *s, arg_ldlit *a)
 {
     IR2_OPND reg_d = alloc_gpr_dst(a->rt);
     MemOp memop = a->sz + a->sign * MO_SIGN;
-    uint64_t addr = s->pc_curr + a->imm;
-    li_d(reg_d,addr);
+    uint32_t addr = s->pc_curr + a->imm;
+    // li_d(reg_d,addr);
     switch(memop)
     {
         case MO_64:
-            //自带符号扩展
-            la_ld_d(reg_d,reg_d,0);
+            //ld_d只能处理si12
+            la_lu12i_w(reg_d, addr >> 12);
+            if(addr & 0x800){
+                la_ori(reg_d, reg_d, addr & 0xfff);
+                la_ld_d(reg_d,reg_d,0);
+            } else {
+                la_ld_d(reg_d,reg_d,addr & 0x7ff);
+            }
+
             break;
         default:
             assert(0);
@@ -3408,6 +3415,7 @@ static bool trans_LDP(DisasContext *s, arg_ldstpair *a)
     */
 
     uint64_t offset = a->imm << a->sz;
+    int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
     if(a->w && (a->rt == a->rn || a->rt2 == a->rn) && a->rn !=31 )
     {
         assert(0);
@@ -3419,20 +3427,9 @@ static bool trans_LDP(DisasContext *s, arg_ldstpair *a)
     IR2_OPND reg_t2 = alloc_gpr_dst(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
 
-    if(!a->p){ // postindex = false
+    if(!a->w && offset){ // wback = false && offset!=0
         la_addi_d(temp, reg_n, offset);
-    }
-    else{
-        la_or(temp,reg_n, zero_ir2_opnd);
-    }
-    int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
-    switch(dbytes){
-        case 1: 
-            assert(0);
-            break;
-        case 2: 
-            assert(0);
-            break;
+        switch(dbytes){
         case 4:
             if(a->sign){
                 la_ld_w(reg_t, temp, 0);
@@ -3448,14 +3445,42 @@ static bool trans_LDP(DisasContext *s, arg_ldstpair *a)
             break;
         default:
             assert(0);
-    }
-
-    if(a->w){ // wback == true
-        if(a->p){ // postindex == true
-            la_addi_d(temp,temp,offset);
         }
-        la_or(reg_n, temp, zero_ir2_opnd);
-        store_gpr_dst(a->rn, reg_n);
+    }else{//Post-index
+        if(!a->p && offset){
+            la_addi_d(reg_n, reg_n, offset);
+        }
+
+        switch(dbytes){
+        case 4:
+            if(a->sign){
+                if(a->rt != a->rn)
+                    la_ld_w(reg_t, reg_n, 0);
+                else
+                if(a->rt2 != a->rn)
+                    la_ld_w(reg_t2, reg_n, dbytes);
+            }else{
+                if(a->rt != a->rn)
+                    la_ld_wu(reg_t, reg_n, 0);
+                if(a->rt2 != a->rn)
+                    la_ld_wu(reg_t2, reg_n, dbytes);
+            }
+            break;
+        case 8:
+            if(a->rt != a->rn)
+                la_ld_d(reg_t, reg_n, 0);
+            if(a->rt2 != a->rn)
+                la_ld_d(reg_t2, reg_n, dbytes);
+            break;
+        default:
+            assert(0);
+        }
+
+        if(a->p && offset){
+            la_addi_d(reg_n,reg_n,offset);
+        }       
+        if(a->w)
+            store_gpr_dst(a->rn, reg_n);
     }
 
     store_gpr_dst(a->rt, reg_t);
@@ -3709,30 +3734,22 @@ static bool trans_STR_i(DisasContext *s, arg_ldst_imm *a)
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
     IR2_OPND temp = ra_alloc_itemp();
 
-    if(!a->p){ // postindex = false
-        if(a->w){
-            la_addi_d(temp, reg_n, offset);
-        }else{
-            /* Unsigned offset立即数是uimm12位，
-            la_addi_d立即数是imm12，需要将立即数加载到寄存器
-            而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
-            */
-            if(a->imm > 0x7ff){
-                IR2_OPND temp_offset = ra_alloc_itemp();
-                li_d(temp_offset, a->imm);  
-                la_add_d(temp, reg_n, temp_offset);
-                free_alloc_gpr(temp_offset);
-            }
-            else{
-                la_addi_d(temp, reg_n, a->imm);
-            }
+    if(!a->w && offset){ // postindex = false
+        /* Unsigned offset立即数是uimm12位，
+        la_addi_d立即数是imm12，需要将立即数加载到寄存器
+        而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
+        */
+        if(a->imm > 0x7ff){
+            IR2_OPND temp_offset = ra_alloc_itemp();
+            li_d(temp_offset, a->imm);  
+            la_add_d(temp, reg_n, temp_offset);
+            free_alloc_gpr(temp_offset);
         }
-    }
-    else{
-        la_or(temp, reg_n, zero_ir2_opnd);
-    }
+        else{
+            la_addi_d(temp, reg_n, a->imm);
+        }
 
-    switch(a->sz){
+        switch(a->sz){
         case 0: 
             la_st_b(reg_t, temp, 0);
             break;
@@ -3748,13 +3765,30 @@ static bool trans_STR_i(DisasContext *s, arg_ldst_imm *a)
         default:
             assert(0);
     }
-
-    if(a->w){ // wback == true
-        if(a->p){ // postindex == true
-            la_addi_d(temp, reg_n, offset);
+    }
+    else{
+        if(!a->p && offset)
+            la_addi_d(reg_n, reg_n, offset);
+        switch(a->sz){
+        case 0: 
+            la_st_b(reg_t, reg_n, 0);
+            break;
+        case 1: 
+            la_st_h(reg_t, reg_n, 0);
+            break;
+        case 2:
+            la_st_w(reg_t, reg_n, 0);
+            break;
+        case 3:
+            la_st_d(reg_t, reg_n, 0);
+            break;
+        default:
+            assert(0);
         }
-        la_or(reg_n, temp, zero_ir2_opnd);
-        store_gpr_dst(a->rn, reg_n);
+        if(a->p && offset)
+            la_addi_d(reg_n, reg_n, offset);
+        if(a->w)
+            store_gpr_dst(a->rn, reg_n);
     }
 
     free_alloc_gpr(reg_n);
@@ -3791,30 +3825,19 @@ static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
         gen_check_sp_alignment(s);
     }
 
-    if(!a->p){ // postindex = false
-        if(a->w){
-            la_addi_d(temp, reg_n, offset);
-        }else{
-            /* Unsigned offset立即数是uimm12位，
-            la_addi_d立即数是imm12，需要将立即数加载到寄存器
-            而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
-            */
-            if(a->imm > 0x7ff){
-                IR2_OPND temp_offset = ra_alloc_itemp();
-                li_d(temp_offset, a->imm);  
-                la_add_d(temp, reg_n, temp_offset);
-                free_alloc_gpr(temp_offset);
-            }
-            else{
-                la_addi_d(temp, reg_n, a->imm);
-            }
+    if(!a->w && offset){ // wback = false && offset!=0
+        /* Unsigned offset立即数是uimm12位，
+        la_addi_d立即数是imm12，需要将立即数加载到寄存器
+        而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
+        */
+        if(offset > 0x7ff){
+            li_d(temp, offset);  
+            la_add_d(temp, reg_n, temp);
         }
-    }
-    else{
-        la_or(temp, zero_ir2_opnd, reg_n);
-    }
-
-    switch(a->sz){
+        else{
+            la_addi_d(temp, reg_n, offset);
+        }
+        switch(a->sz){
         case 0:
             if(a->sign){ // LDRSB_i
                 la_ld_b(reg_t, temp, 0);
@@ -3850,14 +3873,55 @@ static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
             break;
         default:
             assert(0);
-    }
-
-    if(a->w){ // wback == true
-        if(a->p){ // postindex == true
-            la_addi_d(temp, reg_n, offset);
         }
-        la_or(reg_n, temp, zero_ir2_opnd);
-        store_gpr_dst(a->rn, reg_n);
+    }else{//Post-index
+        if(!a->p && offset){
+            la_addi_d(reg_n,reg_n,offset); 
+        }
+
+        switch(a->sz){
+        case 0:
+            if(a->sign){ // LDRSB_i
+                la_ld_b(reg_t, reg_n, 0);
+                if(!iss_sf){
+                    la_bstrpick_d(reg_t, reg_t, 31, 0);
+                }
+            }else{ // LDRB_i
+                la_ld_bu(reg_t, reg_n, 0);
+            }
+            break;
+        case 1:
+            if(a->sign){ // LDRSH_i
+                la_ld_h(reg_t, reg_n, 0);
+                if(!iss_sf){
+                    la_bstrpick_d(reg_t, reg_t, 31, 0);
+                }
+            }else{ // LDRH_i
+                la_ld_hu(reg_t, reg_n, 0);
+            }
+            break;
+        case 2:
+            if(a->sign){ // LDRSW_i
+                la_ld_w(reg_t, reg_n, 0);
+                if(!iss_sf){
+                    la_bstrpick_d(reg_t, reg_t, 31, 0);
+                }
+            }else{ // LDR_i
+                la_ld_wu(reg_t, reg_n, 0);
+            }
+            break;
+        case 3: // LDR_i
+            la_ld_d(reg_t, reg_n, 0);
+            break;
+        default:
+            assert(0);
+        }
+
+        if(a->p && offset){
+            la_addi_d(reg_n,reg_n,offset);         
+        }
+        if(a->w)
+            store_gpr_dst(a->rn, reg_n);               
     }
 
     store_gpr_dst(a->rt, reg_t);
@@ -3882,36 +3946,22 @@ static bool trans_STR_v_i(DisasContext *s, arg_ldst_imm *a)
     IR2_OPND vreg_t = alloc_fpr_src(a->rt);
     IR2_OPND temp = ra_alloc_itemp();
 
-    if(!a->p){ // postindex = false
-        if(a->w){
-            la_addi_d(temp, reg_n, offset);
-        }else{
-            /* Unsigned offset立即数是uimm12位，
-            la_addi_d立即数是imm12，需要将立即数加载到寄存器
-            而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
-            */
-            if(a->imm > 0x7ff){
-                IR2_OPND temp_offset = ra_alloc_itemp();
-                li_d(temp_offset, a->imm);  
-                la_add_d(temp, reg_n, temp_offset);
-                free_alloc_gpr(temp_offset);
-            }
-            else{
-                la_addi_d(temp, reg_n, a->imm);
-            }
+    if(!a->w && offset){ // postindex = false
+        /* Unsigned offset立即数是uimm12位，
+        la_addi_d立即数是imm12，需要将立即数加载到寄存器
+        而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
+        */
+        if(a->imm > 0x7ff){
+            IR2_OPND temp_offset = ra_alloc_itemp();
+            li_d(temp_offset, a->imm);  
+            la_add_d(temp, reg_n, temp_offset);
+            free_alloc_gpr(temp_offset);
         }
-    }
-    else{
-        la_or(temp, zero_ir2_opnd, reg_n);
-    }
-    /*  8-bit (size == 00 && opc == 01)
-        16-bit (size == 01 && opc == 01)
-        32-bit (size == 10 && opc == 01)
-        64-bit (size == 11 && opc == 01)
-        128-bit (size == 00 && opc == 11)
-        scale = UInt(opc<1>:size);
-    */
-    switch(a->sz){
+        else{
+            la_addi_d(temp, reg_n, a->imm);
+        }
+
+        switch(a->sz){
         case 0: 
             la_vstelm_b(vreg_t, temp, 0, 0);
             break;
@@ -3929,14 +3979,36 @@ static bool trans_STR_v_i(DisasContext *s, arg_ldst_imm *a)
             break;
         default:
             assert(0);
-    }
-
-    if(a->w){ // wback == true
-        if(a->p){ // postindex == true
-            la_addi_d(temp, reg_n, offset);
         }
-        la_or(reg_n, temp, zero_ir2_opnd);
-        store_gpr_dst(a->rn, reg_n);
+    }
+    else{
+        if(!a->p && offset)
+            la_addi_d(reg_n, reg_n, offset);
+            
+        switch(a->sz){
+        case 0: 
+            la_vstelm_b(vreg_t, reg_n, 0, 0);
+            break;
+        case 1: 
+            la_vstelm_h(vreg_t, reg_n, 0, 0);
+            break;
+        case 2:
+            la_fst_s(vreg_t, reg_n, 0);
+            break;
+        case 3:
+            la_fst_d(vreg_t, reg_n, 0);
+            break;
+        case 4:
+            la_vst(vreg_t, reg_n, 0);
+            break;
+        default:
+            assert(0);
+        }
+
+        if(a->p && offset)
+            la_addi_d(reg_n, reg_n, offset);
+        if(a->w)
+            store_gpr_dst(a->rn, reg_n);
     }
 
     free_alloc_gpr(reg_n);
@@ -3961,36 +4033,19 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
     IR2_OPND temp = ra_alloc_itemp();
     IR2_OPND temp1 = ra_alloc_itemp();
 
-    if(!a->p){ // postindex = false
-        if(a->w){
-            la_addi_d(temp, reg_n, offset);
-        }else{
-            /* Unsigned offset立即数是uimm12位，
-            la_addi_d立即数是imm12，需要将立即数加载到寄存器
-            而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
-            */
-            if(a->imm > 0x7ff){
-                IR2_OPND temp_offset = ra_alloc_itemp();
-                li_d(temp_offset, a->imm);  
-                la_add_d(temp, reg_n, temp_offset);
-                free_alloc_gpr(temp_offset);
-            }
-            else{
-                la_addi_d(temp, reg_n, a->imm);
-            }
+    if(!a->w && offset){ // wback = false && offset!=0
+        /* Unsigned offset立即数是uimm12位，
+        la_addi_d立即数是imm12，需要将立即数加载到寄存器
+        而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
+        */
+        if(offset > 0x7ff){
+            li_d(temp, offset);  
+            la_add_d(temp, reg_n, temp);
         }
-    }
-    else{
-        la_or(temp, zero_ir2_opnd, reg_n);
-    }
-    /*  8-bit (size == 00 && opc == 01)
-        16-bit (size == 01 && opc == 01)
-        32-bit (size == 10 && opc == 01)
-        64-bit (size == 11 && opc == 01)
-        128-bit (size == 00 && opc == 11)
-        scale = UInt(opc<1>:size);
-    */
-    switch(a->sz){
+        else{
+            la_addi_d(temp, reg_n, offset);
+        }
+        switch(a->sz){
         case 0:
             la_vxor_v(vreg_t, vreg_t, vreg_t);
             la_ld_bu(temp1, temp, 0);
@@ -4017,14 +4072,46 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
             break;
         default:
             assert(0);
-    }
-
-    if(a->w){ // wback == true
-        if(a->p){ // postindex == true
-            la_addi_d(temp, reg_n, offset);
         }
-        la_or(reg_n, temp, zero_ir2_opnd);
-        store_gpr_dst(a->rn, reg_n);
+    }else{//Post-index
+        if(!a->p && offset){
+            la_addi_d(reg_n,reg_n,offset); 
+        }
+
+        switch(a->sz){
+        case 0:
+            la_vxor_v(vreg_t, vreg_t, vreg_t);
+            la_ld_bu(temp1, reg_n, 0);
+            la_vinsgr2vr_b(vreg_t, temp1, 0);
+            break;
+        case 1:
+            la_vxor_v(vreg_t, vreg_t, vreg_t);
+            la_ld_hu(temp1, reg_n, 0);
+            la_vinsgr2vr_h(vreg_t, temp1, 0);
+            break;
+        case 2:
+            la_fld_s(vreg_t, reg_n, 0);
+            la_movgr2frh_w(vreg_t, zero_ir2_opnd);
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
+            break;
+        case 3:
+            la_fld_d(vreg_t, reg_n, 0);
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
+            break;
+        case 4:
+            la_vld(vreg_t, reg_n, 0);
+            break;
+        default:
+            assert(0);
+        }
+
+        if(a->p && offset){
+            la_addi_d(reg_n,reg_n,offset);         
+        }
+        if(a->w)
+            store_gpr_dst(a->rn, reg_n);               
     }
 
     store_fpr_dst(a->rt, vreg_t);
@@ -4048,46 +4135,129 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
         return false;
     }
 
-    ext_and_shift_reg(&temp, &reg_m, a->opt, a->s ? a->sz : 0);
+    int extsize = extract32(a->opt, 0, 2);
+    bool is_signed = extract32(a->opt, 2, 1);
+    unsigned int shift = a->s ? a->sz : 0;
+
+    if (is_signed) {
+        switch (extsize) {
+        case 0:
+            la_ext_w_b(temp, reg_m);
+            break;
+        case 1:
+            la_ext_w_h(temp, reg_m);
+            break;
+        case 2:
+            la_bstrpick_w(temp,reg_m,31,0);
+            break;
+        case 3:
+            //to reduce instructions inflation,handle separately
+            break;
+        }
+    } else {
+        switch (extsize) {
+        case 0:
+            la_bstrpick_d(temp,reg_m,7,0);
+            break;
+        case 1:
+            la_bstrpick_d(temp,reg_m,15,0);
+            break;
+        case 2:
+            la_bstrpick_d(temp,reg_m,31,0);
+            break;
+        case 3:
+            //to reduce instructions inflation,handle separately
+            break;
+        }
+    }
     
     /* LDR(register), */
-    switch (a->sz)
-    {
-    case 0:
-        if(a->sign){ // LDRSB
-            la_ldx_b(reg_t, reg_n, temp);
-            if(!iss_sf){
-                la_bstrpick_d(reg_t, reg_t, 31, 0);
+    if(extsize == 3 && !shift){
+        switch (a->sz)
+        {
+        case 0:
+            if(a->sign){ // LDRSB
+                la_ldx_b(reg_t, reg_n, reg_m);
+                if(!iss_sf){
+                    la_bstrpick_d(reg_t, reg_t, 31, 0);
+                }
+            }else{ // LDRB
+                la_ldx_bu(reg_t, reg_n, reg_m);
             }
-        }else{ // LDRB
-            la_ldx_bu(reg_t, reg_n, temp);
-        }
-        break;
-    case 1:
-        if(a->sign){ // LDRSH
-            la_ldx_h(reg_t, reg_n, temp);
-            if(!iss_sf){
-                la_bstrpick_d(reg_t, reg_t, 31, 0);
+            break;
+        case 1:
+            if(a->sign){ // LDRSH
+                la_ldx_h(reg_t, reg_n, reg_m);
+                if(!iss_sf){
+                    la_bstrpick_d(reg_t, reg_t, 31, 0);
+                }
+            }else{ // LDRH
+                la_ldx_hu(reg_t, reg_n, reg_m);
             }
-        }else{ // LDRH
-            la_ldx_hu(reg_t, reg_n, temp);
-        }
-        break;
-    case 2:
-        if(a->sign){ // LDRSW
-            la_ldx_w(reg_t, reg_n, temp);
-            if(!iss_sf){
-                la_bstrpick_d(reg_t, reg_t, 31, 0);
+            break;
+        case 2:
+            if(a->sign){ // LDRSW
+                la_ldx_w(reg_t, reg_n, reg_m);
+                if(!iss_sf){
+                    la_bstrpick_d(reg_t, reg_t, 31, 0);
+                }
+            }else{ // LDR
+                la_ldx_wu(reg_t, reg_n, reg_m);
             }
-        }else{ // LDR
-            la_ldx_wu(reg_t, reg_n, temp);
+            break;
+        case 3: // LDR
+            la_ldx_d(reg_t, reg_n, reg_m);
+            break;
+        default:
+            break;
         }
-        break;
-    case 3: // LDR
-        la_ldx_d(reg_t, reg_n, temp);
-        break;
-    default:
-        break;
+    }else{
+        if (shift) {
+            if(extsize == 3){
+                la_slli_d(temp,reg_m,shift);
+            }else{
+                la_slli_d(temp,temp,shift);
+            }        
+        }
+
+        switch (a->sz)
+        {
+        case 0:
+            if(a->sign){ // LDRSB
+                la_ldx_b(reg_t, reg_n, temp);
+                if(!iss_sf){
+                    la_bstrpick_d(reg_t, reg_t, 31, 0);
+                }
+            }else{ // LDRB
+                la_ldx_bu(reg_t, reg_n, temp);
+            }
+            break;
+        case 1:
+            if(a->sign){ // LDRSH
+                la_ldx_h(reg_t, reg_n, temp);
+                if(!iss_sf){
+                    la_bstrpick_d(reg_t, reg_t, 31, 0);
+                }
+            }else{ // LDRH
+                la_ldx_hu(reg_t, reg_n, temp);
+            }
+            break;
+        case 2:
+            if(a->sign){ // LDRSW
+                la_ldx_w(reg_t, reg_n, temp);
+                if(!iss_sf){
+                    la_bstrpick_d(reg_t, reg_t, 31, 0);
+                }
+            }else{ // LDR
+                la_ldx_wu(reg_t, reg_n, temp);
+            }
+            break;
+        case 3: // LDR
+            la_ldx_d(reg_t, reg_n, temp);
+            break;
+        default:
+            break;
+        }
     }
 
     store_gpr_dst(a->rt, reg_t);
@@ -4104,30 +4274,90 @@ static bool trans_STR(DisasContext *s, arg_ldst *a)
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_m = alloc_gpr_src(a->rm);
     IR2_OPND temp = ra_alloc_itemp();
+    int extsize = extract32(a->opt, 0, 2);
+    bool is_signed = extract32(a->opt, 2, 1);
+    unsigned int shift = a->s ? a->sz : 0;
 
     if (extract32(a->opt, 1, 1) == 0) {
         return false;
     }
 
-    ext_and_shift_reg(&temp, &reg_m, a->opt, a->s ? a->sz : 0);
+    if (is_signed) {
+        switch (extsize) {
+        case 0:
+            la_ext_w_b(temp, reg_m);
+            break;
+        case 1:
+            la_ext_w_h(temp, reg_m);
+            break;
+        case 2:
+            la_bstrpick_w(temp,reg_m,31,0);
+            break;
+        case 3:
+            //to reduce instructions inflation,handle separately
+            break;
+        }
+    } else {
+        switch (extsize) {
+        case 0:
+            la_bstrpick_d(temp,reg_m,7,0);
+            break;
+        case 1:
+            la_bstrpick_d(temp,reg_m,15,0);
+            break;
+        case 2:
+            la_bstrpick_d(temp,reg_m,31,0);
+            break;
+        case 3:
+            //to reduce instructions inflation,handle separately
+            break;
+        }
+    }
     
-    /* STR(register), */
-    switch (a->sz)
-    {
-    case 0:
-        la_stx_b(reg_t, reg_n, temp);
-        break;
-    case 1:
-        la_stx_h(reg_t, reg_n, temp);
-        break;
-    case 2:
-        la_stx_w(reg_t, reg_n, temp);
-        break;
-    case 3:
-        la_stx_d(reg_t, reg_n, temp);
-        break;
-    default:
-        break;
+    if(extsize == 3 && !shift){
+        switch (a->sz)
+        {
+        case 0:
+            la_stx_b(reg_t, reg_n, reg_m);
+            break;
+        case 1:
+            la_stx_h(reg_t, reg_n, reg_m);
+            break;
+        case 2:
+            la_stx_w(reg_t, reg_n, reg_m);
+            break;
+        case 3:
+            la_stx_d(reg_t, reg_n, reg_m);
+            break;
+        default:
+            break;
+        }
+    }else{
+        if (shift) {
+            if(extsize == 3){
+                la_slli_d(temp,reg_m,shift);
+            }else{
+                la_slli_d(temp,temp,shift);
+            }        
+        }
+
+        switch (a->sz)
+        {
+        case 0:
+            la_stx_b(reg_t, reg_n, temp);
+            break;
+        case 1:
+            la_stx_h(reg_t, reg_n, temp);
+            break;
+        case 2:
+            la_stx_w(reg_t, reg_n, temp);
+            break;
+        case 3:
+            la_stx_d(reg_t, reg_n, temp);
+            break;
+        default:
+            break;
+        }
     }
 
     free_alloc_gpr(reg_t);
@@ -4152,35 +4382,108 @@ static bool trans_LDR_v(DisasContext *s, arg_ldst *a)
         return true;
     }
 
-    ext_and_shift_reg(&temp, &reg_m, a->opt, a->s ? a->sz : 0);
+    int extsize = extract32(a->opt, 0, 2);
+    bool is_signed = extract32(a->opt, 2, 1);
+    unsigned int shift = a->s ? a->sz : 0;
+
+    if (is_signed) {
+        switch (extsize) {
+        case 0:
+            la_ext_w_b(temp, reg_m);
+            break;
+        case 1:
+            la_ext_w_h(temp, reg_m);
+            break;
+        case 2:
+            la_bstrpick_w(temp,reg_m,31,0);
+            break;
+        case 3:
+            //to reduce instructions inflation,handle separately
+            break;
+        }
+    } else {
+        switch (extsize) {
+        case 0:
+            la_bstrpick_d(temp,reg_m,7,0);
+            break;
+        case 1:
+            la_bstrpick_d(temp,reg_m,15,0);
+            break;
+        case 2:
+            la_bstrpick_d(temp,reg_m,31,0);
+            break;
+        case 3:
+            //to reduce instructions inflation,handle separately
+            break;
+        }
+    }
     
     /* LDR(register), */
-    switch (a->sz)
-    {
-    case 0:
-        la_vxor_v(vreg_t, vreg_t, vreg_t);
-        la_ldx_bu(temp, reg_n, temp);
-        la_vinsgr2vr_b(vreg_t, temp, 0);
-        break;
-    case 1:
-        la_vxor_v(vreg_t, vreg_t, vreg_t);
-        la_ldx_hu(temp, reg_n, temp);
-        la_vinsgr2vr_h(vreg_t, temp, 0);
-        break;
-    case 2:
-        la_vxor_v(vreg_t, vreg_t, vreg_t);
-        la_ldx_wu(temp, reg_n, temp);
-        la_vinsgr2vr_w(vreg_t, temp, 0);
-        break;
-    case 3: 
-        la_vldx(vreg_t, reg_n, temp);
-        la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
-        break;
-    case 4:
-        la_vldx(vreg_t, reg_n, temp);
-        break;
-    default:
-        break;
+    if(extsize == 3 && !shift){
+        switch (a->sz)
+        {
+        case 0:
+            la_vxor_v(vreg_t, vreg_t, vreg_t);
+            la_ldx_bu(temp, reg_n, reg_m);
+            la_vinsgr2vr_b(vreg_t, temp, 0);
+            break;
+        case 1:
+            la_vxor_v(vreg_t, vreg_t, vreg_t);
+            la_ldx_hu(temp, reg_n, reg_m);
+            la_vinsgr2vr_h(vreg_t, temp, 0);
+            break;
+        case 2:
+            la_vxor_v(vreg_t, vreg_t, vreg_t);
+            la_ldx_wu(temp, reg_n, reg_m);
+            la_vinsgr2vr_w(vreg_t, temp, 0);
+            break;
+        case 3: 
+            la_vldx(vreg_t, reg_n, reg_m);
+            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
+            break;
+        case 4:
+            la_vldx(vreg_t, reg_n, reg_m);
+            break;
+        default:
+            break;
+        }
+    }else{
+        if (shift) {
+            if(extsize == 3){
+                la_slli_d(temp,reg_m,shift);
+            }else{
+                la_slli_d(temp,temp,shift);
+            }        
+        }
+
+        /* LDR(register), */
+        switch (a->sz)
+        {
+        case 0:
+            la_vxor_v(vreg_t, vreg_t, vreg_t);
+            la_ldx_bu(temp, reg_n, temp);
+            la_vinsgr2vr_b(vreg_t, temp, 0);
+            break;
+        case 1:
+            la_vxor_v(vreg_t, vreg_t, vreg_t);
+            la_ldx_hu(temp, reg_n, temp);
+            la_vinsgr2vr_h(vreg_t, temp, 0);
+            break;
+        case 2:
+            la_vxor_v(vreg_t, vreg_t, vreg_t);
+            la_ldx_wu(temp, reg_n, temp);
+            la_vinsgr2vr_w(vreg_t, temp, 0);
+            break;
+        case 3: 
+            la_vldx(vreg_t, reg_n, temp);
+            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
+            break;
+        case 4:
+            la_vldx(vreg_t, reg_n, temp);
+            break;
+        default:
+            break;
+        }
     }
 
     store_fpr_dst(a->rt, vreg_t);
@@ -4198,6 +4501,9 @@ static bool trans_STR_v(DisasContext *s, arg_ldst *a)
     IR2_OPND reg_m = alloc_gpr_src(a->rm);
     IR2_OPND temp = ra_alloc_itemp();
     IR2_OPND temp1 = ra_alloc_itemp();
+    int extsize = extract32(a->opt, 0, 2);
+    bool is_signed = extract32(a->opt, 2, 1);
+    unsigned int shift = a->s ? a->sz : 0;
 
     if (extract32(a->opt, 1, 1) == 0) {
         return false;
@@ -4207,30 +4513,92 @@ static bool trans_STR_v(DisasContext *s, arg_ldst *a)
         return true;
     }
 
-    ext_and_shift_reg(&temp, &reg_m, a->opt, a->s ? a->sz : 0);
+    if (is_signed) {
+        switch (extsize) {
+        case 0:
+            la_ext_w_b(temp, reg_m);
+            break;
+        case 1:
+            la_ext_w_h(temp, reg_m);
+            break;
+        case 2:
+            la_bstrpick_w(temp,reg_m,31,0);
+            break;
+        case 3:
+            //to reduce instructions inflation,handle separately
+            break;
+        }
+    } else {
+        switch (extsize) {
+        case 0:
+            la_bstrpick_d(temp,reg_m,7,0);
+            break;
+        case 1:
+            la_bstrpick_d(temp,reg_m,15,0);
+            break;
+        case 2:
+            la_bstrpick_d(temp,reg_m,31,0);
+            break;
+        case 3:
+            //to reduce instructions inflation,handle separately
+            break;
+        }
+    }
     
-    /* LDR(register), */
-    switch (a->sz)
-    {
-    case 0:
-        la_vpickve2gr_bu(temp1, vreg_t, 0);
-        la_stx_b(temp1, reg_n, temp);
-        break;
-    case 1:
-        la_vpickve2gr_hu(temp1, vreg_t, 0);
-        la_stx_h(temp1, reg_n, temp);
-        break;
-    case 2:
-        la_fstx_s(vreg_t, reg_n, temp);
-        break;
-    case 3: 
-        la_fstx_d(vreg_t, reg_n, temp);
-        break;
-    case 4:
-        la_vstx(vreg_t, reg_n, temp);
-        break;
-    default:
-        break;
+    if(extsize == 3 && !shift){
+        switch (a->sz)
+        {
+        case 0:
+            la_vpickve2gr_bu(temp1, vreg_t, 0);
+            la_stx_b(temp1, reg_n, reg_m);
+            break;
+        case 1:
+            la_vpickve2gr_hu(temp1, vreg_t, 0);
+            la_stx_h(temp1, reg_n, reg_m);
+            break;
+        case 2:
+            la_fstx_s(vreg_t, reg_n, reg_m);
+            break;
+        case 3: 
+            la_fstx_d(vreg_t, reg_n, reg_m);
+            break;
+        case 4:
+            la_vstx(vreg_t, reg_n, reg_m);
+            break;
+        default:
+            break;
+        }
+    }else{
+        if (shift) {
+            if(extsize == 3){
+                la_slli_d(temp,reg_m,shift);
+            }else{
+                la_slli_d(temp,temp,shift);
+            }        
+        }
+
+        switch (a->sz)
+        {
+        case 0:
+            la_vpickve2gr_bu(temp1, vreg_t, 0);
+            la_stx_b(temp1, reg_n, temp);
+            break;
+        case 1:
+            la_vpickve2gr_hu(temp1, vreg_t, 0);
+            la_stx_h(temp1, reg_n, temp);
+            break;
+        case 2:
+            la_fstx_s(vreg_t, reg_n, temp);
+            break;
+        case 3: 
+            la_fstx_d(vreg_t, reg_n, temp);
+            break;
+        case 4:
+            la_vstx(vreg_t, reg_n, temp);
+            break;
+        default:
+            break;
+        }
     }
 
     free_alloc_fpr(vreg_t);
