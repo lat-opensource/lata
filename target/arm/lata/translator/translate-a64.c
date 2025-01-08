@@ -549,9 +549,6 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
 {
     IR2_OPND reg_n = alloc_gpr_src(rn);
 
-    la_or(a0_ir2_opnd, zero_ir2_opnd, reg_n);
-    la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_pc());
-
     if (indirect_jmp_opt) {
         IR2_OPND guest_pc = ra_alloc_itemp();
         IR2_OPND host_pc  = ra_alloc_itemp();
@@ -563,12 +560,12 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
             la_st_d(guest_pc, env_ir2_opnd, env_offset(jr_cnt));
         }
 
-        la_bstrpick_d(guest_pc, a0_ir2_opnd, LATA_PC_LOW_BIT + TB_JMP_CACHE_BITS - 1, LATA_PC_LOW_BIT);
+        la_bstrpick_d(guest_pc, reg_n, LATA_PC_LOW_BIT + TB_JMP_CACHE_BITS - 1, LATA_PC_LOW_BIT);
         li_d(host_pc, (uint64_t)(current_cpu->pc_map_cache));
         la_alsl_d(host_pc, guest_pc, host_pc, 3);
         la_ld_d(guest_pc, host_pc, 0); // guest pc
         la_ld_d(host_pc, host_pc, 8); // host pc
-        la_bne(a0_ir2_opnd, guest_pc, exit);
+        la_bne(reg_n, guest_pc, exit);
 
         if (indirect_jmp_opt_profile) {
             la_ld_d(guest_pc, env_ir2_opnd, env_offset(jr_hit));
@@ -583,15 +580,9 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
         free_alloc_gpr(host_pc);
     }
 
+    la_st_d(reg_n, env_ir2_opnd, env_offset_pc());
+
     /* do not link, but context_switch_native_to_bt_ret_0 will do this */
-    // li_d(a0_ir2_opnd, 0); 
-
-    // IR2_OPND ir2_opnd_addr;
-    // int64_t curr_ins_pos = (unsigned long)s->base.tb->tc.ptr + (lsenv->tr_data->real_ir2_inst_num << 2);
-    // int64_t exit_offset = context_switch_native_to_bt_ret_0 - curr_ins_pos;
-
-    // ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, exit_offset >> 2);
-    // la_b(ir2_opnd_addr);
     lata_gen_exit_tb_ret_0(s);
 
     free_alloc_gpr(reg_n);
