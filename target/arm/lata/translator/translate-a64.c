@@ -3352,6 +3352,7 @@ static bool trans_STP(DisasContext *s, arg_ldstpair *a)
     */
 
     uint64_t offset = a->imm << a->sz;
+    int dbytes = (8 << a->sz) / 8;
     if(a->w && (a->rt == a->rn || a->rt2 == a->rn) && a->rn !=31 )
     {
         assert(0);
@@ -3363,20 +3364,9 @@ static bool trans_STP(DisasContext *s, arg_ldstpair *a)
     IR2_OPND reg_t2 = alloc_gpr_src(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
 
-    if(!a->p){ // postindex = false
-        la_addi_d(temp,reg_n,offset);
-    }
-    else{
-        la_or(temp,reg_n,zero_ir2_opnd);
-    }
-    int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
-    switch(dbytes){
-        case 1: 
-            assert(0);
-            break;
-        case 2: 
-            assert(0);
-            break;
+    if(!a->w && offset){ // wback = false && offset!=0
+        la_addi_d(temp, reg_n, offset);
+        switch(dbytes){
         case 4:
             la_st_w(reg_t, temp, 0);
             la_st_w(reg_t2, temp, dbytes);
@@ -3387,14 +3377,30 @@ static bool trans_STP(DisasContext *s, arg_ldstpair *a)
             break;
         default:
             assert(0);
-    }
-
-    if(a->w){ // wback == true
-        if(a->p){ // postindex == true
-            la_addi_d(temp,temp,offset);
         }
-        la_or(reg_n, temp, zero_ir2_opnd);
-        store_gpr_dst(a->rn, reg_n);
+    }else{//Post-index
+        if(!a->p && offset){
+            la_addi_d(reg_n, reg_n, offset);
+        }
+
+        switch(dbytes){
+        case 4:
+            la_st_w(reg_t, reg_n, 0);
+            la_st_w(reg_t2, reg_n, dbytes);
+            break;
+        case 8:
+            la_st_d(reg_t, reg_n, 0);
+            la_st_d(reg_t2, reg_n, dbytes);
+            break;
+        default:
+            assert(0);
+        }
+
+        if(a->p && offset){
+            la_addi_d(reg_n,reg_n,offset);
+        }       
+        if(a->w)
+            store_gpr_dst(a->rn, reg_n);
     }
 
     free_alloc_gpr(reg_n);
@@ -3454,23 +3460,34 @@ static bool trans_LDP(DisasContext *s, arg_ldstpair *a)
         switch(dbytes){
         case 4:
             if(a->sign){
-                if(a->rt != a->rn)
+                if(a->rn != a->rt && a->rn != a->rt2){ 
                     la_ld_w(reg_t, reg_n, 0);
-                else
-                if(a->rt2 != a->rn)
                     la_ld_w(reg_t2, reg_n, dbytes);
+                }else{//read vs write
+                    la_or(temp,reg_n, zero_ir2_opnd);
+                    la_ld_w(reg_t, temp, 0);
+                    la_ld_w(reg_t2, temp, dbytes);
+                }
             }else{
-                if(a->rt != a->rn)
+                if(a->rn != a->rt && a->rn != a->rt2){
                     la_ld_wu(reg_t, reg_n, 0);
-                if(a->rt2 != a->rn)
                     la_ld_wu(reg_t2, reg_n, dbytes);
+                }else{
+                    la_or(temp,reg_n, zero_ir2_opnd);
+                    la_ld_wu(reg_t, temp, 0);
+                    la_ld_wu(reg_t2, temp, dbytes);
+                }
             }
             break;
         case 8:
-            if(a->rt != a->rn)
+            if(a->rn != a->rt && a->rn != a->rt2){
                 la_ld_d(reg_t, reg_n, 0);
-            if(a->rt2 != a->rn)
                 la_ld_d(reg_t2, reg_n, dbytes);
+            }else{
+                la_or(temp,reg_n, zero_ir2_opnd);
+                la_ld_d(reg_t, temp, 0);
+                la_ld_d(reg_t2, temp, dbytes);
+            }
             break;
         default:
             assert(0);
@@ -3502,6 +3519,7 @@ static bool trans_STP_v(DisasContext *s, arg_ldstpair *a)
     */
 
     uint64_t offset = a->imm << a->sz;
+    int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
 
     /* TODO: CheckFPAdvSIMDEnabled64(s) */
 
@@ -3510,14 +3528,9 @@ static bool trans_STP_v(DisasContext *s, arg_ldstpair *a)
     IR2_OPND vreg_t2 = alloc_fpr_src(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
 
-    if(!a->p){ // postindex = false
-        la_addi_d(temp,reg_n,offset);
-    }
-    else{
-        la_or(temp,reg_n,zero_ir2_opnd);
-    }
-    int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
-    switch(dbytes){
+    if(!a->w && offset){ // wback = false && offset!=0
+        la_addi_d(temp, reg_n, offset);
+        switch(dbytes){
         case 4:
             la_fst_s(vreg_t, temp, 0);
             la_fst_s(vreg_t2, temp, dbytes);
@@ -3532,14 +3545,34 @@ static bool trans_STP_v(DisasContext *s, arg_ldstpair *a)
             break;
         default:
             assert(0);
-    }
-
-    if(a->w){ // wback == true
-        if(a->p){ // postindex == true
-            la_addi_d(temp,temp,offset);
         }
-        la_or(reg_n, temp, zero_ir2_opnd);
-        store_gpr_dst(a->rn, reg_n);
+    }else{//Post-index
+        if(!a->p && offset){
+            la_addi_d(reg_n, reg_n, offset);
+        }
+
+        switch(dbytes){
+        case 4:
+            la_fst_s(vreg_t, reg_n, 0);
+            la_fst_s(vreg_t2, reg_n, dbytes);
+            break;
+        case 8:
+            la_fst_d(vreg_t, reg_n, 0);
+            la_fst_d(vreg_t2, reg_n, dbytes);
+            break;
+        case 16:
+            la_vst(vreg_t, reg_n, 0);
+            la_vst(vreg_t2, reg_n, dbytes);
+            break;
+        default:
+            assert(0);
+        }
+
+        if(a->p && offset){
+            la_addi_d(reg_n,reg_n,offset);
+        }       
+        if(a->w)
+            store_gpr_dst(a->rn, reg_n);
     }
 
     free_alloc_gpr(reg_n);
@@ -3559,7 +3592,7 @@ static bool trans_LDP_v(DisasContext *s, arg_ldstpair *a)
     */
 
     uint64_t offset = a->imm << a->sz;
-
+    int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
     /* TODO: CheckFPAdvSIMDEnabled64(s) */
 
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
@@ -3567,29 +3600,20 @@ static bool trans_LDP_v(DisasContext *s, arg_ldstpair *a)
     IR2_OPND vreg_t2 = alloc_fpr_dst(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
 
-    if(!a->p){ // postindex = false
+    if(!a->w && offset){ // wback = false && offset!=0
         la_addi_d(temp, reg_n, offset);
-    }
-    else{
-        la_or(temp,reg_n, zero_ir2_opnd);
-    }
-    int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
-    switch(dbytes){
+        switch(dbytes){
         case 4:
+            la_vsub_d(vreg_t,vreg_t,vreg_t);
+            la_vsub_d(vreg_t2,vreg_t2,vreg_t2);
             la_fld_s(vreg_t, temp, 0);
             la_fld_s(vreg_t2, temp, dbytes);
-            /* 只保留低32位 */
-            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
-            la_vinsgr2vr_w(vreg_t, zero_ir2_opnd, 1);
-            la_vinsgr2vr_d(vreg_t2, zero_ir2_opnd, 1);
-            la_vinsgr2vr_w(vreg_t2, zero_ir2_opnd, 1);
             break;
         case 8:
+            la_vsub_d(vreg_t,vreg_t,vreg_t);
+            la_vsub_d(vreg_t2,vreg_t2,vreg_t2);
             la_fld_d(vreg_t, temp, 0);
             la_fld_d(vreg_t2, temp, dbytes);
-            /* 高64位清零 */
-            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
-            la_vinsgr2vr_d(vreg_t2, zero_ir2_opnd, 1);
             break;
         case 16:
             la_vld(vreg_t, temp, 0);
@@ -3597,14 +3621,56 @@ static bool trans_LDP_v(DisasContext *s, arg_ldstpair *a)
             break;
         default:
             assert(0);
-    }
-
-    if(a->w){ // wback == true
-        if(a->p){ // postindex == true
-            la_addi_d(temp,temp,offset);
         }
-        la_or(reg_n, temp, zero_ir2_opnd);
-        store_gpr_dst(a->rn, reg_n);
+    }else{//Post-index
+        if(!a->p && offset){
+            la_addi_d(reg_n, reg_n, offset);
+        }
+
+        switch(dbytes){
+        case 4:
+            la_vsub_d(vreg_t,vreg_t,vreg_t);
+            la_vsub_d(vreg_t2,vreg_t2,vreg_t2);
+            if(a->rn != a->rt && a->rn != a->rt2){ 
+                la_fld_s(vreg_t, reg_n, 0);
+                la_fld_s(vreg_t2, reg_n, dbytes);
+            }else{//read vs write
+                la_or(temp,reg_n, zero_ir2_opnd);
+                la_fld_s(vreg_t, temp, 0);
+                la_fld_s(vreg_t2, temp, dbytes);
+            }
+            break;
+        case 8:
+            la_vsub_d(vreg_t,vreg_t,vreg_t);
+            la_vsub_d(vreg_t2,vreg_t2,vreg_t2);
+            if(a->rn != a->rt && a->rn != a->rt2){ 
+                la_fld_d(vreg_t, reg_n, 0);
+                la_fld_d(vreg_t2, reg_n, dbytes);
+            }else{//read vs write
+                la_or(temp,reg_n, zero_ir2_opnd);
+                la_fld_d(vreg_t, temp, 0);
+                la_fld_d(vreg_t2, temp, dbytes);
+            }
+            break;
+        case 16:
+            if(a->rn != a->rt && a->rn != a->rt2){ 
+                la_vld(vreg_t, reg_n, 0);
+                la_vld(vreg_t2, reg_n, dbytes);
+            }else{//read vs write
+                la_or(temp,reg_n, zero_ir2_opnd);
+                la_vld(vreg_t, temp, 0);
+                la_vld(vreg_t2, temp, dbytes);
+            }
+            break;
+        default:
+            assert(0);
+        }
+
+        if(a->p && offset){
+            la_addi_d(reg_n,reg_n,offset);
+        }       
+        if(a->w)
+            store_gpr_dst(a->rn, reg_n);
     }
 
     store_fpr_dst(a->rt, vreg_t);
