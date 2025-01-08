@@ -711,6 +711,17 @@ void store_gpr_dst(int i, IR2_OPND opnd) {
     }   
 }
 
+/* la_zero写回 */
+void store_gpr_zero(int i) {
+    if (arm_la_map[i] < 0) {
+        la_st_d(zero_ir2_opnd, env_ir2_opnd, env_offset_gpr(i));
+    }else{
+        IR2_OPND reg_d = alloc_gpr_dst(i);
+        la_ori(reg_d, zero_ir2_opnd, 0);
+        free_alloc_gpr(reg_d);
+    }   
+}
+
 /* la_zero不会被映射，但也不是临时寄存器 */
 void free_alloc_gpr(IR2_OPND opnd) {
     if (arm_la_reverse_map[opnd.val] == -1 && opnd.val != 0) {

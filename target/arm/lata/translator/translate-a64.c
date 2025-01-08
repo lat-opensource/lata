@@ -5912,12 +5912,15 @@ static bool trans_MOVZ(DisasContext *s, arg_MOVZ *a)
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);
     if(imm > 0xfff){
         li_d(reg_d,imm);
-    }else{
+        store_gpr_dst(a->rd, reg_d);
+    }else if(imm){
         la_ori(reg_d, zero_ir2_opnd, imm);
+        store_gpr_dst(a->rd, reg_d);
+    }else{
+        store_gpr_zero(a->rd);
     }
-    store_gpr_dst(a->rd, reg_d);
-    free_alloc_gpr(reg_d);
 
+    free_alloc_gpr(reg_d);
     return true;
 }
 

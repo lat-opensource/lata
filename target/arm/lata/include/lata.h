@@ -91,6 +91,7 @@ IR2_OPND alloc_gpr_src_sp(int i);
 IR2_OPND alloc_gpr_dst(int i);
 IR2_OPND alloc_gpr_dst_sp(int i);
 void store_gpr_dst(int i, IR2_OPND opnd);
+void store_gpr_zero(int i);
 void free_alloc_gpr(IR2_OPND opnd);
 
 IR2_OPND alloc_fpr_src(int i);
