@@ -6389,6 +6389,8 @@ static void disas_add_sub_ext_reg(DisasContext *s, uint32_t insn)
     bool setflags = extract32(insn, 29, 1);
     bool sub_op = extract32(insn, 30, 1);
     bool sf = extract32(insn, 31, 1);
+    int extsize = extract32(option, 0, 2);
+    bool is_signed = extract32(option, 2, 1);
 
     if (imm3 > 4 || opt != 0) {
         unallocated_encoding(s);
@@ -6407,9 +6409,51 @@ static void disas_add_sub_ext_reg(DisasContext *s, uint32_t insn)
         reg_d = alloc_gpr_dst(rd);
     }
 
-    ext_and_shift_reg(&temp, &reg_m, option, imm3);
+    // ext_and_shift_reg(&temp, &reg_m, option, imm3);
+    if (is_signed) {
+        switch (extsize) {
+        case 0:
+            la_ext_w_b(temp, reg_m);
+            break;
+        case 1:
+            la_ext_w_h(temp, reg_m);
+            break;
+        case 2:
+            la_bstrpick_w(temp,reg_m,31,0);
+            break;
+        case 3:
+            // la_or(*dst,*src,zero_ir2_opnd);
+            break;
+        }
+    } else {
+        switch (extsize) {
+        case 0:
+            la_bstrpick_d(temp,reg_m,7,0);
+            break;
+        case 1:
+            la_bstrpick_d(temp,reg_m,15,0);
+            break;
+        case 2:
+            la_bstrpick_d(temp,reg_m,31,0);
+            break;
+        case 3:
+            // la_or(*dst,*src,zero_ir2_opnd);
+            break;
+        }
+    }
 
-    gen_add_sub_reg_result(setflags, sub_op, sf, &reg_d, &reg_n, &temp);
+    if (imm3) {
+        if(extsize == 3)
+            la_slli_d(temp,reg_m,imm3);
+        else
+            la_slli_d(temp,temp,imm3);        
+        gen_add_sub_reg_result(setflags, sub_op, sf, &reg_d, &reg_n, &temp);
+    }else{
+        if(extsize == 3)
+            gen_add_sub_reg_result(setflags, sub_op, sf, &reg_d, &reg_n, &reg_m);
+        else
+            gen_add_sub_reg_result(setflags, sub_op, sf, &reg_d, &reg_n, &temp);
+    }
 
     store_gpr_dst(rd, reg_d);
     free_alloc_gpr(reg_d);
