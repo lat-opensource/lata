@@ -6068,11 +6068,11 @@ static bool trans_BFM(DisasContext *s, arg_BFM *a)
     unsigned int si = a->imms;
 
     IR2_OPND reg_d = alloc_gpr_src(a->rd);
-    IR2_OPND reg_n, temp;
+    IR2_OPND reg_n = alloc_gpr_src(a->rn);
+    IR2_OPND temp;
 
     if (si >= ri) { // BFXIL
         /* Wd<s-r:0> = Wn<s:r> */
-        reg_n = alloc_gpr_src(a->rn);
         temp = ra_alloc_itemp();
         if( a->sf ){
             la_srli_d(temp, reg_n, ri);
@@ -6081,25 +6081,28 @@ static bool trans_BFM(DisasContext *s, arg_BFM *a)
             la_srli_w(temp, reg_n, ri);
             la_bstrins_w(reg_d, temp, si - ri, 0);
         }
-
-        free_alloc_gpr(reg_n);
         free_alloc_gpr(temp);
     } else {
         /* Wd<32+s-r,32-r> = Wn<s:0> */
-        if(a->rn == 31){ // BFC
-            if(a->sf){
-                la_bstrins_d(reg_d, zero_ir2_opnd, bitsize + si - ri, bitsize - ri);
-            }else{
-                la_bstrins_w(reg_d, zero_ir2_opnd, bitsize + si - ri, bitsize - ri);
-            }
-        }else{ // BFI
-            reg_n = alloc_gpr_src(a->rn);
-            if(a->sf){
-                la_bstrins_d(reg_d, reg_n, bitsize + si - ri, bitsize - ri);
-            }else{
-                la_bstrins_w(reg_d, reg_n, bitsize + si - ri, bitsize - ri);
-            }
-            free_alloc_gpr(reg_n);
+        // if(a->rn == 31){ // BFC
+        //     if(a->sf){
+        //         la_bstrins_d(reg_d, zero_ir2_opnd, bitsize + si - ri, bitsize - ri);
+        //     }else{
+        //         la_bstrins_w(reg_d, zero_ir2_opnd, bitsize + si - ri, bitsize - ri);
+        //     }
+        // }else{ // BFI
+        //     reg_n = alloc_gpr_src(a->rn);
+        //     if(a->sf){
+        //         la_bstrins_d(reg_d, reg_n, bitsize + si - ri, bitsize - ri);
+        //     }else{
+        //         la_bstrins_w(reg_d, reg_n, bitsize + si - ri, bitsize - ri);
+        //     }
+        //     free_alloc_gpr(reg_n);
+        // }
+        if(a->sf){
+            la_bstrins_d(reg_d, reg_n, bitsize + si - ri, bitsize - ri);
+        }else{
+            la_bstrins_w(reg_d, reg_n, bitsize + si - ri, bitsize - ri);
         }
     }
 
@@ -6108,6 +6111,7 @@ static bool trans_BFM(DisasContext *s, arg_BFM *a)
     }
 
     store_gpr_dst(a->rd, reg_d);
+    free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_d);
     return true;
 }
@@ -6215,24 +6219,24 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
         return;
     }
 
+    IR2_OPND reg_d = alloc_gpr_dst(rd);
+    IR2_OPND reg_m = alloc_gpr_src(rm);
 
     if (opc == 1 && shift_amount == 0 && shift_type == 0 && rn == 31) {
         /* Unshifted ORR and ORN with WZR/XZR is the standard encoding for
          * register-register MOV and MVN, so it is worth special casing.
          */
-        IR2_OPND reg_d = alloc_gpr_dst(rd);
-        IR2_OPND reg_m = alloc_gpr_src(rm);
+        // IR2_OPND reg_d = alloc_gpr_dst(rd);
+        // IR2_OPND reg_m = alloc_gpr_src(rm);
 
         if (invert) {
             la_orn(reg_d, zero_ir2_opnd, reg_m);
-            if (!sf) {
-                la_bstrpick_d(reg_d, reg_d, 31, 0);
-            }
         } else {
             la_or(reg_d, zero_ir2_opnd, reg_m);
-            if (!sf) {
-                la_bstrpick_d(reg_d, reg_d, 31, 0);
-            }
+        }
+
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
         }
 
         store_gpr_dst(rd, reg_d);
@@ -6241,17 +6245,15 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
         return;
     }
 
-    IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND reg_n = alloc_gpr_src(rn);
-    IR2_OPND reg_m = alloc_gpr_src(rm);
     IR2_OPND temp = ra_alloc_itemp();
 
     if (shift_amount) {
         shift_reg_imm(&temp, &reg_m, sf, shift_type, shift_amount);
+
         switch (opc | (invert << 2)) {
         case 0: /* AND */
         case 3: /* ANDS */
-            la_and(reg_d, reg_n, temp);
             if(opc==3){
                 if(sf){
                     la_x86and_d(reg_n, temp);
@@ -6259,6 +6261,7 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
                     la_x86and_w(reg_n, temp);
                 }
             }
+            la_and(reg_d, reg_n, temp);
             break;
         case 1: /* ORR */
             la_or(reg_d, reg_n, temp);
@@ -6293,7 +6296,6 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
         switch (opc | (invert << 2)) {
         case 0: /* AND */
         case 3: /* ANDS */
-            la_and(reg_d, reg_n, reg_m);
             if(opc==3){
                 if(sf){
                     la_x86and_d(reg_n, reg_m);
@@ -6301,6 +6303,7 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
                     la_x86and_w(reg_n, reg_m);
                 }
             }
+            la_and(reg_d, reg_n, reg_m);
             break;
         case 1: /* ORR */
             la_or(reg_d, reg_n, reg_m);
@@ -6310,7 +6313,6 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
             break;
         case 4: /* BIC */
         case 7: /* BICS */
-            la_andn(reg_d, reg_n, reg_m);
             if(opc==3){
                 la_nor(temp, zero_ir2_opnd, reg_m);
                 if(sf){
@@ -6319,6 +6321,7 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
                     la_x86and_w(reg_n, temp);
                 }
             }
+            la_andn(reg_d, reg_n, reg_m);
             break;
         case 5: /* ORN */
             la_orn(reg_d, reg_n, reg_m);
@@ -6656,36 +6659,44 @@ static void disas_adc_sbc(DisasContext *s, uint32_t insn)
     IR2_OPND reg_m = alloc_gpr_src(rm);
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND temp = ra_alloc_itemp();
-    IR2_OPND temp2 = ra_alloc_itemp();
 
     if (op) {
         la_orn(temp, zero_ir2_opnd, reg_m);
+        if (setflags) {
+            if (sf) {
+                la_x86adc_d(reg_n, temp);
+            } else {
+                la_x86adc_w(reg_n, temp);
+            }
+        }
+        if (sf) {
+                la_adc_d(reg_d, reg_n, temp);
+        } else {
+                la_adc_w(reg_d, reg_n, temp);
+        }
     } else {
-        la_or(temp, zero_ir2_opnd, reg_m);
-    }
-
-    if(sf){
-        la_adc_d(temp2, reg_n, temp);
-    }else{
-        la_adc_w(temp2, reg_n, temp);
-        la_bstrpick_d(temp2, temp2, 31, 0);
-    }
-
-    if(setflags){
-        if(sf){
-            la_x86adc_d(reg_n, temp);
-        }else{
-            la_x86adc_w(reg_n, temp);
+        if (setflags) {
+            if (sf) {
+                la_x86adc_d(reg_n, reg_m);
+            } else {
+                la_x86adc_w(reg_n, reg_m);
+            }
+        }
+        if (sf) {
+                la_adc_d(reg_d, reg_n, reg_m);
+        } else {
+                la_adc_w(reg_d, reg_n, reg_m);
         }
     }
-    
-    la_or(reg_d, zero_ir2_opnd, temp2);
+
+    if (!sf) {
+        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    }
 
     free_alloc_gpr(reg_d);
     free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_m);
     free_alloc_gpr(temp);
-    free_alloc_gpr(temp2);
     store_gpr_dst(rd, reg_d);
 }
 

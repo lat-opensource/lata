@@ -339,9 +339,12 @@ static void generate_context_switch_bt_to_native(CPUState *cs)
 
     /* load gpr and fpr */
     for(int i = 0; i <= 31; ++i) {
-        if(arm_la_fmap[i] >= 0) {
-            li_d(a7_ir2_opnd, env_offset_fpr(i));
-            la_vldx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, a7_ir2_opnd);
+        // if(arm_la_fmap[i] >= 0) {
+        //     li_d(a7_ir2_opnd, env_offset_fpr(i));
+        //     la_vldx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, a7_ir2_opnd);
+        // }
+        if (arm_la_fmap[i] >= 0) {
+            la_vld(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, env_offset_fpr(i));
         }
     }
     for(int i = 0; i <= 31; ++i) {
@@ -364,9 +367,12 @@ static void generate_context_switch_native_to_bt(CPUState *cs)
         }
     }
     for(int i = 0; i <= 31; ++i) {
-        if(arm_la_fmap[i] >= 0) {
-            li_d(t0_ir2_opnd, env_offset_fpr(i));
-            la_vstx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, t0_ir2_opnd);
+        // if(arm_la_fmap[i] >= 0) {
+        //     li_d(t0_ir2_opnd, env_offset_fpr(i));
+        //     la_vstx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, t0_ir2_opnd);
+        // }
+        if (arm_la_fmap[i] >= 0) {
+            la_vst(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, env_offset_fpr(i));
         }
     }
 
@@ -605,10 +611,13 @@ void lata_gen_call_helper_prologue(TCGContext *tcg_ctx)
     }
 
     for(int i = 0; i <= 31; ++i) {
-        if(arm_la_fmap[i] >= 0) {
-            li_d(t0_ir2_opnd, env_offset_fpr(i));
-            la_vstx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, t0_ir2_opnd);
+        if (arm_la_fmap[i] >= 0) {
+            la_vst(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, env_offset_fpr(i));
         }
+        // if(arm_la_fmap[i] >= 0) {
+        //     li_d(t0_ir2_opnd, env_offset_fpr(i));
+        //     la_vstx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, t0_ir2_opnd);
+        // }
     }
 
     /* store pstate reg */
@@ -648,10 +657,13 @@ void lata_gen_call_helper_epilogue(TCGContext *tcg_ctx)
     la_movgr2fcsr(fcsr_ir2_opnd, a7_ir2_opnd);
 
     for(int i = 0; i <= 31; ++i) {
-        if(arm_la_fmap[i] >= 0) {
-            li_d(a7_ir2_opnd, env_offset_fpr(i));
-            la_vldx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, a7_ir2_opnd);
+        if (arm_la_fmap[i] >= 0) {
+            la_vld(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, env_offset_fpr(i));
         }
+        // if(arm_la_fmap[i] >= 0) {
+        //     li_d(a7_ir2_opnd, env_offset_fpr(i));
+        //     la_vldx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, a7_ir2_opnd);
+        // }
     }
 
     for(int i = 0; i <= 31; ++i) {
