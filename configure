@@ -267,6 +267,8 @@ gdb_bin=$(command -v "gdb-multiarch" || command -v "gdb")
 gdb_arches=""
 werror=""
 lata="no"
+indirect_jmp_opt="no"
+insts_pattern_opt="no"
 
 # Don't accept a target_list environment variable.
 unset target_list
@@ -822,11 +824,14 @@ for opt do
   ;;
   --disable-containers) use_containers="no"
   ;;
-  --enable-lata) lata=yes
+  --enable-lata) lata="yes"
   ;;
-  --disable-lata) lata=no
+  --disable-lata) lata="no"
   ;;
-
+  --insts-pattern-opt) insts_pattern_opt="yes"
+  ;;
+  --indirect-jmp-opt) indirect_jmp_opt="yes"
+  ;;
   --gdb=*) gdb_bin="$optarg"
   ;;
   # everything else has the same name in configure and meson
@@ -956,6 +961,13 @@ Advanced options (experts only):
                            enable plugins via shared library loading
   --disable-containers     don't use containers for cross-building
   --gdb=GDB-path           gdb to use for gdbstub tests [$gdb_bin]
+
+Optional only for LATA:
+  ====== Optimize Optional ======
+  --indirect-jmp-opt
+                          enable indirect branch optimization
+  --insts-pattern-opt
+                          enable instruction pattern optimization
 EOF
   meson_options_help
 cat << EOF
@@ -1810,6 +1822,12 @@ if test "$lata" = "yes" ; then
   echo "CONFIG_LATA=y" >> $config_host_mak
   if test "$debug_tcg" = "yes" ; then
   echo "CONFIG_LATA_DEBUG=y" >> $config_host_mak
+  fi
+  if test "$insts_pattern_opt" = "yes" ; then
+  echo "CONFIG_LATA_INSTS_PATTERN=y" >> $config_host_mak
+  fi
+  if test "$indirect_jmp_opt" = "yes" ; then
+    echo "CONFIG_LATA_INDIRECT_JMP=y" >> $config_host_mak
   fi
 fi
 

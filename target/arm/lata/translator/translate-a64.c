@@ -549,7 +549,7 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
 {
     IR2_OPND reg_n = alloc_gpr_src(rn);
 
-    if (indirect_jmp_opt) {
+#ifdef CONFIG_LATA_INDIRECT_JMP
         IR2_OPND guest_pc = ra_alloc_itemp();
         IR2_OPND host_pc  = ra_alloc_itemp();
         IR2_OPND exit = ir2_opnd_new_type(IR2_OPND_LABEL);
@@ -578,7 +578,7 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
 
         free_alloc_gpr(guest_pc);
         free_alloc_gpr(host_pc);
-    }
+#endif
 
     la_st_d(reg_n, env_ir2_opnd, env_offset_pc());
 
@@ -17367,17 +17367,16 @@ static void aarch64_tr_translate_insn(DisasContextBase *dcbase, CPUState *cpu)
     }
 
     // Scan pattern
-    if(insts_pattern_opt){
-        nzcv_use(s->base.tb , insn);
-        if(insts_pattern(s, cpu, insn)){
-            //count recovery
-            s->pc_curr = pc + 4;
-            s->base.pc_next = pc + 8;
-            dcbase->num_insns++;
-            return;
-        }
-        
+#ifdef CONFIG_LATA_INSTS_PATTERN
+    nzcv_use(s->base.tb , insn);
+    if(insts_pattern(s, cpu, insn)){
+        //count recovery
+        s->pc_curr = pc + 4;
+        s->base.pc_next = pc + 8;
+        dcbase->num_insns++;
+        return;
     }
+#endif
 
     if (!disas_a64(s, insn) &&
         !disas_sme(s, insn) &&

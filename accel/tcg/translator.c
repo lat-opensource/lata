@@ -221,9 +221,9 @@ void translator_loop(CPUState *cpu, TranslationBlock *tb, int *max_insns,
     }
 
     /* The disas_log hook may use these values rather than recompute.  */
-    if(insts_pattern_opt){
-        tb->nzcv_use = db->tb->nzcv_use ; 
-    }
+#ifdef CONFIG_LATA_INSTS_PATTERN
+    tb->nzcv_use = db->tb->nzcv_use ; 
+#endif
     tb->size = db->pc_next - db->pc_first;
     tb->icount = db->num_insns;
 

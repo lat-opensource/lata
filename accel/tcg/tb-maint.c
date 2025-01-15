@@ -854,10 +854,12 @@ void tb_reset_jump(TranslationBlock *tb, int n)
 {
     uintptr_t addr = (uintptr_t)(tb->tc.ptr + tb->jmp_reset_offset[n]);
     tb_set_jmp_target(tb, n, addr);
-    
-    if (insts_pattern_opt && tb->nzcv_save[n]!=TB_JMP_OFFSET_INVALID) {
+
+#ifdef CONFIG_LATA_INSTS_PATTERN    
+    if (tb->nzcv_save[n]!=TB_JMP_OFFSET_INVALID) {
         tb_nzcv_jmp(tb, n, false);
     }
+#endif
 }
 
 /* remove any jumps to the TB */

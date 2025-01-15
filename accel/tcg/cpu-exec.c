@@ -694,13 +694,12 @@ static inline void tb_add_jump(TranslationBlock *tb, int n,
         goto out_unlock_next;
     }
 
-    if(insts_pattern_opt && tb->nzcv_save[n]!= TB_JMP_OFFSET_INVALID){
-        if (!tb_next->nzcv_use){
-            // ignore nzcv calculate
-            tb_nzcv_jmp(tb, n ,true);
-        }
+#ifdef CONFIG_LATA_INSTS_PATTERN
+    if(tb->nzcv_save[n]!= TB_JMP_OFFSET_INVALID && !tb_next->nzcv_use){
+        // ignore nzcv calculate
+        tb_nzcv_jmp(tb, n ,true);
     }
-
+#endif
     /* patch the native jump address */
     tb_set_jmp_target(tb, n, (uintptr_t)tb_next->tc.ptr);
 

@@ -410,7 +410,7 @@ bool insts_pattern(DisasContext *s, CPUState *cpu, uint32_t insn)
     uint32_t insn2 = arm_ldl_code(cpu->env_ptr, &s->base, s->base.pc_next, s->sctlr_b);
     dt_aarch64_insn cmp_type = lookup_pattern(&cmp_table[0], insn);
     dt_aarch64_insn b_type = lookup_pattern(&bcond_table[0], insn2);
-
+    
     if (b_type && cmp_type)
     {
         int offset = sextract32(insn2, 5, 19) << 2;
@@ -420,15 +420,12 @@ bool insts_pattern(DisasContext *s, CPUState *cpu, uint32_t insn)
         case CMP_IMM:
             trans_CMPI_BCOND(s, insn, b_type, offset);
             break;
-            // return false;
         case CMP_EREG:
             trans_CMPE_BCOND(s, insn, b_type, offset);
             break;
-            // return false;
         case CMP_SREG:
             trans_CMPS_BCOND(s, insn, b_type, offset);
             break;
-            // return false;
         default:
             assert(0);
             break;

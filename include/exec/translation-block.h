@@ -120,7 +120,7 @@ struct TranslationBlock {
     uint16_t jmp_reset_offset[2]; /* offset of original jump target */
     uint16_t jmp_insn_offset[2];  /* offset of direct jump insn */
     uintptr_t jmp_target_addr[2]; /* target address */
-#ifdef CONFIG_LATA
+#ifdef CONFIG_LATA_INSTS_PATTERN
     uint16_t nzcv_save[2];
     bool nzcv_use;
 #endif
