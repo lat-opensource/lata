@@ -513,18 +513,18 @@ static void label_dispose(void)
                     (label_num_to_ir2_num[label_id_1] << 2) + B_STUB_SIZE;
                 // tb->jmp_target_addr[1] = (label_num_to_ir2_num[label_id_1] << 2);
             }
-            
-            if(insts_pattern_opt){
-                label_id_0 = tb->nzcv_save[0];
-                if (label_id_0 != TB_JMP_OFFSET_INVALID) {
-                    tb->nzcv_save[0] = (label_num_to_ir2_num[label_id_0] << 2);
-                }
 
-                label_id_1 = tb->nzcv_save[1];
-                if (label_id_1 != TB_JMP_OFFSET_INVALID) {
-                    tb->nzcv_save[1] = (label_num_to_ir2_num[label_id_1] << 2);
-                }
+#ifdef CONFIG_LATA_INSTS_PATTERN
+            label_id_0 = tb->nzcv_save[0];
+            if (label_id_0 != TB_JMP_OFFSET_INVALID) {
+                tb->nzcv_save[0] = (label_num_to_ir2_num[label_id_0] << 2);
             }
+
+            label_id_1 = tb->nzcv_save[1];
+            if (label_id_1 != TB_JMP_OFFSET_INVALID) {
+                tb->nzcv_save[1] = (label_num_to_ir2_num[label_id_1] << 2);
+            }
+#endif
         }
     }
 
