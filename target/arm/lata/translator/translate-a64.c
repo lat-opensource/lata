@@ -3740,36 +3740,24 @@ static bool trans_STGP(DisasContext *s, arg_ldstpair *a)
     return true;
 }
 
-// static void op_addr_ldst_imm_pre(DisasContext *s, arg_ldst_imm *a,
-//                                  TCGv_i64 *clean_addr, TCGv_i64 *dirty_addr,
-//                                  uint64_t offset, bool is_store, MemOp mop)
-// {
-//     int memidx;
-
-//     if (a->rn == 31) {
-//         gen_check_sp_alignment(s);
-//     }
-
-//     *dirty_addr = read_cpu_reg_sp(s, a->rn, 1);
-//     if (!a->p) {
-//         tcg_gen_addi_i64(*dirty_addr, *dirty_addr, offset);
-//     }
-//     memidx = a->unpriv ? get_a64_user_mem_index(s) : get_mem_index(s);
-//     *clean_addr = gen_mte_check1_mmuidx(s, *dirty_addr, is_store,
-//                                         a->w || a->rn != 31,
-//                                         mop, a->unpriv, memidx);
-// }
-
-// static void op_addr_ldst_imm_post(DisasContext *s, arg_ldst_imm *a,
-//                                   TCGv_i64 dirty_addr, uint64_t offset)
-// {
-//     if (a->w) {
-//         if (a->p) {
-//             tcg_gen_addi_i64(dirty_addr, dirty_addr, offset);
-//         }
-//         tcg_gen_mov_i64(cpu_reg_sp(s, a->rn), dirty_addr);
-//     }
-// }
+static void assist_trans_STR_i(IR2_OPND* reg_t, IR2_OPND* reg_n, uint64_t offset, uint64_t sz){
+    switch(sz){
+        case 0: 
+            la_st_b(*reg_t, *reg_n, offset);
+            break;
+        case 1: 
+            la_st_h(*reg_t, *reg_n, offset);
+            break;
+        case 2:
+            la_st_w(*reg_t, *reg_n, offset);
+            break;
+        case 3:
+            la_st_d(*reg_t, *reg_n, offset);
+            break;
+        default:
+            assert(0);
+    }
+}
 
 static bool trans_STR_i(DisasContext *s, arg_ldst_imm *a)
 {
@@ -3789,7 +3777,6 @@ static bool trans_STR_i(DisasContext *s, arg_ldst_imm *a)
 
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
-    IR2_OPND temp = ra_alloc_itemp();
 
     if(!a->w && offset){ // postindex = false
         /* Unsigned offset立即数是uimm12位，
@@ -3797,51 +3784,20 @@ static bool trans_STR_i(DisasContext *s, arg_ldst_imm *a)
         而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
         */
         if(a->imm > 0x7ff){
-            IR2_OPND temp_offset = ra_alloc_itemp();
-            li_d(temp_offset, a->imm);  
-            la_add_d(temp, reg_n, temp_offset);
-            free_alloc_gpr(temp_offset);
+            IR2_OPND temp = ra_alloc_itemp();
+            li_d(temp, a->imm);  
+            la_add_d(temp, reg_n, temp);
+            assist_trans_STR_i(&reg_t, &temp, 0, a->sz);
+            free_alloc_gpr(temp);
         }
         else{
-            la_addi_d(temp, reg_n, a->imm);
+            assist_trans_STR_i(&reg_t, &reg_n, offset, a->sz);
         }
-
-        switch(a->sz){
-        case 0: 
-            la_st_b(reg_t, temp, 0);
-            break;
-        case 1: 
-            la_st_h(reg_t, temp, 0);
-            break;
-        case 2:
-            la_st_w(reg_t, temp, 0);
-            break;
-        case 3:
-            la_st_d(reg_t, temp, 0);
-            break;
-        default:
-            assert(0);
-    }
     }
     else{
         if(!a->p && offset)
             la_addi_d(reg_n, reg_n, offset);
-        switch(a->sz){
-        case 0: 
-            la_st_b(reg_t, reg_n, 0);
-            break;
-        case 1: 
-            la_st_h(reg_t, reg_n, 0);
-            break;
-        case 2:
-            la_st_w(reg_t, reg_n, 0);
-            break;
-        case 3:
-            la_st_d(reg_t, reg_n, 0);
-            break;
-        default:
-            assert(0);
-        }
+        assist_trans_STR_i(&reg_t, &reg_n, 0, a->sz);
         if(a->p && offset)
             la_addi_d(reg_n, reg_n, offset);
         if(a->w)
@@ -3850,8 +3806,47 @@ static bool trans_STR_i(DisasContext *s, arg_ldst_imm *a)
 
     free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_t);
-    free_alloc_gpr(temp);
     return true;
+}
+
+static void assist_trans_LDR_i(IR2_OPND* reg_t, IR2_OPND* reg_n, uint64_t offset, uint64_t sz, uint64_t sign, bool iss_sf){
+        switch(sz){
+        case 0:
+            if(sign){ // LDRSB_i
+                la_ld_b(*reg_t, *reg_n, offset);
+                if(!iss_sf){
+                    la_bstrpick_d(*reg_t, *reg_t, 31, 0);
+                }
+            }else{ // LDRB_i
+                la_ld_bu(*reg_t, *reg_n, offset);
+            }
+            break;
+        case 1:
+            if(sign){ // LDRSH_i
+                la_ld_h(*reg_t, *reg_n, offset);
+                if(!iss_sf){
+                    la_bstrpick_d(*reg_t, *reg_t, 31, 0);
+                }
+            }else{ // LDRH_i
+                la_ld_hu(*reg_t, *reg_n, offset);
+            }
+            break;
+        case 2:
+            if(sign){ // LDRSW_i
+                la_ld_w(*reg_t, *reg_n, offset);
+                if(!iss_sf){
+                    la_bstrpick_d(*reg_t, *reg_t, 31, 0);
+                }
+            }else{ // LDR_i
+                la_ld_wu(*reg_t, *reg_n, offset);
+            }
+            break;
+        case 3: // LDR_i
+            la_ld_d(*reg_t, *reg_n, offset);
+            break;
+        default:
+            assert(0);
+        }
 }
 
 static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
@@ -3875,8 +3870,6 @@ static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
 
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_t = alloc_gpr_dst(a->rt);
-    IR2_OPND temp = ra_alloc_itemp();
-
     
     if (a->rn == 31) {
         gen_check_sp_alignment(s);
@@ -3888,91 +3881,21 @@ static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
         而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
         */
         if(offset > 0x7ff){
+            IR2_OPND temp = ra_alloc_itemp();
             li_d(temp, offset);  
             la_add_d(temp, reg_n, temp);
+            assist_trans_LDR_i(&reg_t, &temp,0, a->sz, a->sign,iss_sf);
+            free_alloc_gpr(temp);
         }
         else{
-            la_addi_d(temp, reg_n, offset);
-        }
-        switch(a->sz){
-        case 0:
-            if(a->sign){ // LDRSB_i
-                la_ld_b(reg_t, temp, 0);
-                if(!iss_sf){
-                    la_bstrpick_d(reg_t, reg_t, 31, 0);
-                }
-            }else{ // LDRB_i
-                la_ld_bu(reg_t, temp, 0);
-            }
-            break;
-        case 1:
-            if(a->sign){ // LDRSH_i
-                la_ld_h(reg_t, temp, 0);
-                if(!iss_sf){
-                    la_bstrpick_d(reg_t, reg_t, 31, 0);
-                }
-            }else{ // LDRH_i
-                la_ld_hu(reg_t, temp, 0);
-            }
-            break;
-        case 2:
-            if(a->sign){ // LDRSW_i
-                la_ld_w(reg_t, temp, 0);
-                if(!iss_sf){
-                    la_bstrpick_d(reg_t, reg_t, 31, 0);
-                }
-            }else{ // LDR_i
-                la_ld_wu(reg_t, temp, 0);
-            }
-            break;
-        case 3: // LDR_i
-            la_ld_d(reg_t, temp, 0);
-            break;
-        default:
-            assert(0);
+            assist_trans_LDR_i(&reg_t, &reg_n, offset, a->sz, a->sign,iss_sf);
         }
     }else{//Post-index
         if(!a->p && offset){
             la_addi_d(reg_n,reg_n,offset); 
         }
 
-        switch(a->sz){
-        case 0:
-            if(a->sign){ // LDRSB_i
-                la_ld_b(reg_t, reg_n, 0);
-                if(!iss_sf){
-                    la_bstrpick_d(reg_t, reg_t, 31, 0);
-                }
-            }else{ // LDRB_i
-                la_ld_bu(reg_t, reg_n, 0);
-            }
-            break;
-        case 1:
-            if(a->sign){ // LDRSH_i
-                la_ld_h(reg_t, reg_n, 0);
-                if(!iss_sf){
-                    la_bstrpick_d(reg_t, reg_t, 31, 0);
-                }
-            }else{ // LDRH_i
-                la_ld_hu(reg_t, reg_n, 0);
-            }
-            break;
-        case 2:
-            if(a->sign){ // LDRSW_i
-                la_ld_w(reg_t, reg_n, 0);
-                if(!iss_sf){
-                    la_bstrpick_d(reg_t, reg_t, 31, 0);
-                }
-            }else{ // LDR_i
-                la_ld_wu(reg_t, reg_n, 0);
-            }
-            break;
-        case 3: // LDR_i
-            la_ld_d(reg_t, reg_n, 0);
-            break;
-        default:
-            assert(0);
-        }
+        assist_trans_LDR_i(&reg_t, &reg_n, 0, a->sz, a->sign,iss_sf);
 
         if(a->p && offset){
             la_addi_d(reg_n,reg_n,offset);         
@@ -3984,8 +3907,41 @@ static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
     store_gpr_dst(a->rt, reg_t);
     free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_t);
-    free_alloc_gpr(temp);
     return true;
+}
+
+static void assist_trans_STR_v_i(IR2_OPND* vreg_t, IR2_OPND* reg_n, uint64_t offset, uint64_t sz){
+    IR2_OPND temp = ra_alloc_itemp();
+    switch(sz){
+    case 0: 
+        if(offset){
+           la_addi_d(temp, *reg_n, offset);
+           la_vstelm_b(*vreg_t, temp, 0, 0); 
+        }else{
+           la_vstelm_b(*vreg_t, *reg_n, 0, 0); 
+        }
+         break;
+    case 1: 
+        if(offset){
+           la_addi_d(temp, *reg_n, offset);
+           la_vstelm_h(*vreg_t, temp, 0, 0); 
+        }else{
+           la_vstelm_h(*vreg_t, *reg_n, 0, 0);
+        }
+        break;
+    case 2:
+        la_fst_s(*vreg_t, *reg_n, offset);
+        break;
+    case 3:
+        la_fst_d(*vreg_t, *reg_n, offset);
+        break;
+     case 4:
+        la_vst(*vreg_t, *reg_n, offset);
+        break;
+    default:
+        assert(0);
+    }
+    free_alloc_gpr(temp);
 }
 
 static bool trans_STR_v_i(DisasContext *s, arg_ldst_imm *a)
@@ -4001,7 +3957,6 @@ static bool trans_STR_v_i(DisasContext *s, arg_ldst_imm *a)
 
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND vreg_t = alloc_fpr_src(a->rt);
-    IR2_OPND temp = ra_alloc_itemp();
 
     if(!a->w && offset){ // postindex = false
         /* Unsigned offset立即数是uimm12位，
@@ -4009,58 +3964,22 @@ static bool trans_STR_v_i(DisasContext *s, arg_ldst_imm *a)
         而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
         */
         if(a->imm > 0x7ff){
-            IR2_OPND temp_offset = ra_alloc_itemp();
-            li_d(temp_offset, a->imm);  
-            la_add_d(temp, reg_n, temp_offset);
-            free_alloc_gpr(temp_offset);
+            IR2_OPND temp = ra_alloc_itemp();
+            li_d(temp, a->imm);  
+            la_add_d(temp, reg_n, temp);
+            free_alloc_gpr(temp);
+            assist_trans_STR_v_i(&vreg_t,&temp,0,a->sz);
         }
         else{
-            la_addi_d(temp, reg_n, a->imm);
-        }
-
-        switch(a->sz){
-        case 0: 
-            la_vstelm_b(vreg_t, temp, 0, 0);
-            break;
-        case 1: 
-            la_vstelm_h(vreg_t, temp, 0, 0);
-            break;
-        case 2:
-            la_fst_s(vreg_t, temp, 0);
-            break;
-        case 3:
-            la_fst_d(vreg_t, temp, 0);
-            break;
-        case 4:
-            la_vst(vreg_t, temp, 0);
-            break;
-        default:
-            assert(0);
+            // la_addi_d(temp, reg_n, a->imm);
+            assist_trans_STR_v_i(&vreg_t,&reg_n,offset,a->sz);
         }
     }
     else{
         if(!a->p && offset)
             la_addi_d(reg_n, reg_n, offset);
             
-        switch(a->sz){
-        case 0: 
-            la_vstelm_b(vreg_t, reg_n, 0, 0);
-            break;
-        case 1: 
-            la_vstelm_h(vreg_t, reg_n, 0, 0);
-            break;
-        case 2:
-            la_fst_s(vreg_t, reg_n, 0);
-            break;
-        case 3:
-            la_fst_d(vreg_t, reg_n, 0);
-            break;
-        case 4:
-            la_vst(vreg_t, reg_n, 0);
-            break;
-        default:
-            assert(0);
-        }
+        assist_trans_STR_v_i(&vreg_t,&reg_n,0,a->sz);
 
         if(a->p && offset)
             la_addi_d(reg_n, reg_n, offset);
@@ -4070,8 +3989,38 @@ static bool trans_STR_v_i(DisasContext *s, arg_ldst_imm *a)
 
     free_alloc_gpr(reg_n);
     free_alloc_fpr(vreg_t);
-    free_alloc_gpr(temp);
     return true;
+}
+
+static void assist_trans_LDR_v_i(IR2_OPND* vreg_t, IR2_OPND* reg_n, uint64_t offset, uint64_t sz){
+    IR2_OPND temp = ra_alloc_itemp();
+    switch(sz){
+        case 0:
+            la_vxor_v(*vreg_t, *vreg_t, *vreg_t);
+            la_ld_bu(temp, *reg_n, offset);
+            la_vinsgr2vr_b(*vreg_t, temp, 0);
+            break;
+        case 1:
+            la_vxor_v(*vreg_t, *vreg_t, *vreg_t);
+            la_ld_hu(temp, *reg_n, offset);
+            la_vinsgr2vr_h(*vreg_t, temp, 0);
+            break;
+        case 2:
+            la_fld_s(*vreg_t, *reg_n, offset);
+            la_vand_v(*vreg_t,*vreg_t, fsmask_ir2_opnd);
+            break;
+        case 3:
+            la_fld_d(*vreg_t, *reg_n, offset);
+            /* 高64位清零 */
+            la_vinsgr2vr_d(*vreg_t, zero_ir2_opnd, 1);
+            break;
+        case 4:
+            la_vld(*vreg_t, *reg_n, offset);
+            break;
+        default:
+            assert(0);
+        }
+    free_alloc_gpr(temp);
 }
 
 static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
@@ -4087,8 +4036,6 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
 
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND vreg_t = alloc_fpr_dst(a->rt);
-    IR2_OPND temp = ra_alloc_itemp();
-    IR2_OPND temp1 = ra_alloc_itemp();
 
     if(!a->w && offset){ // wback = false && offset!=0
         /* Unsigned offset立即数是uimm12位，
@@ -4096,73 +4043,21 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
         而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
         */
         if(offset > 0x7ff){
+            IR2_OPND temp = ra_alloc_itemp();
             li_d(temp, offset);  
             la_add_d(temp, reg_n, temp);
+            assist_trans_LDR_v_i(&vreg_t, &temp, 0, a->sz);
+            free_alloc_gpr(temp);
         }
         else{
-            la_addi_d(temp, reg_n, offset);
-        }
-        switch(a->sz){
-        case 0:
-            la_vxor_v(vreg_t, vreg_t, vreg_t);
-            la_ld_bu(temp1, temp, 0);
-            la_vinsgr2vr_b(vreg_t, temp1, 0);
-            break;
-        case 1:
-            la_vxor_v(vreg_t, vreg_t, vreg_t);
-            la_ld_hu(temp1, temp, 0);
-            la_vinsgr2vr_h(vreg_t, temp1, 0);
-            break;
-        case 2:
-            la_fld_s(vreg_t, temp, 0);
-            la_movgr2frh_w(vreg_t, zero_ir2_opnd);
-            /* 高64位清零 */
-            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
-            break;
-        case 3:
-            la_fld_d(vreg_t, temp, 0);
-            /* 高64位清零 */
-            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
-            break;
-        case 4:
-            la_vld(vreg_t, temp, 0);
-            break;
-        default:
-            assert(0);
+           assist_trans_LDR_v_i(&vreg_t, &reg_n, offset, a->sz);
         }
     }else{//Post-index
         if(!a->p && offset){
             la_addi_d(reg_n,reg_n,offset); 
         }
 
-        switch(a->sz){
-        case 0:
-            la_vxor_v(vreg_t, vreg_t, vreg_t);
-            la_ld_bu(temp1, reg_n, 0);
-            la_vinsgr2vr_b(vreg_t, temp1, 0);
-            break;
-        case 1:
-            la_vxor_v(vreg_t, vreg_t, vreg_t);
-            la_ld_hu(temp1, reg_n, 0);
-            la_vinsgr2vr_h(vreg_t, temp1, 0);
-            break;
-        case 2:
-            la_fld_s(vreg_t, reg_n, 0);
-            la_movgr2frh_w(vreg_t, zero_ir2_opnd);
-            /* 高64位清零 */
-            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
-            break;
-        case 3:
-            la_fld_d(vreg_t, reg_n, 0);
-            /* 高64位清零 */
-            la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
-            break;
-        case 4:
-            la_vld(vreg_t, reg_n, 0);
-            break;
-        default:
-            assert(0);
-        }
+        assist_trans_LDR_v_i(&vreg_t, &reg_n, 0, a->sz);
 
         if(a->p && offset){
             la_addi_d(reg_n,reg_n,offset);         
@@ -4174,8 +4069,6 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
     store_fpr_dst(a->rt, vreg_t);
     free_alloc_gpr(reg_n);
     free_alloc_fpr(vreg_t);
-    free_alloc_gpr(temp);
-    free_alloc_gpr(temp1);
     return true;
 }
 
