@@ -5478,7 +5478,9 @@ static bool trans_ADDS_i(DisasContext *s, arg_ADDS_i *a)
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);   
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);   
     IR2_OPND temp = ra_alloc_itemp();
-
+// #ifdef CONFIG_LATA_INSTS_PATTERN
+//     s->base.tb->nzcv_use = false;
+// #endif
 
     uint8_t shift = extract32(s->insn, 22, 1);
     switch(shift){
@@ -5508,7 +5510,9 @@ static bool trans_SUBS_i(DisasContext *s, arg_SUBS_i *a)
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);   
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);   
     IR2_OPND temp = ra_alloc_itemp();
-
+// #ifdef CONFIG_LATA_INSTS_PATTERN
+//     s->base.tb->nzcv_use = false;
+// #endif
 
     uint8_t shift = extract32(s->insn, 22, 1);
     switch(shift){
@@ -5771,7 +5775,9 @@ static bool trans_ANDS_i(DisasContext *s, arg_ANDS_i *a) {
     {
         imm &= 0xffffffffull;
     }
-
+// #ifdef CONFIG_LATA_INSTS_PATTERN
+//     s->base.tb->nzcv_use = false;
+// #endif
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
     IR2_OPND temp = ra_alloc_itemp();
@@ -6141,6 +6147,10 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
     IR2_OPND reg_n = alloc_gpr_src(rn);
     IR2_OPND temp = ra_alloc_itemp();
 
+// #ifdef CONFIG_LATA_INSTS_PATTERN
+//     if(opc == 3)
+//         s->base.tb->nzcv_use = false;
+// #endif
     if (shift_amount) {
         shift_reg_imm(&temp, &reg_m, sf, shift_type, shift_amount);
 
@@ -6287,7 +6297,6 @@ static void disas_add_sub_ext_reg(DisasContext *s, uint32_t insn)
     bool sf = extract32(insn, 31, 1);
     int extsize = extract32(option, 0, 2);
     bool is_signed = extract32(option, 2, 1);
-
     if (imm3 > 4 || opt != 0) {
         unallocated_encoding(s);
         return;
@@ -6303,9 +6312,11 @@ static void disas_add_sub_ext_reg(DisasContext *s, uint32_t insn)
         reg_d = alloc_gpr_dst_sp(rd);
     } else {
         reg_d = alloc_gpr_dst(rd);
+// #ifdef CONFIG_LATA_INSTS_PATTERN
+//         s->base.tb->nzcv_use = false;
+// #endif
     }
 
-    // ext_and_shift_reg(&temp, &reg_m, option, imm3);
     if (is_signed) {
         switch (extsize) {
         case 0:
@@ -6382,7 +6393,10 @@ static void disas_add_sub_reg(DisasContext *s, uint32_t insn)
     bool setflags = extract32(insn, 29, 1);
     bool sub_op = extract32(insn, 30, 1);
     bool sf = extract32(insn, 31, 1);
-
+// #ifdef CONFIG_LATA_INSTS_PATTERN
+//     if(setflags)
+//         s->base.tb->nzcv_use = false;
+// #endif
     if ((shift_type == 3) || (!sf && (imm6 > 31))) {
         unallocated_encoding(s);
         return;
@@ -6552,7 +6566,12 @@ static void disas_adc_sbc(DisasContext *s, uint32_t insn)
     IR2_OPND reg_m = alloc_gpr_src(rm);
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND temp = ra_alloc_itemp();
-
+    
+// #ifdef CONFIG_LATA_INSTS_PATTERN
+//     if(setflags){
+//         s->base.tb->nzcv_use = false;
+//     }
+// #endif
     if (op) {
         la_orn(temp, zero_ir2_opnd, reg_m);
         if (setflags) {
@@ -6694,7 +6713,9 @@ static void disas_cc(DisasContext *s, uint32_t insn)
     cond = extract32(insn, 12, 4);
     rn = extract32(insn, 5, 5);
     nzcv = extract32(insn, 0, 4);
-
+// #ifdef CONFIG_LATA_INSTS_PATTERN
+//     s->base.tb->nzcv_use = false;
+// #endif
     IR2_OPND reg_n = alloc_gpr_src(rn);
     IR2_OPND reg_m; 
     IR2_OPND temp = ra_alloc_itemp();
@@ -7884,9 +7905,7 @@ static void handle_fp_1src_single(DisasContext *s, int opcode, int rd, int rn)
     assert(0);
     
  done:
-    la_movgr2frh_w(vreg_d, zero_ir2_opnd);
-    /* 高64位清零 */
-    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    la_vand_v(vreg_d,vreg_d, fsmask_ir2_opnd);
 
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
@@ -8117,7 +8136,6 @@ static void handle_fp_2src_single(DisasContext *s, int opcode,
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
-    // IR2_OPND vtemp;
 
     switch (opcode) {
     case 0x0: /* FMUL */
@@ -8149,9 +8167,7 @@ static void handle_fp_2src_single(DisasContext *s, int opcode,
         la_fneg_s(vreg_d, vreg_d);
         break;
     }
-    la_movgr2frh_w(vreg_d, zero_ir2_opnd);
-    /* 高64位清零 */
-    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    la_vand_v(vreg_d,vreg_d, fsmask_ir2_opnd);
 
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
@@ -8340,10 +8356,7 @@ static void handle_fp_3src_single(DisasContext *s, bool o0, bool o1,
             la_fmadd_s(vreg_d, vreg_n, vreg_m, vreg_a);
         }
     }
-
-    la_movgr2frh_w(vreg_d, zero_ir2_opnd);
-    /* 高64位清零 */
-    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    la_vand_v(vreg_d,vreg_d, fsmask_ir2_opnd);
 
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
@@ -9763,8 +9776,7 @@ static void disas_simd_across_lanes(DisasContext *s, uint32_t insn)
                 la_fmax_s(vreg_d, vreg_d, vtemp);
             }
         }
-        la_movgr2frh_w(vreg_d, zero_ir2_opnd);
-        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        la_vand_v(vreg_d,vreg_d, fsmask_ir2_opnd);
         break;
     default:
         lata_unallocated_encoding(s);
@@ -10421,6 +10433,8 @@ static void disas_simd_scalar_pairwise(DisasContext *s, uint32_t insn)
         default:
             g_assert_not_reached();
         }
+        /* 高64位清零 */
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
 
     } else {
         assert(0);
@@ -10466,11 +10480,9 @@ static void disas_simd_scalar_pairwise(DisasContext *s, uint32_t insn)
             }
         }
 
-        la_movgr2frh_w(vreg_d, zero_ir2_opnd);
+        la_vand_v(vreg_d,vreg_d, fsmask_ir2_opnd);
     }
 
-    /* 高64位清零 */
-    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
@@ -11487,7 +11499,8 @@ static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode,
         default:
             g_assert_not_reached();
         }
-
+        /* 高64位清零 */
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
     } else {
         /* Single */
 
@@ -11524,11 +11537,9 @@ static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode,
             g_assert_not_reached();
         }
 
-        la_movgr2frh_w(vreg_d, zero_ir2_opnd);
+        la_vand_v(vreg_d,vreg_d, fsmask_ir2_opnd);
     }
 
-    /* 高64位清零 */
-    la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);

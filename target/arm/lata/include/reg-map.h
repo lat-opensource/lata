@@ -150,6 +150,8 @@
 //zero reg or sp reg 
 #define armv8_xzr     31   
 
+//LA float registers
+#define la_fsmask     15
 //ARMv8 128-bit FP registers
 //parameter and result regs
 #define armv8_v0      0

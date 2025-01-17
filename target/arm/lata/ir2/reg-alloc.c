@@ -40,6 +40,7 @@ IR2_OPND s5_ir2_opnd;
 IR2_OPND s6_ir2_opnd;
 IR2_OPND s7_ir2_opnd;
 IR2_OPND s8_ir2_opnd;
+IR2_OPND fsmask_ir2_opnd;
 IR2_OPND fcsr_ir2_opnd;
 IR2_OPND fcsr1_ir2_opnd;
 IR2_OPND fcsr2_ir2_opnd;

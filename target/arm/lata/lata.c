@@ -100,7 +100,7 @@ const int arm_la_fmap[] = {
     [armv8_v12] = -1,
     [armv8_v13] = -1,
     [armv8_v14] = -1,
-    [armv8_v15] = 15,
+    [armv8_v15] = -1,
     [armv8_v16] = 16,
     [armv8_v17] = 17,
     [armv8_v18] = 18,
@@ -135,7 +135,7 @@ const int arm_la_reverse_fmap[] = {
     [12] = -1,
     [13] = -1,
     [14] = -1,
-    [15] = 15,
+    [la_fsmask] = -1,
     [16] = 16,
     [17] = 17,
     [18] = 18,
@@ -210,6 +210,7 @@ static void global_register_init(void)
     s6_ir2_opnd = INIT_RA(IR2_OPND_GPR, la_s6);
     s7_ir2_opnd = INIT_RA(IR2_OPND_GPR, la_s7);
     s8_ir2_opnd = INIT_RA(IR2_OPND_GPR, la_s8);
+    fsmask_ir2_opnd = INIT_RA(IR2_OPND_FPR, la_fsmask); //mask for scalar
     fcsr_ir2_opnd = INIT_RA(IR2_OPND_FCSR, 0);
     fcsr1_ir2_opnd = INIT_RA(IR2_OPND_FCSR, 1);
     fcsr2_ir2_opnd = INIT_RA(IR2_OPND_FCSR, 2);
@@ -352,6 +353,11 @@ static void generate_context_switch_bt_to_native(CPUState *cs)
             la_ld_d(ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]), env_ir2_opnd, env_offset_gpr(i));
         }
     }
+
+    /* Initialize scalar mask register */
+    la_vori_b(fsmask_ir2_opnd, fsmask_ir2_opnd,0xff);
+    // la_movgr2frh_w(fsmask_ir2_opnd, zero_ir2_opnd);
+    // la_vinsgr2vr_d(fsmask_ir2_opnd, zero_ir2_opnd, 1);
 
     /* jmp to tb */
     la_jirl(zero_ir2_opnd, a0_ir2_opnd, 0);

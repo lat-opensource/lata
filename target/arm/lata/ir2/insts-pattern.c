@@ -414,7 +414,7 @@ bool insts_pattern(DisasContext *s, CPUState *cpu, uint32_t insn)
     if (b_type && cmp_type)
     {
         int offset = sextract32(insn2, 5, 19) << 2;
-
+        // s->base.tb->nzcv_use = false;
         switch (cmp_type)
         {
         case CMP_IMM:
