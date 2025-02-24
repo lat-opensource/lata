@@ -3365,33 +3365,18 @@ static bool trans_STP(DisasContext *s, arg_ldstpair *a)
     IR2_OPND temp = ra_alloc_itemp();
 
     if(!a->w && offset){ // wback = false && offset!=0
-        if(a->rn != a->rt && a->rn != a->rt2){
-            switch(dbytes){
-            case 4:
-                la_st_w(reg_t, reg_n, offset);
-                la_st_w(reg_t2, reg_n, dbytes + offset);
-                break;
-            case 8:
-                la_st_d(reg_t,reg_n, offset);
-                la_st_d(reg_t2, reg_n, dbytes + offset);
-                break;
-            default:
-                assert(0);
-            }
-        }else{
-            la_addi_d(temp, reg_n, offset);
-            switch(dbytes){
-            case 4:
-                la_st_w(reg_t, temp, 0);
-                la_st_w(reg_t2, temp, dbytes);
-                break;
-            case 8:
-                la_st_d(reg_t, temp, 0);
-                la_st_d(reg_t2, temp, dbytes);
-                break;
-            default:
-                assert(0);
-            }
+        la_addi_d(temp, reg_n, offset);
+        switch(dbytes){
+        case 4:
+            la_st_w(reg_t, temp, 0);
+            la_st_w(reg_t2, temp, dbytes);
+            break;
+        case 8:
+            la_st_d(reg_t, temp, 0);
+            la_st_d(reg_t2, temp, dbytes);
+            break;
+        default:
+            assert(0);
         }
     }else{//Post-index
         if(!a->p && offset){
@@ -3449,43 +3434,23 @@ static bool trans_LDP(DisasContext *s, arg_ldstpair *a)
     IR2_OPND temp = ra_alloc_itemp();
 
     if(!a->w && offset){ // wback = false && offset!=0
-        if(a->rn != a->rt && a->rn != a->rt2){
-            switch(dbytes){
-            case 4:
-                if(a->sign){
-                    la_ld_w(reg_t, reg_n, offset);
-                    la_ld_w(reg_t2, reg_n, dbytes + offset);
-                }else{
-                    la_ld_wu(reg_t, reg_n, offset);
-                    la_ld_wu(reg_t2, reg_n, dbytes + offset);
-                }
-                break;
-            case 8:
-                la_ld_d(reg_t,reg_n, offset);
-                la_ld_d(reg_t2, reg_n, dbytes + offset);
-                break;
-            default:
-                assert(0);
+        la_addi_d(temp, reg_n, offset);
+        switch(dbytes){
+        case 4:
+            if(a->sign){
+                la_ld_w(reg_t, temp, 0);
+                la_ld_w(reg_t2, temp, dbytes);
+            }else{
+                la_ld_wu(reg_t, temp, 0);
+                la_ld_wu(reg_t2, temp, dbytes);
             }
-        }else{
-            la_addi_d(temp, reg_n, offset);
-            switch(dbytes){
-            case 4:
-                if(a->sign){
-                    la_ld_w(reg_t, temp, 0);
-                    la_ld_w(reg_t2, temp, dbytes);
-                }else{
-                    la_ld_wu(reg_t, temp, 0);
-                    la_ld_wu(reg_t2, temp, dbytes);
-                }
-                break;
-            case 8:
-                la_ld_d(reg_t, temp, 0);
-                la_ld_d(reg_t2, temp, dbytes);
-                break;
-            default:
-                assert(0);
-            }
+            break;
+        case 8:
+            la_ld_d(reg_t, temp, 0);
+            la_ld_d(reg_t2, temp, dbytes);
+            break;
+        default:
+            assert(0);
         }
     }else{//Post-index
         if(!a->p && offset){
@@ -3564,41 +3529,22 @@ static bool trans_STP_v(DisasContext *s, arg_ldstpair *a)
     IR2_OPND temp = ra_alloc_itemp();
 
     if(!a->w && offset){ // wback = false && offset!=0
-        if(a->rn != a->rt && a->rn != a->rt2){
-            switch(dbytes){
-            case 4:
-                la_fst_s(vreg_t, reg_n, offset);
-                la_fst_s(vreg_t2, reg_n, offset + dbytes);
-                break;
-            case 8:
-                la_fst_d(vreg_t, reg_n, offset);
-                la_fst_d(vreg_t2, reg_n, offset + dbytes);
-                break;
-            case 16:
-                la_vst(vreg_t, reg_n, offset);
-                la_vst(vreg_t2, reg_n, offset + dbytes);
-                break;
-            default:
-                assert(0);
-            }
-        }else{
-            la_addi_d(temp, reg_n, offset);
-            switch(dbytes){
-            case 4:
-                la_fst_s(vreg_t, temp, 0);
-                la_fst_s(vreg_t2, temp, dbytes);
-                break;
-            case 8:
-                la_fst_d(vreg_t, temp, 0);
-                la_fst_d(vreg_t2, temp, dbytes);
-                break;
-            case 16:
-                la_vst(vreg_t, temp, 0);
-                la_vst(vreg_t2, temp, dbytes);
-                break;
-            default:
-                assert(0);
-            }
+        la_addi_d(temp, reg_n, offset);
+        switch(dbytes){
+        case 4:
+            la_fst_s(vreg_t, temp, 0);
+            la_fst_s(vreg_t2, temp, dbytes);
+            break;
+        case 8:
+            la_fst_d(vreg_t, temp, 0);
+            la_fst_d(vreg_t2, temp, dbytes);
+            break;
+        case 16:
+            la_vst(vreg_t, temp, 0);
+            la_vst(vreg_t2, temp, dbytes);
+            break;
+        default:
+            assert(0);
         }
     }else{//Post-index
         if(!a->p && offset){
@@ -3655,50 +3601,27 @@ static bool trans_LDP_v(DisasContext *s, arg_ldstpair *a)
     IR2_OPND temp = ra_alloc_itemp();
 
     if(!a->w && offset){ // wback = false && offset!=0
-        if(a->rn != a->rt && a->rn != a->rt2){
-            switch(dbytes){
-            case 4:
-                la_vsub_d(vreg_t,vreg_t,vreg_t);
-                la_vsub_d(vreg_t2,vreg_t2,vreg_t2);
-                la_fld_s(vreg_t, reg_n, offset);
-                la_fld_s(vreg_t2, reg_n, offset + dbytes);
-                break;
-            case 8:
-                la_vsub_d(vreg_t,vreg_t,vreg_t);
-                la_vsub_d(vreg_t2,vreg_t2,vreg_t2);
-                la_fld_d(vreg_t, reg_n, offset);
-                la_fld_d(vreg_t2, reg_n, offset + dbytes);
-                break;
-            case 16:
-                la_vld(vreg_t, reg_n, offset);
-                la_vld(vreg_t2, reg_n, offset + dbytes);
-                break;
-            default:
-                assert(0);
-            }
-        } else {
-            la_addi_d(temp, reg_n, offset);
-            switch(dbytes){
-            case 4:
-                la_vsub_d(vreg_t,vreg_t,vreg_t);
-                la_vsub_d(vreg_t2,vreg_t2,vreg_t2);
-                la_fld_s(vreg_t, temp, 0);
-                la_fld_s(vreg_t2, temp, dbytes);
-                break;
-            case 8:
-                la_vsub_d(vreg_t,vreg_t,vreg_t);
-                la_vsub_d(vreg_t2,vreg_t2,vreg_t2);
-                la_fld_d(vreg_t, temp, 0);
-                la_fld_d(vreg_t2, temp, dbytes);
-                break;
-            case 16:
-                la_vld(vreg_t, temp, 0);
-                la_vld(vreg_t2, temp, dbytes);
-                break;
-            default:
-                assert(0);
-            }
-        }        
+        la_addi_d(temp, reg_n, offset);
+        switch(dbytes){
+        case 4:
+            la_vsub_d(vreg_t,vreg_t,vreg_t);
+            la_vsub_d(vreg_t2,vreg_t2,vreg_t2);
+            la_fld_s(vreg_t, temp, 0);
+            la_fld_s(vreg_t2, temp, dbytes);
+            break;
+        case 8:
+            la_vsub_d(vreg_t,vreg_t,vreg_t);
+            la_vsub_d(vreg_t2,vreg_t2,vreg_t2);
+            la_fld_d(vreg_t, temp, 0);
+            la_fld_d(vreg_t2, temp, dbytes);
+            break;
+        case 16:
+            la_vld(vreg_t, temp, 0);
+            la_vld(vreg_t2, temp, dbytes);
+            break;
+        default:
+            assert(0);
+        }
     }else{//Post-index
         if(!a->p && offset){
             la_addi_d(reg_n, reg_n, offset);
