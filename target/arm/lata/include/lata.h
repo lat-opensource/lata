@@ -13,8 +13,6 @@
 #include "tcg/tcg.h"
 //#include "env.h"
 
-
-
 #define B_STUB_SIZE 4
 
 typedef struct TRANSLATION_DATA {
@@ -77,7 +75,9 @@ extern uint64_t context_switch_native_to_bt;
 
 int lata_gen_prologue(CPUState *cs, TCGContext *tcg_ctx);
 int lata_gen_epilogue(CPUState *cs, TCGContext *tcg_ctx);
-
+void lata_fast_jmp_cache_free(CPUState *cs);
+void lata_fast_jmp_cache_init(CPUState *cpu, uint64_t start_code, uint64_t end_code);
+void lata_fast_jmp_cache_add(CPUState *cpu, uint64_t guest_pc, uint64_t host_pc);
 
 int tr_ir2_assemble(const void *code_start_addr);
 // int INS_translate(CPUState *cs, INS INS);

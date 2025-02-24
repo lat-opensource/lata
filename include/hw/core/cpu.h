@@ -33,6 +33,12 @@
 #include "qemu/plugin-event.h"
 #include "qom/object.h"
 
+#ifdef CONFIG_LATA
+    #define LATA_PC_LOW_BIT 2
+    #define TB_JMP_CACHE_BITS 16
+    #define TB_JMP_CACHE_SIZE (1 << TB_JMP_CACHE_BITS)
+#endif
+
 typedef int (*WriteCoreDumpFunction)(const void *buf, size_t size,
                                      void *opaque);
 
@@ -373,13 +379,13 @@ struct CPUState {
     CPUArchState *env_ptr;
     IcountDecr *icount_decr_ptr;
 
+
     CPUJumpCache *tb_jmp_cache;
 
 #ifdef CONFIG_LATA
-    #define LATA_PC_LOW_BIT 2
-    #define TB_JMP_CACHE_BITS 16
-    #define TB_JMP_CACHE_SIZE (1 << TB_JMP_CACHE_BITS)
-    uint64_t pc_map_cache[TB_JMP_CACHE_SIZE * 2]  __attribute__ ((aligned (1 << 12)));
+    // uint64_t pc_map_cache[TB_JMP_CACHE_SIZE * 2]  __attribute__ ((aligned (1 << 12)));
+    void *pc_map_cache;
+    uint64_t mapping_range[2];
 #endif
 
     struct GDBRegisterState *gdb_regs;

@@ -237,16 +237,6 @@ static TranslationBlock *tb_htable_lookup(CPUState *cpu, vaddr pc,
     return qht_lookup_custom(&tb_ctx.htable, &desc, h, tb_lookup_cmp);
 }
 
-#ifdef CONFIG_LATA
-static inline void setup_pcmap(CPUState *cpu, uint64_t guest_pc, uint64_t host_pc) {
-    #define LATA_PC_LOW_BIT 2
-
-    int64_t index = ((guest_pc >> LATA_PC_LOW_BIT) & (TB_JMP_CACHE_SIZE - 1)) << 4;
-    *(uint64_t*)((uint8_t*)cpu->pc_map_cache + index) = guest_pc;
-    *(uint64_t*)((uint8_t*)cpu->pc_map_cache + index + 8) = host_pc;
-}
-#endif
-
 /* Might cause an exception, so have a longjmp destination ready */
 static inline TranslationBlock *tb_lookup(CPUState *cpu, vaddr pc,
                                           uint64_t cs_base, uint32_t flags,
@@ -1068,7 +1058,7 @@ cpu_exec_loop(CPUState *cpu, SyncClocks *sc)
             }
 
 #ifdef CONFIG_LATA
-            setup_pcmap(cpu, pc, (uint64_t)(tb->tc.ptr));
+            lata_fast_jmp_cache_add(cpu, pc, (uint64_t)(tb->tc.ptr));
 #endif
 
 #ifndef CONFIG_USER_ONLY

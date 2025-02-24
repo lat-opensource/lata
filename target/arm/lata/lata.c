@@ -163,7 +163,8 @@ void lata(void){
 
 __thread ENV *lsenv;
 static __thread ENV lsenv_real;
-
+uint64_t *ibtc_cache;
+uint64_t *fam_cache;
 
 static __thread TRANSLATION_DATA tr_data_real;
 __thread TRANSLATION_DATA *tr_data;
@@ -356,8 +357,6 @@ static void generate_context_switch_bt_to_native(CPUState *cs)
 
     /* Initialize scalar mask register */
     la_vori_b(fsmask_ir2_opnd, fsmask_ir2_opnd,0xff);
-    // la_movgr2frh_w(fsmask_ir2_opnd, zero_ir2_opnd);
-    // la_vinsgr2vr_d(fsmask_ir2_opnd, zero_ir2_opnd, 1);
 
     /* jmp to tb */
     la_jirl(zero_ir2_opnd, a0_ir2_opnd, 0);
@@ -677,6 +676,55 @@ void lata_gen_call_helper_epilogue(TCGContext *tcg_ctx)
             la_ld_d(ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]), env_ir2_opnd, env_offset_gpr(i));
         }
     }
+}
+
+void lata_fast_jmp_cache_add(CPUState *cpu, uint64_t guest_pc, uint64_t host_pc)
+{
+    if(option_fam_jmp_cache){
+        if (guest_pc < cpu->mapping_range[0] || guest_pc >= cpu->mapping_range[1]) {
+            lsassertm(0, "option_fam_jmp_cache error pc, %lx, %lx, %lx\n",
+                    guest_pc, cpu->mapping_range[0], cpu->mapping_range[1]);
+        }
+        uint64_t* pc_map_cache_ptr = (uint64_t*)cpu->pc_map_cache;
+        pc_map_cache_ptr[guest_pc] = host_pc;  
+        // printf("cache:%p guest_pc:%p  host_pc:%p store_pc:%p store_pos:%p\n",(void*)cpu->pc_map_cache,(void*)guest_pc,(void*)host_pc,(void *)pc_map_cache_ptr[guest_pc],(void *)(uint64_t*)(cpu->pc_map_cache + guest_pc));
+        return;
+    }
+    int64_t index = ((guest_pc >> LATA_PC_LOW_BIT) & (TB_JMP_CACHE_SIZE - 1)) << 4;
+    *(uint64_t*)((uint8_t*)cpu->pc_map_cache + index) = guest_pc;
+    *(uint64_t*)((uint8_t*)cpu->pc_map_cache + index + 8) = host_pc;
+}
+
+void lata_fast_jmp_cache_free(CPUState *cpu)
+{
+    if (ibtc_cache) {
+        free(ibtc_cache);
+    }
+    cpu->pc_map_cache = cpu->tb_jmp_cache;
+}
+
+void lata_fast_jmp_cache_init(CPUState *cpu,uint64_t start_code,uint64_t end_code)
+{
+    size_t malloc_size;
+    if(option_fam_jmp_cache){
+        cpu->mapping_range[0] = start_code;
+        cpu->mapping_range[1] = end_code; 
+        malloc_size = (end_code - start_code) * 8;
+        void* p = malloc(malloc_size);
+        if (!p) {
+            lsassertm(0, "fam_indirect malloc error!\n");
+        }
+        memset(p, 0x11, malloc_size);
+        fam_cache = p - (start_code * 8);
+        cpu->pc_map_cache = fam_cache;    
+        return;    
+    }
+    malloc_size = sizeof(uint64_t) * TB_JMP_CACHE_SIZE * 2;
+    ibtc_cache = malloc(malloc_size);
+    if (!ibtc_cache) {
+        lsassertm(0, "ibtc_cache malloc error!\n");
+    }
+    cpu->pc_map_cache = ibtc_cache;    
 }
 
 /* gpr同时为src和dst, 使用alloc_gpr_src,并且需要store回去 */

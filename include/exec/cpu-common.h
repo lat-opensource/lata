@@ -169,6 +169,7 @@ void list_cpus(void);
 
 #ifdef CONFIG_LATA
 extern int indirect_jmp_opt_profile;
+extern int option_fam_jmp_cache;
 #endif
 
 #endif /* CPU_COMMON_H */

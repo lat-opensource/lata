@@ -554,6 +554,15 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
         IR2_OPND host_pc  = ra_alloc_itemp();
         IR2_OPND exit = ir2_opnd_new_type(IR2_OPND_LABEL);
 
+        if (option_fam_jmp_cache) {
+            li_d(host_pc, (uint64_t)(current_cpu->pc_map_cache));
+            la_alsl_d(host_pc, reg_n, host_pc, 2);
+            la_ld_d(host_pc, host_pc, 0);
+            la_st_d(reg_n, env_ir2_opnd, env_offset_pc());
+            la_jirl(zero_ir2_opnd, host_pc, 0);
+            return;
+        }
+
         if (indirect_jmp_opt_profile) {
             la_ld_d(guest_pc, env_ir2_opnd, env_offset(jr_cnt));
             la_addi_d(guest_pc, guest_pc, 1);
