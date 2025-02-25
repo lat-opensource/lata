@@ -161,11 +161,9 @@ void ra_free_num_4095(IR2_OPND);
  */
 #define ra_alloc_dbt_arg1() ra_alloc_statics(S_UD0)
 #define ra_alloc_dbt_arg2() ra_alloc_statics(S_UD1)
-#define ra_alloc_ss() ra_alloc_statics(S_UD2)
-#define ra_alloc_env() ra_alloc_statics(S_ENV)
-#define ra_alloc_eflags() ra_alloc_statics(S_EFLAGS)
-#define ra_alloc_flag_pattern_saved_opnd0 ra_alloc_dbt_arg1
-#define ra_alloc_flag_pattern_saved_opnd1 ra_alloc_dbt_arg2
+// #define ra_alloc_ss() ra_alloc_statics(S_UD2)
+// #define ra_alloc_env() ra_alloc_statics(S_ENV)
+// #define ra_alloc_eflags() ra_alloc_statics(S_EFLAGS)
 #define ra_alloc_itemp_internal ra_alloc_itemp
 #define ra_alloc_ftemp_internal ra_alloc_ftemp
 

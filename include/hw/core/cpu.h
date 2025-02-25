@@ -382,12 +382,6 @@ struct CPUState {
 
     CPUJumpCache *tb_jmp_cache;
 
-#ifdef CONFIG_LATA
-    // uint64_t pc_map_cache[TB_JMP_CACHE_SIZE * 2]  __attribute__ ((aligned (1 << 12)));
-    void *pc_map_cache;
-    uint64_t mapping_range[2];
-#endif
-
     struct GDBRegisterState *gdb_regs;
     int gdb_num_regs;
     int gdb_num_g_regs;

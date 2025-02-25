@@ -970,7 +970,7 @@ int main(int argc, char **argv, char **envp)
         _exit(EXIT_FAILURE);
     }
 #ifdef CONFIG_LATA
-    lata_fast_jmp_cache_init(cpu,(uint64_t)info->start_code,(uint64_t)info->end_code);
+    lata_fast_jmp_cache_init(env,(uint64_t)info->start_code,(uint64_t)info->end_code);
 #endif
     for (wrk = target_environ; *wrk; wrk++) {
         g_free(*wrk);

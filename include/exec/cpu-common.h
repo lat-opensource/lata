@@ -167,7 +167,7 @@ int cpu_memory_rw_debug(CPUState *cpu, vaddr addr,
 /* vl.c */
 void list_cpus(void);
 
-#ifdef CONFIG_LATA
+#ifdef CONFIG_LATA_INDIRECT_JMP
 extern int indirect_jmp_opt_profile;
 extern int option_fam_jmp_cache;
 #endif

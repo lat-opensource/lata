@@ -555,7 +555,7 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
         IR2_OPND exit = ir2_opnd_new_type(IR2_OPND_LABEL);
 
         if (option_fam_jmp_cache) {
-            li_d(host_pc, (uint64_t)(current_cpu->pc_map_cache));
+            li_d(host_pc, (uint64_t)(current_cpu->env_ptr->pc_map_cache));
             la_alsl_d(host_pc, reg_n, host_pc, 2);
             la_ld_d(host_pc, host_pc, 0);
             la_st_d(reg_n, env_ir2_opnd, env_offset_pc());
@@ -570,7 +570,7 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
         }
 
         la_bstrpick_d(guest_pc, reg_n, LATA_PC_LOW_BIT + TB_JMP_CACHE_BITS - 1, LATA_PC_LOW_BIT);
-        li_d(host_pc, (uint64_t)(current_cpu->pc_map_cache));
+        li_d(host_pc, (uint64_t)(current_cpu->env_ptr->pc_map_cache));
         la_alsl_d(host_pc, guest_pc, host_pc, 3);
         la_ld_d(guest_pc, host_pc, 0); // guest pc
         la_ld_d(host_pc, host_pc, 8); // host pc

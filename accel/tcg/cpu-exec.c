@@ -650,6 +650,7 @@ void tb_set_jmp_target(TranslationBlock *tb, int n, uintptr_t addr)
 // #endif
 }
 
+#ifdef CONFIG_LATA_INSTS_PATTERN
 void tb_nzcv_jmp(TranslationBlock *tb, int n, bool isjmp){
     uintptr_t offset = tb->nzcv_save[n];
     uintptr_t jmp_rx = (uintptr_t)tb->tc.ptr + offset;
@@ -662,7 +663,7 @@ void tb_nzcv_jmp(TranslationBlock *tb, int n, bool isjmp){
     qatomic_set((tcg_insn_unit *)jmp_rw, insn);
     flush_idcache_range(jmp_rx, jmp_rw, 4);
 }
-
+#endif
 
 static inline void tb_add_jump(TranslationBlock *tb, int n,
                                TranslationBlock *tb_next)
@@ -1058,7 +1059,7 @@ cpu_exec_loop(CPUState *cpu, SyncClocks *sc)
             }
 
 #ifdef CONFIG_LATA
-            lata_fast_jmp_cache_add(cpu, pc, (uint64_t)(tb->tc.ptr));
+            lata_fast_jmp_cache_add(cpu->env_ptr, pc, (uint64_t)(tb->tc.ptr));
 #endif
 
 #ifndef CONFIG_USER_ONLY

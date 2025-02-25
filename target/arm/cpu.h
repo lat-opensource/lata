@@ -294,6 +294,8 @@ typedef struct CPUArchState {
 #ifdef CONFIG_LATA
     long jr_cnt;
     long jr_hit;
+    void *pc_map_cache;
+    uint64_t mapping_range[2];
 #endif
 
     /* VFP coprocessor state.  */
