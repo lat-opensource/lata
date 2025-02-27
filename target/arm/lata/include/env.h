@@ -48,6 +48,11 @@ static inline int env_offset_FPSCR(void)
     return offsetof(CPUARMState, vfp.xregs[ARM_VFP_FPSCR]);
 }
 
+static inline int env_offset_jmp_cache(void)
+{
+    return offsetof(CPUARMState, pc_map_cache);
+}
+
 static inline int env_offset_fpstatus(void)
 {
     return offsetof(CPUARMState, vfp.fp_status);
