@@ -157,9 +157,9 @@ const int reg_xmm_map[] = {
 
 const int reg_statics_map[] = {
     /* last exec tb */
-    REG_MAP_DEF(S_UD0, la_s3),
+    REG_MAP_DEF(S_UD0, la_fp),
     /* next x86 addr */
-    REG_MAP_DEF(S_UD1, la_s4),
+    REG_MAP_DEF(S_UD1, la_r21),
 #ifndef TARGET_X86_64
     /* we don't use shadow stack */
     REG_MAP_DEF(S_UD2, NOT_DEF),

@@ -14,8 +14,6 @@
 //s8-----env 
 //t0-t5--itemp
 //FLAG---pstate
-//s3-----jmp_cache addr
-//s4-----last arm addr
 const int arm_la_map[] = {
     [armv8_x0] = la_ra,
     [armv8_x1] = la_a1,
@@ -40,8 +38,8 @@ const int arm_la_map[] = {
     [armv8_x20] = la_s0,
     [armv8_x21] = la_s1,
     [armv8_x22] = la_s2,
-    [armv8_x23] = -1,
-    [armv8_x24] = -1,
+    [armv8_x23] = la_s3,
+    [armv8_x24] = la_s4,
     [armv8_x25] = -1,
     [armv8_x26] = -1,
     [armv8_x27] = -1,
@@ -67,8 +65,8 @@ const int arm_la_reverse_map[] = {
     [la_a6]  = armv8_x6,
     [la_a7]  = armv8_x7,
     [la_s2]  = armv8_x22,
-    [la_s3]  = -1,
-    [la_s4]  = -1,
+    [la_s3]  = armv8_x23,
+    [la_s4]  = armv8_x24,
     [la_s5]  = armv8_x30,
     [la_s6]  = armv8_x19,
     [la_s7]  = armv8_x28,
@@ -340,10 +338,6 @@ static void generate_context_switch_bt_to_native(CPUState *cs)
     la_slli_d(a7_ir2_opnd, a7_ir2_opnd, 8);
     la_movgr2fcsr(fcsr_ir2_opnd, a7_ir2_opnd);
 
-    IR2_OPND jmp_cache_addr = ra_alloc_dbt_arg1();
-    la_ld_d(jmp_cache_addr, env_ir2_opnd, env_offset_jmp_cache());
-    // IR2_OPND native_addr_opnd = ra_alloc_dbt_arg2();
-    // la_mov64(native_addr_opnd, a1_ir2_opnd);
 
     /* load gpr and fpr */
     for(int i = 0; i <= 31; ++i) {
@@ -372,8 +366,6 @@ static void generate_context_switch_bt_to_native(CPUState *cs)
 static void generate_context_switch_native_to_bt(CPUState *cs)
 {
     la_mov64(a0_ir2_opnd, zero_ir2_opnd);
-    IR2_OPND next_arm_addr = ra_alloc_dbt_arg2();
-    la_st_d(next_arm_addr, env_ir2_opnd, env_offset_pc());
     for(int i = 0; i <= 31; ++i) {
         if(arm_la_map[i] > 0) {
             la_st_d(ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]), env_ir2_opnd, env_offset_gpr(i));

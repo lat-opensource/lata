@@ -90,7 +90,6 @@ static void nzcv_caculate(IR2_OPND temp_n, IR2_OPND temp, IR2_OPND reg_n, int sf
 static void pattern_goto_tb(DisasContext *s, int n, int64_t diff)
 {
     IR2_OPND goto_label = ir2_opnd_new_type(IR2_OPND_LABEL);
-    IR2_OPND next_arm_addr = ra_alloc_dbt_arg2();
     IR2_OPND ir2_opnd_addr;
     TranslationBlock *tb = lsenv->tr_data->curr_tb;
 
@@ -100,8 +99,7 @@ static void pattern_goto_tb(DisasContext *s, int n, int64_t diff)
     la_b(ir2_opnd_addr); // nop
 
     li_d(a0_ir2_opnd, s->pc_curr + diff + 4);
-    la_mov64(next_arm_addr, a0_ir2_opnd);
-    // la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_pc());
+    la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_pc());
 
     if (qemu_loglevel_mask(CPU_LOG_TB_NOCHAIN))
     {
