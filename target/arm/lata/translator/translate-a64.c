@@ -6843,8 +6843,13 @@ static void disas_cc(DisasContext *s, uint32_t insn)
 
     /* TRUE */
     if (is_imm) {
-        reg_m = ra_alloc_itemp();
-        la_addi_d(reg_m, zero_ir2_opnd, y);
+        if(y){
+            reg_m = ra_alloc_itemp();
+            la_addi_d(reg_m, zero_ir2_opnd, y);
+        }else{
+            reg_m = zero_ir2_opnd;
+        }
+
     } else {
         reg_m = alloc_gpr_src(y);
     }
