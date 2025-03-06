@@ -1056,11 +1056,10 @@ cpu_exec_loop(CPUState *cpu, SyncClocks *sc)
                     /* Use the pc value already stored in tb->pc. */
                     qatomic_set(&jc->array[h].tb, tb);
                 }
-            }
-
 #ifdef CONFIG_LATA
-            lata_fast_jmp_cache_add(cpu->env_ptr, pc, (uint64_t)(tb->tc.ptr));
+                lata_fast_jmp_cache_add(cpu->env_ptr, pc, (uint64_t)(tb->tc.ptr));
 #endif
+            }
 
 #ifndef CONFIG_USER_ONLY
             /*
