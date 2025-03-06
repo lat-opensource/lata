@@ -679,6 +679,21 @@ static void gen_goto_tb(DisasContext *s, int n, int64_t diff)
     IR2_OPND ir2_opnd_addr;
     TranslationBlock *tb = lsenv->tr_data->curr_tb;
     
+    if(option_fam_jmp_cache){
+        uint64_t guest_dest = s->pc_curr + diff;
+        uint64_t* pc_map_cache_ptr = (uint64_t*) current_cpu->env_ptr->pc_map_cache;
+        uint64_t host_dest = pc_map_cache_ptr[guest_dest];
+
+        if(host_dest){
+            uint64_t curr_ins_pos = (unsigned long)s->base.tb->tc.ptr + (lsenv->tr_data->real_ir2_inst_num << 2);
+            uint64_t exit_offset = host_dest - curr_ins_pos;
+
+            ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, exit_offset >> 2);
+            la_b(ir2_opnd_addr);
+            return;
+        }
+    }
+    
     // tb_link_debug(dest, tb);
     la_label(goto_label);
     tb->jmp_reset_offset[n] = ir2_opnd_label_id(&goto_label);
