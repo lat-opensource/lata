@@ -706,7 +706,7 @@ void lata_fast_jmp_cache_init(CPUArchState *env,uint64_t start_code,uint64_t end
         if (!p) {
             lsassertm(0, "fam_indirect malloc error!\n");
         }
-        memset(p, 0x11, malloc_size);
+        memset(p, 0, malloc_size);
         fam_cache = p - (start_code * 8);
         env->pc_map_cache = fam_cache;    
         return;    

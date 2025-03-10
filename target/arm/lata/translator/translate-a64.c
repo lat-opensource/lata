@@ -558,8 +558,11 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
             li_d(host_pc, (uint64_t)(current_cpu->env_ptr->pc_map_cache));
             la_alsl_d(host_pc, reg_n, host_pc, 2);
             la_ld_d(host_pc, host_pc, 0);
-            la_st_d(reg_n, env_ir2_opnd, env_offset_pc());
+            la_beqz(host_pc, exit);
             la_jirl(zero_ir2_opnd, host_pc, 0);
+            la_label(exit);
+            la_st_d(reg_n, env_ir2_opnd, env_offset_pc());
+            lata_gen_exit_tb_ret_0(s);
             return;
         }
 
