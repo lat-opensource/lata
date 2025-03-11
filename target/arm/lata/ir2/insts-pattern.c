@@ -6,6 +6,8 @@
 #include "ir2.h"
 #include "env.h"
 
+#ifdef CONFIG_LATA_INSTS_PATTERN
+
 static const AArch64PatternTable bcond_table[] = {
     /* pattern  ,  mask     ,  dt_aarch64_insn*/
     {0X54000000, 0xff00001f, B_EQ},
@@ -435,3 +437,5 @@ bool insts_pattern(DisasContext *s, CPUState *cpu, uint32_t insn)
 
     return false;
 }
+
+#endif
