@@ -180,6 +180,10 @@ static void trans_CMPI_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
     IR2_OPND temp_n = ra_alloc_itemp();
     IR2_OPND label = ir2_opnd_new_type(IR2_OPND_LABEL);
 
+    if(clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31){
+        clear_gpr_high(rn);
+    }
+
     switch (shift)
     {
     case 0:
@@ -202,6 +206,14 @@ static void trans_CMPI_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
         la_bstrpick_w(temp_n, reg_n, 31, 0);
         la_bstrpick_w(temp, temp, 31, 0);
         pattern_type(b_type, &temp_n, &temp, &label);
+    }
+
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
     }
 
     nzcv_caculate(temp_n, temp, reg_n, sf, 0);
@@ -229,6 +241,13 @@ static void trans_CMPE_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
     IR2_OPND temp = ra_alloc_itemp();
     IR2_OPND temp_n = ra_alloc_itemp();
     IR2_OPND label = ir2_opnd_new_type(IR2_OPND_LABEL);
+
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0) {
+        clear_gpr_high(rn);
+    }
+    if (clearGprHigh && sf && arm_la_map[rm] >= 0 && rm != 31) {
+        clear_gpr_high(rm);
+    }
 
     if (is_signed)
     {
@@ -281,6 +300,14 @@ static void trans_CMPE_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
         pattern_type(b_type, &reg_n, &temp, &label);
     }
 
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
+    }
+
     nzcv_caculate(temp_n, temp, reg_n, sf, 0);
     pattern_goto_tb(s, 0, 4);
     la_label(label);
@@ -306,6 +333,13 @@ static void trans_CMPS_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
     IR2_OPND temp = ra_alloc_itemp();
     IR2_OPND temp_n = ra_alloc_itemp();
     IR2_OPND label = ir2_opnd_new_type(IR2_OPND_LABEL);
+
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
+    if (clearGprHigh && sf && arm_la_map[rm] >= 0 && rm != 31) {
+        clear_gpr_high(rm);
+    }
 
     if (imm)
     {
@@ -360,6 +394,13 @@ static void trans_CMPS_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
             la_bstrpick_w(temp, temp, 31, 0);
             pattern_type(b_type, &temp_n, &temp, &label);
         }
+        if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
+    }
         nzcv_caculate(temp_n, temp, reg_n, sf, 0);
         pattern_goto_tb(s, 0, 4);
 
@@ -377,6 +418,13 @@ static void trans_CMPS_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
             la_bstrpick_w(temp_n, reg_n, 31, 0);
             la_bstrpick_w(temp, reg_m, 31, 0);
             pattern_type(b_type, &temp_n, &temp, &label);
+        }
+        if (clearGprHigh) {
+            for (int i = 0; i < 32; ++i) {
+                if (arm_la_map[i] >= 0) {
+                    clear_gpr_high(i);
+                }
+            }
         }
         nzcv_caculate(temp_n, reg_m, reg_n, sf, 0);
         pattern_goto_tb(s, 0, 4);

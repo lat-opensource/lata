@@ -257,6 +257,15 @@ static void gen_a64_set_pc(DisasContext *s, TCGv_i64 src)
 }
 
 static void lata_unallocated_encoding(DisasContext *s){
+
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
+    }
+
     IR2_OPND temp = ra_alloc_itemp();
 
     li_d(temp, s->pc_curr);
@@ -1049,7 +1058,6 @@ static void gen_add(IR2_OPND* dst, IR2_OPND* src1, IR2_OPND *src2, int sf){
         la_add_d(*dst, *src1, *src2);
     }else{
         la_add_w(*dst, *src1, *src2);
-        la_bstrpick_d(*dst, *dst, 31, 0);
     }
 }
 
@@ -1058,7 +1066,6 @@ static void gen_sub(IR2_OPND* dst, IR2_OPND* src1, IR2_OPND *src2, int sf){
         la_sub_d(*dst, *src1, *src2);
     }else{
         la_sub_w(*dst, *src1, *src2);
-        la_bstrpick_d(*dst, *dst, 31, 0);
     }
 }
 
@@ -1446,62 +1453,6 @@ bool sme_enabled_check_with_svcr(DisasContext *s, unsigned req)
     return true;
 }
 
-/*
- * This utility function is for doing register extension with an
- * optional shift. You will likely want to pass a temporary for the
- * destination register. See DecodeRegExtend() in the ARM ARM.
- */
-static void ext_and_shift_reg(IR2_OPND *dst, IR2_OPND *src,
-                              int option, unsigned int shift)
-{
-    int extsize = extract32(option, 0, 2);
-    bool is_signed = extract32(option, 2, 1);
-
-    if (is_signed) {
-        switch (extsize) {
-        case 0:
-            //tcg_gen_ext8s_i64(tcg_out, tcg_in);
-            la_ext_w_b(*dst, *src);
-            break;
-        case 1:
-            //tcg_gen_ext16s_i64(tcg_out, tcg_in);
-            la_ext_w_h(*dst, *src);
-            break;
-        case 2:
-            //tcg_gen_ext32s_i64(tcg_out, tcg_in); 
-            la_bstrpick_w(*dst,*src,31,0);
-            break;
-        case 3:
-            //tcg_gen_mov_i64(tcg_out, tcg_in);
-            la_or(*dst,*src,zero_ir2_opnd);
-            break;
-        }
-    } else {
-        switch (extsize) {
-        case 0:
-            //tcg_gen_ext8u_i64(tcg_out, tcg_in);
-            la_bstrpick_d(*dst,*src,7,0);
-            break;
-        case 1:
-            //tcg_gen_ext16u_i64(tcg_out, tcg_in);
-            la_bstrpick_d(*dst,*src,15,0);
-            break;
-        case 2:
-            //tcg_gen_ext32u_i64(tcg_out, tcg_in);
-            la_bstrpick_d(*dst,*src,31,0);
-            break;
-        case 3:
-            //tcg_gen_mov_i64(tcg_out, tcg_in);
-            la_or(*dst,*src,zero_ir2_opnd);
-            break;
-        }
-    }
-
-    if (shift) {
-        //tcg_gen_shli_i64(tcg_out, tcg_out, shift);  
-        la_slli_d(*dst,*dst,shift);
-    }
-}
 
 static inline void gen_check_sp_alignment(DisasContext *s)
 {
@@ -1551,6 +1502,14 @@ static inline AArch64DecodeFn *lookup_disas_fn(const AArch64DecodeTable *table,
 
 static bool trans_B(DisasContext *s, arg_i *a)
 {
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
+    }
+
     gen_goto_tb(s, 1, a->imm);
     s->base.is_jmp = DISAS_NORETURN;
 
@@ -1559,6 +1518,14 @@ static bool trans_B(DisasContext *s, arg_i *a)
 
 static bool trans_BL(DisasContext *s, arg_i *a)
 {
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
+    }
+
     IR2_OPND x30 = alloc_gpr_dst(30);
     li_d(x30, s->base.pc_next); /* BL setting X30 to PC+4 */
     store_gpr_dst(30, x30);
@@ -1572,6 +1539,14 @@ static bool trans_BL(DisasContext *s, arg_i *a)
 
 static bool trans_CBZ(DisasContext *s, arg_cbz *a)
 {
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
+    }
+
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
     IR2_OPND label = ir2_opnd_new_type(IR2_OPND_LABEL); 
     IR2_OPND temp;
@@ -1604,6 +1579,14 @@ static bool trans_CBZ(DisasContext *s, arg_cbz *a)
 
 static bool trans_TBZ(DisasContext *s, arg_tbz *a)
 {
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
+    }
+
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
     IR2_OPND label = ir2_opnd_new_type(IR2_OPND_LABEL); 
     IR2_OPND temp = ra_alloc_itemp();
@@ -1625,7 +1608,15 @@ static bool trans_TBZ(DisasContext *s, arg_tbz *a)
 }
 
 static bool trans_B_cond(DisasContext *s, arg_B_cond *a)
-{
+{    
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
+    }
+
     // reset_btype(s);
     if (a->cond < 0x0e) {
         /* genuinely conditional branches */
@@ -1663,6 +1654,13 @@ static void set_btype_for_blr(DisasContext *s)
 
 static bool trans_BR(DisasContext *s, arg_r *a)
 {
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
+    }
     gen_goto_tb_indirect(s, a->rn);
     s->base.is_jmp = DISAS_NORETURN;
 
@@ -1671,6 +1669,14 @@ static bool trans_BR(DisasContext *s, arg_r *a)
 
 static bool trans_BLR(DisasContext *s, arg_r *a)
 {
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
+    }
+
     IR2_OPND x30 = alloc_gpr_dst(30);
     li_d(x30, s->base.pc_next); /* BL setting X30 to PC+4 */
     store_gpr_dst(30, x30);
@@ -1683,6 +1689,13 @@ static bool trans_BLR(DisasContext *s, arg_r *a)
 
 static bool trans_RET(DisasContext *s, arg_r *a)
 {
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
+    }
     gen_goto_tb_indirect(s, a->rn);
     s->base.is_jmp = DISAS_NORETURN;
 
@@ -2258,29 +2271,6 @@ static bool trans_MSR_i_SVCR(DisasContext *s, arg_MSR_i_SVCR *a)
     return true;
 }
 
-static void gen_sysreg_undef(DisasContext *s, bool isread,
-                             uint8_t op0, uint8_t op1, uint8_t op2,
-                             uint8_t crn, uint8_t crm, uint8_t rt)
-{
-    /*
-     * Generate code to emit an UNDEF with correct syndrome
-     * information for a failed system register access.
-     * This is EC_UNCATEGORIZED (ie a standard UNDEF) in most cases,
-     * but if FEAT_IDST is implemented then read accesses to registers
-     * in the feature ID space are reported with the EC_SYSTEMREGISTERTRAP
-     * syndrome.
-     */
-    uint32_t syndrome;
-
-    if (isread && dc_isar_feature(aa64_ids, s) &&
-        arm_cpreg_encoding_in_idspace(op0, op1, op2, crn, crm)) {
-        syndrome = syn_aa64_sysregtrap(op0, op1, op2, crn, crm, rt, isread);
-    } else {
-        syndrome = syn_uncategorized();
-    }
-    gen_exception_insn(s, 0, EXCP_UDEF, syndrome);
-}
-
 static void lata_helper_get_sysReg(DisasContext *ctx, uint32_t key, int rt)
 {
     IR2_OPND temp = ra_alloc_itemp();
@@ -2379,26 +2369,17 @@ static void handle_sys(DisasContext *s, bool isread,
                                       crn, crm, op0, op1, op2);
     const ARMCPRegInfo *ri = get_arm_cp_reginfo(s->cp_regs, key);
     bool need_exit_tb = false;
-    TCGv_ptr tcg_ri = NULL;
-    TCGv_i64 tcg_rt;
 
     if (!ri) {
         /* Unknown register; this might be a guest error or a QEMU
          * unimplemented feature.
          */
         assert(0);
-        qemu_log_mask(LOG_UNIMP, "%s access to unsupported AArch64 "
-                      "system register op0:%d op1:%d crn:%d crm:%d op2:%d\n",
-                      isread ? "read" : "write", op0, op1, crn, crm, op2);
-        gen_sysreg_undef(s, isread, op0, op1, op2, crn, crm, rt);
-        return;
     }
 
     /* Check access permissions */
     if (!cp_access_ok(s->current_el, ri, isread)) {
         assert(0);
-        gen_sysreg_undef(s, isread, op0, op1, op2, crn, crm, rt);
-        return;
     }
 
     if (ri->accessfn || (ri->fgt && s->fgt_active)) {
@@ -2406,25 +2387,18 @@ static void handle_sys(DisasContext *s, bool isread,
          * runtime; this may result in an exception.
          */
         assert(0);
-        uint32_t syndrome;
-
-        syndrome = syn_aa64_sysregtrap(op0, op1, op2, crn, crm, rt, isread);
-        gen_a64_update_pc(s, 0);
-        tcg_ri = tcg_temp_new_ptr();
-        gen_helper_access_check_cp_reg(tcg_ri, cpu_env,
-                                       tcg_constant_i32(key),
-                                       tcg_constant_i32(syndrome),
-                                       tcg_constant_i32(isread));
     } else if (ri->type & ARM_CP_RAISES_EXC) {
         /*
          * The readfn or writefn might raise an exception;
          * synchronize the CPU state in case it does.
          */
         assert(0);
-        gen_a64_update_pc(s, 0);
     }
 
     IR2_OPND reg_t;
+    if(clearGprHigh && !isread && arm_la_map[rt] >= 0 && rt != 31){
+        clear_gpr_high(rt);
+    }
     /* Handle special cases first */
     switch (ri->type & ARM_CP_SPECIAL_MASK) {
     case 0:
@@ -2451,8 +2425,6 @@ static void handle_sys(DisasContext *s, bool isread,
         /* Reads as current EL value from pstate, which is
          * guaranteed to be constant by the tb flags.
          */
-        tcg_rt = cpu_reg(s, rt);
-        tcg_gen_movi_i64(tcg_rt, s->current_el << 2);
         return;
     case ARM_CP_DC_ZVA:
         /* Writes clear the aligned block of memory which rt points into. */
@@ -2463,40 +2435,11 @@ static void handle_sys(DisasContext *s, bool isread,
     case ARM_CP_DC_GVA:
         {
             assert(0);
-            TCGv_i64 clean_addr, tag;
-
-            /*
-             * DC_GVA, like DC_ZVA, requires that we supply the original
-             * pointer for an invalid page.  Probe that address first.
-             */
-            tcg_rt = cpu_reg(s, rt);
-            clean_addr = clean_data_tbi(s, tcg_rt);
-            gen_probe_access(s, clean_addr, MMU_DATA_STORE, MO_8);
-
-            if (s->ata) {
-                /* Extract the tag from the register to match STZGM.  */
-                tag = tcg_temp_new_i64();
-                tcg_gen_shri_i64(tag, tcg_rt, 56);
-                gen_helper_stzgm_tags(cpu_env, clean_addr, tag);
-            }
         }
         return;
     case ARM_CP_DC_GZVA:
         {
             assert(0);
-            TCGv_i64 clean_addr, tag;
-
-            /* For DC_GZVA, we can rely on DC_ZVA for the proper fault. */
-            tcg_rt = cpu_reg(s, rt);
-            clean_addr = clean_data_tbi(s, tcg_rt);
-            gen_helper_dc_zva(cpu_env, clean_addr);
-
-            if (s->ata) {
-                /* Extract the tag from the register to match STZGM.  */
-                tag = tcg_temp_new_i64();
-                tcg_gen_shri_i64(tag, tcg_rt, 56);
-                gen_helper_stzgm_tags(cpu_env, clean_addr, tag);
-            }
         }
         return;
     default:
@@ -2516,10 +2459,8 @@ static void handle_sys(DisasContext *s, bool isread,
     if (ri->type & ARM_CP_IO) {
         assert(0);
         /* I/O operations must end the TB here (whether read or write) */
-        need_exit_tb = translator_io_start(&s->base);
     }
 
-    tcg_rt = cpu_reg(s, rt);
 
     if (isread) {
         reg_t = alloc_gpr_dst(rt);
@@ -2559,6 +2500,10 @@ static void handle_sys(DisasContext *s, bool isread,
         free_alloc_gpr(reg_t);
     }
 
+    if(isread && arm_la_map[rt] >= 0 && rt != 31 && clearGprHigh){
+        set_w_write_flag(rt, TRUE);
+    }
+
     if (!isread && !(ri->type & ARM_CP_SUPPRESS_TB_END)) {
         /*
          * A write to any coprocessor register that ends a TB
@@ -2586,6 +2531,14 @@ static bool trans_SYS(DisasContext *s, arg_SYS *a)
 
 static bool trans_SVC(DisasContext *s, arg_i *a)
 {
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
+                clear_gpr_high(i);
+            }
+        }
+    }
+
     /*
      * For SVC, HVC and SMC we advance the single-step state
      * machine before taking the exception. This is architecturally
@@ -2946,6 +2899,11 @@ static void lata_load_exclusive(DisasContext *s, int rt, int rt2, int rn,
     IR2_OPND reg_n = alloc_gpr_src_sp(rn);
     IR2_OPND reg_t = alloc_gpr_dst(rt);
     IR2_OPND reg_t2;
+
+    if(clearGprHigh && arm_la_map[rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(rn);
+    }
+
     g_assert(size <= 3);
     if (is_pair) {
         g_assert(size >= 2);
@@ -2998,6 +2956,11 @@ static void lata_load_exclusive(DisasContext *s, int rt, int rt2, int rn,
                 break;
         }
     }
+
+    if(arm_la_map[rt] >= 0 && rt != 31 && clearGprHigh){
+        set_w_write_flag(rt, TRUE);
+    }
+
     store_gpr_dst(rt, reg_t);
     free_alloc_gpr(reg_t);
     free_alloc_gpr(reg_n);
@@ -3051,6 +3014,15 @@ static void lata_store_exclusive(DisasContext *s, int rs, int rt, int rt2,
     IR2_OPND reg_n = alloc_gpr_src_sp(rn);
     IR2_OPND reg_t = alloc_gpr_src(rt);
     IR2_OPND reg_t2;
+
+    if(clearGprHigh && arm_la_map[rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(rn);
+    }
+
+    if(clearGprHigh && size == 3 && rt != 31 && arm_la_map[rt] >= 0){
+        clear_gpr_high(rt);
+    }
+
     if (is_pair) {
         assert(rs != rt && rs != rt2);
         reg_t2 = alloc_gpr_src(rt2);
@@ -3109,6 +3081,13 @@ static void lata_store_exclusive(DisasContext *s, int rs, int rt, int rt2,
         }
     }
 
+    /*  the value of reg_s must be 0 or 1, 
+        it's no need to clear high bits.
+    */
+    if(arm_la_map[rs] >= 0 && rs != 31 && clearGprHigh){ 
+        set_w_write_flag(rs, TRUE);
+    }
+
     store_gpr_dst(rs, reg_s);
     free_alloc_gpr(reg_s);
     free_alloc_gpr(reg_n);
@@ -3157,6 +3136,15 @@ static bool trans_STLR(DisasContext *s, arg_stlr *a)
     lata_gen_mb();
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
+
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
+    if(clearGprHigh && a->sz == 3 && arm_la_map[a->rt] >= 0 && a->rt != 31){
+        clear_gpr_high(a->rt);
+    }
+
     if(a->lasr){ /* no offset */
         offset = 0;
         // if(iss_sf){
@@ -3226,6 +3214,10 @@ static bool trans_LDAR(DisasContext *s, arg_stlr *a)
     IR2_OPND reg_t = alloc_gpr_dst(a->rt);
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
 
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
     /* LoadLOAcquire is the same as Load-Acquire for QEMU.  */
     if (!a->lasr && !dc_isar_feature(aa64_lor, s)) {
         return false;
@@ -3251,6 +3243,10 @@ static bool trans_LDAR(DisasContext *s, arg_stlr *a)
     }
 
     lata_gen_mb();
+
+    if(a->rt != 31 && arm_la_map[a->rt] >= 0 && clearGprHigh){
+        set_w_write_flag(a->rt, TRUE);
+    }
 
     store_gpr_dst(a->rt, reg_t);
     free_alloc_gpr(reg_t);
@@ -3308,8 +3304,7 @@ static bool trans_LD_lit(DisasContext *s, arg_ldlit *a)
 {
     IR2_OPND reg_d = alloc_gpr_dst(a->rt);
     MemOp memop = a->sz + a->sign * MO_SIGN;
-    uint32_t addr = s->pc_curr + a->imm;
-    // li_d(reg_d,addr);
+    uint64_t addr = s->pc_curr + a->imm;
     switch(memop)
     {
         case MO_64:
@@ -3327,6 +3322,11 @@ static bool trans_LD_lit(DisasContext *s, arg_ldlit *a)
             assert(0);
             break;
     }
+
+    if (arm_la_map[a->rt] >= 0 && a->rt != 31 && clearGprHigh) {
+        set_w_write_flag(a->rt, TRUE);
+    }
+
     store_gpr_dst(a->rt,reg_d);
     free_alloc_gpr(reg_d);
     return true;
@@ -3381,6 +3381,18 @@ static bool trans_STP(DisasContext *s, arg_ldstpair *a)
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
     IR2_OPND reg_t2 = alloc_gpr_src(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
+
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
+    if(clearGprHigh && a->sz == 3 && arm_la_map[a->rt] >= 0 && a->rt != 31){
+        clear_gpr_high(a->rt);
+    }
+
+    if(clearGprHigh && a->sz == 3 && arm_la_map[a->rt2] >= 0 && a->rt2 != 31){
+        clear_gpr_high(a->rt2);
+    }
 
     if(!a->w && offset){ // wback = false && offset!=0
         la_addi_d(temp, reg_n, offset);
@@ -3451,6 +3463,10 @@ static bool trans_LDP(DisasContext *s, arg_ldstpair *a)
     IR2_OPND reg_t2 = alloc_gpr_dst(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
 
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
     if(!a->w && offset){ // wback = false && offset!=0
         la_addi_d(temp, reg_n, offset);
         switch(dbytes){
@@ -3518,6 +3534,14 @@ static bool trans_LDP(DisasContext *s, arg_ldstpair *a)
             store_gpr_dst(a->rn, reg_n);
     }
 
+    if (a->rt != 31 && arm_la_map[a->rt] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rt, TRUE);
+    }
+
+    if (a->rt != 31 && arm_la_map[a->rt2] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rt2, TRUE);
+    }
+
     store_gpr_dst(a->rt, reg_t);
     store_gpr_dst(a->rt2, reg_t2);
     free_alloc_gpr(reg_n);
@@ -3545,6 +3569,10 @@ static bool trans_STP_v(DisasContext *s, arg_ldstpair *a)
     IR2_OPND vreg_t = alloc_fpr_src(a->rt);
     IR2_OPND vreg_t2 = alloc_fpr_src(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
+
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
 
     if(!a->w && offset){ // wback = false && offset!=0
         la_addi_d(temp, reg_n, offset);
@@ -3617,6 +3645,10 @@ static bool trans_LDP_v(DisasContext *s, arg_ldstpair *a)
     IR2_OPND vreg_t = alloc_fpr_dst(a->rt);
     IR2_OPND vreg_t2 = alloc_fpr_dst(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
+
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
 
     if(!a->w && offset){ // wback = false && offset!=0
         la_addi_d(temp, reg_n, offset);
@@ -3795,7 +3827,7 @@ static bool trans_STR_i(DisasContext *s, arg_ldst_imm *a)
     *   wback       true            true            false           
     */
 
-    uint64_t offset = a->imm;
+    int64_t offset = a->imm;
     if(a->w && a->rt == a->rn && a->rn !=31 )
     {
         assert(0);
@@ -3805,6 +3837,29 @@ static bool trans_STR_i(DisasContext *s, arg_ldst_imm *a)
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
 
+    /*  # STR (immediate)
+        ## Post-index                       ## Pre-index                         ## Unsigned offset
+        32-bit (size == 10)                 32-bit (size == 10)                  32-bit (size == 10)
+        STR <Wt>, [<Xn|SP>], #<simm>        STR <Wt>, [<Xn|SP>, #<simm>]!        STR <Wt>, [<Xn|SP>{, #<pimm>}]
+        64-bit (size == 11)                 64-bit (size == 11)                  64-bit (size == 11)
+        STR <Xt>, [<Xn|SP>], #<simm>        STR <Xt>, [<Xn|SP>, #<simm>]!        STR <Xt>, [<Xn|SP>{, #<pimm>}]
+
+        # STRB (immediate)
+        ## Post-index                       ## Pre-index                         ## Unsigned offset
+        STRB <Wt>, [<Xn|SP>], #<simm>       STRB <Wt>, [<Xn|SP>, #<simm>]!       STRB <Wt>, [<Xn|SP>{, #<pimm>}]
+
+        # STRH (immediate)
+        ## Post-index                       ## Pre-index                         ## Unsigned offset
+        STRH <Wt>, [<Xn|SP>], #<simm>       STRH <Wt>, [<Xn|SP>, #<simm>]!       STRH <Wt>, [<Xn|SP>{, #<pimm>}]
+    */
+
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
+    if(clearGprHigh && a->sz == 3 && arm_la_map[a->rt] >= 0 && a->rt != 31){
+        clear_gpr_high(a->rt);
+    }
     if(!a->w && offset){ // postindex = false
         /* Unsigned offset立即数是uimm12位，
         la_addi_d立即数是imm12，需要将立即数加载到寄存器
@@ -3841,9 +3896,6 @@ static void assist_trans_LDR_i(IR2_OPND* reg_t, IR2_OPND* reg_n, uint64_t offset
         case 0:
             if(sign){ // LDRSB_i
                 la_ld_b(*reg_t, *reg_n, offset);
-                if(!iss_sf){
-                    la_bstrpick_d(*reg_t, *reg_t, 31, 0);
-                }
             }else{ // LDRB_i
                 la_ld_bu(*reg_t, *reg_n, offset);
             }
@@ -3851,9 +3903,6 @@ static void assist_trans_LDR_i(IR2_OPND* reg_t, IR2_OPND* reg_n, uint64_t offset
         case 1:
             if(sign){ // LDRSH_i
                 la_ld_h(*reg_t, *reg_n, offset);
-                if(!iss_sf){
-                    la_bstrpick_d(*reg_t, *reg_t, 31, 0);
-                }
             }else{ // LDRH_i
                 la_ld_hu(*reg_t, *reg_n, offset);
             }
@@ -3861,9 +3910,6 @@ static void assist_trans_LDR_i(IR2_OPND* reg_t, IR2_OPND* reg_n, uint64_t offset
         case 2:
             if(sign){ // LDRSW_i
                 la_ld_w(*reg_t, *reg_n, offset);
-                if(!iss_sf){
-                    la_bstrpick_d(*reg_t, *reg_t, 31, 0);
-                }
             }else{ // LDR_i
                 la_ld_wu(*reg_t, *reg_n, offset);
             }
@@ -3886,7 +3932,7 @@ static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
     */
 
     /* ???: Qemu把imm看成无符号数，但是在a64手册中imm在Post-index和Pre-index时是符号拓展 */
-    uint64_t offset = a->imm;
+    int64_t offset = a->imm;
     /* iss_sf ? regsize=64 : regsize=32 */ 
     bool iss_sf = ldst_iss_sf(a->sz, a->sign, a->ext); 
     if(a->w && a->rt == a->rn && a->rn !=31 )
@@ -3898,6 +3944,26 @@ static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_t = alloc_gpr_dst(a->rt);
     
+    /*  # LDR (immediate)
+        ## Post-index                       ## Pre-index                         ## Unsigned offset
+        32-bit (size == 10)                 32-bit (size == 10)                  32-bit (size == 10)
+        LDR <Wt>, [<Xn|SP>], #<simm>        LDR <Wt>, [<Xn|SP>, #<simm>]!        LDR <Wt>, [<Xn|SP>{, #<pimm>}]
+        64-bit (size == 11)                 64-bit (size == 11)                  64-bit (size == 11)
+        LDR <Xt>, [<Xn|SP>], #<simm>        LDR <Xt>, [<Xn|SP>, #<simm>]!        LDR <Xt>, [<Xn|SP>{, #<pimm>}]
+
+        # LDRB (immediate)
+        ## Post-index                       ## Pre-index                         ## Unsigned offset
+        LDRB <Wt>, [<Xn|SP>], #<simm>       LDRB <Wt>, [<Xn|SP>, #<simm>]!       LDRB <Wt>, [<Xn|SP>{, #<pimm>}]
+
+        # LDRH (immediate)
+        ## Post-index                       ## Pre-index                         ## Unsigned offset
+        LDRH <Wt>, [<Xn|SP>], #<simm>       LDRH <Wt>, [<Xn|SP>, #<simm>]!       LDRH <Wt>, [<Xn|SP>{, #<pimm>}]
+    */
+
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
     if (a->rn == 31) {
         gen_check_sp_alignment(s);
     }
@@ -3929,6 +3995,14 @@ static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
         }
         if(a->w)
             store_gpr_dst(a->rn, reg_n);               
+    }
+
+    if (a->rt != 31 && arm_la_map[a->rt] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rt, !(a->sign && !iss_sf));
+    } else {
+        if(a->sign && !iss_sf){
+            la_bstrpick_d(reg_t, reg_t, 31, 0);
+        }
     }
 
     store_gpr_dst(a->rt, reg_t);
@@ -3980,10 +4054,14 @@ static bool trans_STR_v_i(DisasContext *s, arg_ldst_imm *a)
     *   wback       true            true            false           
     */
 
-    uint64_t offset = a->imm;
+    int64_t offset = a->imm;
 
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND vreg_t = alloc_fpr_src(a->rt);
+
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
 
     if(!a->w && offset){ // postindex = false
         /* Unsigned offset立即数是uimm12位，
@@ -4059,10 +4137,14 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
     *   wback       true            true            false           
     */
 
-    uint64_t offset = a->imm;
+    int64_t offset = a->imm;
 
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND vreg_t = alloc_fpr_dst(a->rt);
+
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
 
     if(!a->w && offset){ // wback = false && offset!=0
         /* Unsigned offset立即数是uimm12位，
@@ -4105,6 +4187,29 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_m = alloc_gpr_src(a->rm);
     IR2_OPND temp = ra_alloc_itemp();
+
+    /*  LDR (register)
+        32-bit (size == 10)
+        LDR <Wt>, [<Xn|SP>, (<Wm>|<Xm>){, <extend> {<amount>}}]
+        64-bit (size == 11)
+        LDR <Xt>, [<Xn|SP>, (<Wm>|<Xm>){, <extend> {<amount>}}]
+
+        LDRB (register)
+        Extended register (option != 011)
+        LDRB <Wt>, [<Xn|SP>, (<Wm>|<Xm>), <extend> {<amount>}]
+        Shifted register (option == 011)
+        LDRB <Wt>, [<Xn|SP>, <Xm>{, LSL <amount>}]
+
+        LDRH (register)
+        LDRH <Wt>, [<Xn|SP>, (<Wm>|<Xm>){, <extend> {<amount>}}]
+    */
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
+    if(clearGprHigh && a->sz == 3 && arm_la_map[a->rm] >= 0 && a->rm != 31){
+        clear_gpr_high(a->rm);
+    }
 
     /* iss_sf ? regsize=64 : regsize=32 */ 
     bool iss_sf = ldst_iss_sf(a->sz, a->sign, a->ext); 
@@ -4155,9 +4260,6 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
         case 0:
             if(a->sign){ // LDRSB
                 la_ldx_b(reg_t, reg_n, reg_m);
-                if(!iss_sf){
-                    la_bstrpick_d(reg_t, reg_t, 31, 0);
-                }
             }else{ // LDRB
                 la_ldx_bu(reg_t, reg_n, reg_m);
             }
@@ -4165,9 +4267,6 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
         case 1:
             if(a->sign){ // LDRSH
                 la_ldx_h(reg_t, reg_n, reg_m);
-                if(!iss_sf){
-                    la_bstrpick_d(reg_t, reg_t, 31, 0);
-                }
             }else{ // LDRH
                 la_ldx_hu(reg_t, reg_n, reg_m);
             }
@@ -4175,9 +4274,6 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
         case 2:
             if(a->sign){ // LDRSW
                 la_ldx_w(reg_t, reg_n, reg_m);
-                if(!iss_sf){
-                    la_bstrpick_d(reg_t, reg_t, 31, 0);
-                }
             }else{ // LDR
                 la_ldx_wu(reg_t, reg_n, reg_m);
             }
@@ -4202,9 +4298,6 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
         case 0:
             if(a->sign){ // LDRSB
                 la_ldx_b(reg_t, reg_n, temp);
-                if(!iss_sf){
-                    la_bstrpick_d(reg_t, reg_t, 31, 0);
-                }
             }else{ // LDRB
                 la_ldx_bu(reg_t, reg_n, temp);
             }
@@ -4212,9 +4305,6 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
         case 1:
             if(a->sign){ // LDRSH
                 la_ldx_h(reg_t, reg_n, temp);
-                if(!iss_sf){
-                    la_bstrpick_d(reg_t, reg_t, 31, 0);
-                }
             }else{ // LDRH
                 la_ldx_hu(reg_t, reg_n, temp);
             }
@@ -4222,9 +4312,6 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
         case 2:
             if(a->sign){ // LDRSW
                 la_ldx_w(reg_t, reg_n, temp);
-                if(!iss_sf){
-                    la_bstrpick_d(reg_t, reg_t, 31, 0);
-                }
             }else{ // LDR
                 la_ldx_wu(reg_t, reg_n, temp);
             }
@@ -4234,6 +4321,14 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
             break;
         default:
             break;
+        }
+    }
+
+    if (a->rt != 31 && arm_la_map[a->rt] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rt, !(a->sign && !iss_sf));
+    } else {
+        if (a->sign && !iss_sf) {
+            la_bstrpick_d(reg_t, reg_t, 31, 0);
         }
     }
 
@@ -4254,6 +4349,33 @@ static bool trans_STR(DisasContext *s, arg_ldst *a)
     int extsize = extract32(a->opt, 0, 2);
     bool is_signed = extract32(a->opt, 2, 1);
     unsigned int shift = a->s ? a->sz : 0;
+
+    /*  STR (register)
+        32-bit (size == 10)
+        STR <Wt>, [<Xn|SP>, (<Wm>|<Xm>){, <extend> {<amount>}}]
+        64-bit (size == 11)
+        STR <Xt>, [<Xn|SP>, (<Wm>|<Xm>){, <extend> {<amount>}}]
+
+        STRB (register)
+        Extended register (option != 011)
+        STRB <Wt>, [<Xn|SP>, (<Wm>|<Xm>), <extend> {<amount>}]
+        Shifted register (option == 011)
+        STRB <Wt>, [<Xn|SP>, <Xm>{, LSL <amount>}]
+
+        STRH (register)
+        STRH <Wt>, [<Xn|SP>, (<Wm>|<Xm>){, <extend> {<amount>}}]
+    */
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
+    if(clearGprHigh && a->sz == 3 && arm_la_map[a->rt] >= 0 && a->rt != 31){
+        clear_gpr_high(a->rt);
+    }
+
+    if(clearGprHigh && a->sz == 3 && arm_la_map[a->rm] >= 0 && a->rm != 31){
+        clear_gpr_high(a->rm);
+    }
 
     if (extract32(a->opt, 1, 1) == 0) {
         return false;
@@ -4350,6 +4472,14 @@ static bool trans_LDR_v(DisasContext *s, arg_ldst *a)
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_m = alloc_gpr_src(a->rm);
     IR2_OPND temp = ra_alloc_itemp();
+
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
+    if(clearGprHigh && extract32(a->opt, 0, 2) == 3 && arm_la_map[a->rm] >= 0 && a->rm != 31){ 
+        clear_gpr_high(a->rm);
+    }
 
     if (extract32(a->opt, 1, 1) == 0) {
         return false;
@@ -4481,6 +4611,14 @@ static bool trans_STR_v(DisasContext *s, arg_ldst *a)
     int extsize = extract32(a->opt, 0, 2);
     bool is_signed = extract32(a->opt, 2, 1);
     unsigned int shift = a->s ? a->sz : 0;
+
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
+    if(clearGprHigh && extract32(a->opt, 0, 2) == 3 && arm_la_map[a->rm] >= 0 && a->rm != 31){ 
+        clear_gpr_high(a->rm);
+    }
 
     if (extract32(a->opt, 1, 1) == 0) {
         return false;
@@ -4792,6 +4930,10 @@ static bool trans_LD_mult(DisasContext *s, arg_ldst_mult *a)
     }
 
     reg_n = alloc_gpr_src_sp(a->rn);
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
     if(a->selem == 1){ /* LD1(multiple structures) */
         int vbytes = (a->q ? 16 : 8); /* bytes per vector */
         total = a->rpt * vbytes;
@@ -4860,6 +5002,11 @@ static bool trans_LD_mult(DisasContext *s, arg_ldst_mult *a)
         } else {
             // tcg_gen_add_i64(tcg_rn, tcg_rn, cpu_reg(s, a->rm));
             reg_m = alloc_gpr_src(a->rm);
+
+            if (clearGprHigh && arm_la_map[a->rm] >= 0 && a->rm != 31) { /* reg_m is 64-bit size*/
+                clear_gpr_high(a->rm);
+            }
+
             la_add_d(reg_n, reg_n, reg_m);
             free_alloc_gpr(reg_m);
         }
@@ -4894,6 +5041,10 @@ static bool trans_ST_mult(DisasContext *s, arg_ldst_mult *a)
     }
 
     reg_n = alloc_gpr_src_sp(a->rn);
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
     if(a->selem == 1){ /* ST1(multiple structures) */
         int vbytes = (a->q ? 16 : 8); /* bytes per vector */
         total = a->rpt * vbytes;
@@ -4955,6 +5106,11 @@ static bool trans_ST_mult(DisasContext *s, arg_ldst_mult *a)
         } else {
             // tcg_gen_add_i64(tcg_rn, tcg_rn, cpu_reg(s, a->rm));
             reg_m = alloc_gpr_src(a->rm);
+
+            if (clearGprHigh && arm_la_map[a->rm] >= 0 && a->rm != 31) { /* reg_m is 64-bit size*/
+                clear_gpr_high(a->rm);
+            }
+
             la_add_d(reg_n, reg_n, reg_m);
             free_alloc_gpr(reg_m);
         }
@@ -4985,7 +5141,12 @@ static bool trans_ST_single(DisasContext *s, arg_ldst_single *a)
 
     total = a->selem << a->scale;
     esize = 1 << a->scale;
+
     reg_n = alloc_gpr_src_sp(a->rn);
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
     for (xs = 0, rt = a->rt; xs < a->selem; xs++, rt = (rt + 1) % 32) {
         vreg_d = alloc_fpr_src(rt);
         switch (esize)
@@ -5015,6 +5176,10 @@ static bool trans_ST_single(DisasContext *s, arg_ldst_single *a)
         } else {
             // tcg_gen_add_i64(tcg_rn, tcg_rn, cpu_reg(s, a->rm));
             reg_m = alloc_gpr_src(a->rm);
+            if (clearGprHigh && arm_la_map[a->rm] >= 0 && a->rm != 31) { /* reg_m is 64-bit size*/
+                clear_gpr_high(a->rm);
+            }
+
             la_add_d(reg_n, reg_n, reg_m);
             free_alloc_gpr(reg_m);
         }
@@ -5046,6 +5211,10 @@ static bool trans_LD_single(DisasContext *s, arg_ldst_single *a)
     total = a->selem << a->scale;
     esize = 1 << a->scale;
     reg_n = alloc_gpr_src_sp(a->rn);
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
     vtemp = ra_alloc_ftemp();
     for (xs = 0, rt = a->rt; xs < a->selem; xs++, rt = (rt + 1) % 32) {
         // do_vec_ld(s, rt, a->index, clean_addr, mop);
@@ -5081,6 +5250,10 @@ static bool trans_LD_single(DisasContext *s, arg_ldst_single *a)
         } else {
             // tcg_gen_add_i64(tcg_rn, tcg_rn, cpu_reg(s, a->rm));
             reg_m = alloc_gpr_src(a->rm);
+            if (clearGprHigh && arm_la_map[a->rm] >= 0 && a->rm != 31) { /* reg_m is 64-bit size*/
+                clear_gpr_high(a->rm);
+            }
+
             la_add_d(reg_n, reg_n, reg_m);
             free_alloc_gpr(reg_m);
         }
@@ -5111,7 +5284,12 @@ static bool trans_LD_single_repl(DisasContext *s, arg_LD_single_repl *a)
 
     total = a->selem << a->scale;
     esize = 1 << a->scale;
+
     reg_n = alloc_gpr_src_sp(a->rn);
+    if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
+        clear_gpr_high(a->rn);
+    }
+
     vreg_d = alloc_fpr_dst(a->rt);
     switch (esize)
     {
@@ -5145,6 +5323,10 @@ static bool trans_LD_single_repl(DisasContext *s, arg_LD_single_repl *a)
         } else {
             // tcg_gen_add_i64(tcg_rn, tcg_rn, cpu_reg(s, a->rm));
             reg_m = alloc_gpr_src(a->rm);
+            if (clearGprHigh && arm_la_map[a->rm] >= 0 && a->rm != 31) { /* reg_m is 64-bit size*/
+                clear_gpr_high(a->rm);
+            }
+
             la_add_d(reg_n, reg_n, reg_m);
             free_alloc_gpr(reg_m);
         }
@@ -5380,6 +5562,10 @@ static bool trans_ADR(DisasContext *s, arg_ri *a)
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);
     li_d(reg_d, (int64_t)(a->imm + s->pc_curr) );
 
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, TRUE);
+    }
+
     store_gpr_dst(a->rd,reg_d);
     free_alloc_gpr(reg_d);
     return true;
@@ -5396,6 +5582,10 @@ static bool trans_ADRP(DisasContext *s, arg_ri *a)
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);
     li_d(reg_d, (int64_t)(offset + s->pc_curr) );
 
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, TRUE);
+    }
+
     store_gpr_dst(a->rd,reg_d);
     free_alloc_gpr(reg_d);
     return true;
@@ -5411,6 +5601,10 @@ static bool trans_ADD_i(DisasContext *s, arg_ADD_i *a)
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);   
     IR2_OPND temp = ra_alloc_itemp();
 
+    if(clearGprHigh && a->sf &&  arm_la_map[a->rn] >= 0 && a->rn != 31){
+        clear_gpr_high(a->rn);
+    }
+
     uint8_t shift = extract32(s->insn, 22, 1);
     switch(shift){
         case 0:
@@ -5419,7 +5613,6 @@ static bool trans_ADD_i(DisasContext *s, arg_ADD_i *a)
                     la_addi_d(reg_d, reg_n, a->imm);
                 }else{
                     la_addi_w(reg_d, reg_n, a->imm);
-                    la_bstrpick_d(reg_d, reg_d, 31, 0);
                 }
             }else {
                 la_ori(temp, zero_ir2_opnd, a->imm);
@@ -5427,7 +5620,6 @@ static bool trans_ADD_i(DisasContext *s, arg_ADD_i *a)
                     la_add_d(reg_d, reg_n, temp);
                 }else{
                     la_add_w(reg_d, reg_n, temp);
-                    la_bstrpick_d(reg_d, reg_d, 31, 0);
                 }               
             }
             break;
@@ -5437,12 +5629,19 @@ static bool trans_ADD_i(DisasContext *s, arg_ADD_i *a)
                 la_add_d(reg_d, reg_n, temp);
             }else{
                 la_add_w(reg_d, reg_n, temp);
-                la_bstrpick_d(reg_d, reg_d, 31, 0);
             }
             break;
         default:
             assert(0);
             break;
+    }
+
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(a->rd, reg_d);
@@ -5459,6 +5658,10 @@ static bool trans_SUB_i(DisasContext *s, arg_SUB_i *a)
     IR2_OPND temp = ra_alloc_itemp();
 
 
+    if(clearGprHigh && a->sf && arm_la_map[a->rn] >= 0 && a->rn != 31){
+        clear_gpr_high(a->rn);
+    }
+
     uint8_t shift = extract32(s->insn, 22, 1);
     switch(shift){
         case 0:
@@ -5467,7 +5670,6 @@ static bool trans_SUB_i(DisasContext *s, arg_SUB_i *a)
                     la_addi_d(reg_d, reg_n, -a->imm);
                 }else{
                     la_addi_w(reg_d, reg_n, -a->imm);
-                    la_bstrpick_d(reg_d, reg_d, 31, 0);
                 }
             }else {
                 la_ori(temp, zero_ir2_opnd, a->imm);
@@ -5475,7 +5677,6 @@ static bool trans_SUB_i(DisasContext *s, arg_SUB_i *a)
                     la_sub_d(reg_d, reg_n, temp);
                 }else{
                     la_sub_w(reg_d, reg_n, temp);
-                    la_bstrpick_d(reg_d, reg_d, 31, 0);
                 }               
             }
             break;
@@ -5485,7 +5686,6 @@ static bool trans_SUB_i(DisasContext *s, arg_SUB_i *a)
                 la_sub_d(reg_d, reg_n, temp);
             }else{
                 la_sub_w(reg_d, reg_n, temp);
-                la_bstrpick_d(reg_d, reg_d, 31, 0);
             }
             break;
         default:
@@ -5493,6 +5693,13 @@ static bool trans_SUB_i(DisasContext *s, arg_SUB_i *a)
             break;
     }
 
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
+    }
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_d);
     free_alloc_gpr(reg_n);
@@ -5505,9 +5712,10 @@ static bool trans_ADDS_i(DisasContext *s, arg_ADDS_i *a)
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);   
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);   
     IR2_OPND temp = ra_alloc_itemp();
-// #ifdef CONFIG_LATA_INSTS_PATTERN
-//     s->base.tb->nzcv_use = false;
-// #endif
+
+    if(clearGprHigh && a->sf && arm_la_map[a->rn] >= 0 && a->rn != 31){
+        clear_gpr_high(a->rn);
+    }
 
     uint8_t shift = extract32(s->insn, 22, 1);
     switch(shift){
@@ -5525,6 +5733,14 @@ static bool trans_ADDS_i(DisasContext *s, arg_ADDS_i *a)
     gen_add_CC(&reg_n, &temp, a->sf);
     gen_add(&reg_d, &reg_n, &temp, a->sf);
 
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
+    }
+
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_d);
     free_alloc_gpr(reg_n);
@@ -5537,9 +5753,10 @@ static bool trans_SUBS_i(DisasContext *s, arg_SUBS_i *a)
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);   
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);   
     IR2_OPND temp = ra_alloc_itemp();
-// #ifdef CONFIG_LATA_INSTS_PATTERN
-//     s->base.tb->nzcv_use = false;
-// #endif
+
+    if(clearGprHigh && a->sf && arm_la_map[a->rn] >= 0 && a->rn != 31){
+        clear_gpr_high(a->rn);
+    }
 
     uint8_t shift = extract32(s->insn, 22, 1);
     switch(shift){
@@ -5556,6 +5773,14 @@ static bool trans_SUBS_i(DisasContext *s, arg_SUBS_i *a)
 
     gen_sub_CC(&reg_n, &temp, a->sf);
     gen_sub(&reg_d, &reg_n, &temp, a->sf);
+
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
+    }
 
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_d);
@@ -5698,6 +5923,10 @@ static bool trans_AND_i(DisasContext *s, arg_AND_i *a){
     IR2_OPND reg_d = alloc_gpr_dst_sp(a->rd);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
 
+    if(clearGprHigh && a->sf && arm_la_map[a->rn] >= 0 && a->rn != 31){
+        clear_gpr_high(a->rn);
+    }
+
     if(imm > 0xfff){
         IR2_OPND temp = ra_alloc_itemp();
         li_d(temp, imm);
@@ -5707,8 +5936,14 @@ static bool trans_AND_i(DisasContext *s, arg_AND_i *a){
     else{
         la_andi(reg_d, reg_n, imm);  
     }
-    if(!a->sf)
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
+    }
 
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_n);
@@ -5733,6 +5968,10 @@ static bool trans_ORR_i(DisasContext *s, arg_ORR_i *a){
     IR2_OPND reg_d = alloc_gpr_dst_sp(a->rd);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
 
+    if(clearGprHigh && a->sf && arm_la_map[a->rn] >= 0 && a->rn != 31){
+        clear_gpr_high(a->rn);
+    }
+
     if(imm > 0xfff){
         IR2_OPND temp = ra_alloc_itemp();
         li_d(temp, imm);
@@ -5742,8 +5981,14 @@ static bool trans_ORR_i(DisasContext *s, arg_ORR_i *a){
     else{
         la_ori(reg_d, reg_n, imm);  
     }
-    if(!a->sf)
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
+    }
 
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_n);
@@ -5769,6 +6014,10 @@ static bool trans_EOR_i(DisasContext *s, arg_EOR_i *a) {
     IR2_OPND reg_d = alloc_gpr_dst_sp(a->rd);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
 
+    if(clearGprHigh && a->sf && arm_la_map[a->rn] >= 0 && a->rn != 31){
+        clear_gpr_high(a->rn);
+    }
+
     if(imm > 0xfff){
         IR2_OPND temp = ra_alloc_itemp();
         li_d(temp, imm);
@@ -5779,8 +6028,12 @@ static bool trans_EOR_i(DisasContext *s, arg_EOR_i *a) {
         la_xori(reg_d, reg_n, imm);  
     }
 
-    if(!a->sf){
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(a->rd, reg_d);
@@ -5802,19 +6055,29 @@ static bool trans_ANDS_i(DisasContext *s, arg_ANDS_i *a) {
     {
         imm &= 0xffffffffull;
     }
-// #ifdef CONFIG_LATA_INSTS_PATTERN
-//     s->base.tb->nzcv_use = false;
-// #endif
+
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
     IR2_OPND temp = ra_alloc_itemp();
+
+    if(clearGprHigh && a->sf && arm_la_map[a->rn] >= 0 && a->rn != 31){
+        clear_gpr_high(a->rn);
+    }    
+
     li_d(temp, imm);
     la_and(reg_d, reg_n, temp);
     if(!a->sf){
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
         la_x86and_w(reg_n, temp);
     }else{
         la_x86and_d(reg_n, temp);
+    }
+
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(a->rd, reg_d);
@@ -5833,17 +6096,21 @@ static bool trans_MOVZ(DisasContext *s, arg_MOVZ *a)
 {
     int pos = a->hw << 4;
     uint64_t imm =  (uint64_t)a->imm << pos;
-    //tcg_gen_movi_i64(cpu_reg(s, a->rd), (uint64_t)a->imm << pos);
 
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);
     if(imm > 0xfff){
         li_d(reg_d,imm);
-        store_gpr_dst(a->rd, reg_d);
     }else if(imm){
         la_ori(reg_d, zero_ir2_opnd, imm);
-        store_gpr_dst(a->rd, reg_d);
-    }else{
+    }
+    if(a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh){
+        set_w_write_flag(a->rd, TRUE);
+    }
+
+    if(!imm){
         store_gpr_zero(a->rd);
+    }else{
+        store_gpr_dst(a->rd, reg_d);
     }
 
     free_alloc_gpr(reg_d);
@@ -5862,9 +6129,15 @@ static bool trans_MOVN(DisasContext *s, arg_movw *a)
     }else{
         la_ori(reg_d, zero_ir2_opnd,  ~(imm << pos));
     }
-    if(!a->sf){
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
+
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_d);
     return true;
@@ -5876,17 +6149,30 @@ static bool trans_MOVK(DisasContext *s, arg_movw *a)
     IR2_OPND reg_d = alloc_gpr_src(a->rd);    
     IR2_OPND temp = ra_alloc_itemp();
 
+    if(clearGprHigh && a->sf && arm_la_map[a->rd] >= 0 && a->rd != 31){
+        clear_gpr_high(a->rd);
+    }    
+
     if(a->imm > 0xfff){
         li_d(temp,a->imm);
     }else{
         la_ori(temp, zero_ir2_opnd, a->imm);
     }
+
     if(a->sf){
         la_bstrins_d(reg_d, temp, pos + 15, pos);
     }else{
         la_bstrins_w(reg_d, temp, pos + 15, pos);
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
     }
+
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
+    }
+
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_d);
     free_alloc_gpr(temp);
@@ -5905,6 +6191,11 @@ static bool trans_SBFM(DisasContext *s, arg_SBFM *a)
 
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
+
+    if (clearGprHigh && a->sf && arm_la_map[a->rn] >= 0 && a->rn != 31) {
+        clear_gpr_high(a->rn);
+    }
+
     if(bitsize == 32 && si == 31){ // 32-bit ASR
         la_srai_w(reg_d, reg_n, ri);
     } else if (bitsize == 64 && si == 63){ // 64-bit ASR
@@ -5936,8 +6227,12 @@ static bool trans_SBFM(DisasContext *s, arg_SBFM *a)
         }
     }
 
-    if( !a->sf ){
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(a->rd, reg_d);
@@ -5954,19 +6249,21 @@ static bool trans_UBFM(DisasContext *s, arg_UBFM *a)
 
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
+    if (clearGprHigh && a->sf && arm_la_map[a->rn] >= 0 && a->rn != 31) {
+        clear_gpr_high(a->rn);
+    }
+
     if (si >= ri) { // LSR, UXTB, UXTH, UBFX
         /* Wd<s-r:0> = Wn<s:r> */
         if(a->sf){
             la_bstrpick_d(reg_d, reg_n, si, ri);
         }else{
             la_bstrpick_w(reg_d, reg_n, si, ri);
-            la_bstrpick_d(reg_d, reg_d, 31, 0);
         }
     } else {
         /* Wd<32+s-r,32-r> = Wn<s:0> */
         if ((!a->sf) && (si != 31) && (si+1 == ri)) { // 32-bit LSL
             la_slli_w(reg_d, reg_n, bitsize - ri);
-            la_bstrpick_d(reg_d, reg_d, 31, 0);
         }else if(a->sf && (si != 63) && (si+1 == ri)){ // 64-bit LSL
             la_slli_d(reg_d, reg_n, bitsize - ri);
         }else{ // UBFIZ
@@ -5976,8 +6273,15 @@ static bool trans_UBFM(DisasContext *s, arg_UBFM *a)
             }else{
                 la_bstrpick_w(reg_d, reg_n, si, 0);
                 la_slli_d(reg_d, reg_d, bitsize - ri);
-                la_bstrpick_d(reg_d, reg_d, 31, 0);
             }
+        }
+    }
+
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
         }
     }
 
@@ -5996,6 +6300,12 @@ static bool trans_BFM(DisasContext *s, arg_BFM *a)
     IR2_OPND reg_d = alloc_gpr_src(a->rd);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
     IR2_OPND temp;
+    if (clearGprHigh && a->sf && arm_la_map[a->rd] >= 0 && a->rd != 31) {
+        clear_gpr_high(a->rd);
+    }
+    if (clearGprHigh && a->sf && arm_la_map[a->rn] >= 0 && a->rn != 31) {
+        clear_gpr_high(a->rn);
+    }
 
     if (si >= ri) { // BFXIL
         /* Wd<s-r:0> = Wn<s:r> */
@@ -6032,8 +6342,12 @@ static bool trans_BFM(DisasContext *s, arg_BFM *a)
         }
     }
 
-    if( !a->sf ){
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(a->rd, reg_d);
@@ -6048,26 +6362,39 @@ static bool trans_EXTR(DisasContext *s, arg_extract *a)
     IR2_OPND reg_m = alloc_gpr_src(a->rm);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
     IR2_OPND temp = ra_alloc_itemp();
+
+    if (clearGprHigh && a->sf && arm_la_map[a->rm] >= 0 && a->rm != 31) {
+        clear_gpr_high(a->rm);
+    }
+    if (clearGprHigh && a->sf && arm_la_map[a->rn] >= 0 && a->rn != 31) {
+        clear_gpr_high(a->rn);
+    }
+
     if (unlikely(a->imm == 0)) {
         /*
          * tcg shl_i32/shl_i64 is undefined for 32/64 bit shifts,
          * so an extract from bit 0 is a special case.
          */
         la_or(reg_d, reg_m, zero_ir2_opnd);
-        if(!a->sf){
-            la_bstrpick_d(reg_d, reg_d, 31, 0);
-        }
     } else {
         if(!a->sf){
             la_srli_w(temp, reg_m, a->imm);
             la_bstrins_w(temp, reg_n, 31, 32 - a->imm);
-            la_bstrpick_d(reg_d, temp, 31, 0);
         }else{
             la_srli_d(temp, reg_m, a->imm);
             la_bstrins_d(temp, reg_n, 63, 64 - a->imm);
-            la_or(reg_d, temp, zero_ir2_opnd);
+        }
+        la_or(reg_d, temp, zero_ir2_opnd);
+    }
+
+    if (a->rd != 31 && arm_la_map[a->rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(a->rd, a->sf);
+    } else {
+        if (!a->sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
         }
     }
+
     store_gpr_dst(a->rd, reg_d);
     free_alloc_gpr(reg_d);
     free_alloc_gpr(reg_m);
@@ -6148,6 +6475,10 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND reg_m = alloc_gpr_src(rm);
 
+    if (clearGprHigh && sf && arm_la_map[rm] >= 0 && rm != 31) {
+        clear_gpr_high(rm);
+    }
+
     if (opc == 1 && shift_amount == 0 && shift_type == 0 && rn == 31) {
         /* Unshifted ORR and ORN with WZR/XZR is the standard encoding for
          * register-register MOV and MVN, so it is worth special casing.
@@ -6161,8 +6492,12 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
             la_or(reg_d, zero_ir2_opnd, reg_m);
         }
 
-        if (!sf) {
-            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+            set_w_write_flag(rd, sf);
+        } else {
+            if (!sf) {
+                la_bstrpick_d(reg_d, reg_d, 31, 0);
+            }
         }
 
         store_gpr_dst(rd, reg_d);
@@ -6174,10 +6509,10 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
     IR2_OPND reg_n = alloc_gpr_src(rn);
     IR2_OPND temp = ra_alloc_itemp();
 
-// #ifdef CONFIG_LATA_INSTS_PATTERN
-//     if(opc == 3)
-//         s->base.tb->nzcv_use = false;
-// #endif
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
+
     if (shift_amount) {
         shift_reg_imm(&temp, &reg_m, sf, shift_type, shift_amount);
 
@@ -6266,8 +6601,12 @@ static void disas_logic_reg(DisasContext *s, uint32_t insn)
         }
     }
 
-    if (!sf) {
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, sf);
+    } else {
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(rd, reg_d);
@@ -6334,14 +6673,18 @@ static void disas_add_sub_ext_reg(DisasContext *s, uint32_t insn)
     IR2_OPND reg_m = alloc_gpr_src(rm);
     IR2_OPND temp = ra_alloc_itemp();
 
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0) {
+        clear_gpr_high(rn);
+    }
+    if (clearGprHigh && sf && arm_la_map[rm] >= 0 && rm != 31) {
+        clear_gpr_high(rm);
+    }
+
     /* non-flag setting ops may use SP */
     if (!setflags) {
         reg_d = alloc_gpr_dst_sp(rd);
     } else {
         reg_d = alloc_gpr_dst(rd);
-// #ifdef CONFIG_LATA_INSTS_PATTERN
-//         s->base.tb->nzcv_use = false;
-// #endif
     }
 
     if (is_signed) {
@@ -6389,6 +6732,15 @@ static void disas_add_sub_ext_reg(DisasContext *s, uint32_t insn)
             gen_add_sub_reg_result(setflags, sub_op, sf, &reg_d, &reg_n, &temp);
     }
 
+
+    if ((rd != 31 || !setflags) && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, sf);
+    } else {
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
+    }
+
     store_gpr_dst(rd, reg_d);
     free_alloc_gpr(reg_d);
     free_alloc_gpr(reg_m);
@@ -6420,10 +6772,7 @@ static void disas_add_sub_reg(DisasContext *s, uint32_t insn)
     bool setflags = extract32(insn, 29, 1);
     bool sub_op = extract32(insn, 30, 1);
     bool sf = extract32(insn, 31, 1);
-// #ifdef CONFIG_LATA_INSTS_PATTERN
-//     if(setflags)
-//         s->base.tb->nzcv_use = false;
-// #endif
+
     if ((shift_type == 3) || (!sf && (imm6 > 31))) {
         unallocated_encoding(s);
         return;
@@ -6432,6 +6781,14 @@ static void disas_add_sub_reg(DisasContext *s, uint32_t insn)
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND reg_n = alloc_gpr_src(rn);
     IR2_OPND reg_m = alloc_gpr_src(rm);
+
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
+    if (clearGprHigh && sf && arm_la_map[rm] >= 0 && rm != 31) {
+        clear_gpr_high(rm);
+    }
+
     IR2_OPND temp = ra_alloc_itemp();
     if(imm6){
         shift_reg_imm(&temp, &reg_m, sf, shift_type, imm6);
@@ -6439,6 +6796,14 @@ static void disas_add_sub_reg(DisasContext *s, uint32_t insn)
     }else{
 
         gen_add_sub_reg_result(setflags, sub_op, sf, &reg_d, &reg_n, &reg_m);
+    }
+
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, sf);
+    } else {
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(rd, reg_d);
@@ -6473,15 +6838,31 @@ static void disas_data_proc_3src(DisasContext *s, uint32_t insn)
     IR2_OPND reg_n = alloc_gpr_src(rn);
     IR2_OPND reg_a, temp;
     IR2_OPND reg_m = alloc_gpr_src(rm);
+
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
+    if (clearGprHigh && sf && arm_la_map[rm] >= 0 && rm != 31) {
+        clear_gpr_high(rm);
+    }
+
     /* Note that op_id is sf:op54:op31:o0 so it includes the 32/64 size flag */
     switch (op_id) {
     case 0x42: /* SMADDL */
     case 0x43: /* SMSUBL */
+        /* 
+            SMADDL <Xd>, <Wn>, <Wm>, <Xa> 
+            SMSUBL <Xd>, <Wn>, <Wm>, <Xa>
+        */
         if (ra == 31 && !is_sub) {
         /* Special-case MADD with rA == XZR; it is the standard MUL alias */
             la_mulw_d_w(reg_d, reg_n, reg_m);
         }else{
             reg_a = alloc_gpr_src(ra);
+            if (clearGprHigh && arm_la_map[ra] >= 0 && ra != 31) {
+                clear_gpr_high(ra);
+            }
+
             temp = ra_alloc_itemp();
             la_mulw_d_w(temp, reg_m, reg_n);
             if(is_sub){
@@ -6510,6 +6891,10 @@ static void disas_data_proc_3src(DisasContext *s, uint32_t insn)
             }
         }else{
             reg_a = alloc_gpr_src(ra);
+            if (clearGprHigh && arm_la_map[ra] >= 0 && ra != 31) {
+                clear_gpr_high(ra);
+            }
+
             temp = ra_alloc_itemp();
             if(sf){
                 la_mul_d(temp, reg_n, reg_m);
@@ -6541,6 +6926,10 @@ static void disas_data_proc_3src(DisasContext *s, uint32_t insn)
             la_mulw_d_wu(reg_d, reg_n, reg_m);
         }else{
             reg_a = alloc_gpr_src(ra);
+            if (clearGprHigh && arm_la_map[ra] >= 0 && ra != 31) {
+                clear_gpr_high(ra);
+            }
+
             temp = ra_alloc_itemp();
             la_mulw_d_wu(temp, reg_n, reg_m);
             if(is_sub){
@@ -6561,8 +6950,12 @@ static void disas_data_proc_3src(DisasContext *s, uint32_t insn)
         return;
     }
 
-    if (!sf) {
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, sf);
+    } else {
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(rd, reg_d);
@@ -6593,12 +6986,13 @@ static void disas_adc_sbc(DisasContext *s, uint32_t insn)
     IR2_OPND reg_m = alloc_gpr_src(rm);
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND temp = ra_alloc_itemp();
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
+    if (clearGprHigh && sf && arm_la_map[rm] >= 0 && rm != 31) {
+        clear_gpr_high(rm);
+    }
     
-// #ifdef CONFIG_LATA_INSTS_PATTERN
-//     if(setflags){
-//         s->base.tb->nzcv_use = false;
-//     }
-// #endif
     if (op) {
         la_orn(temp, zero_ir2_opnd, reg_m);
         if (setflags) {
@@ -6628,8 +7022,12 @@ static void disas_adc_sbc(DisasContext *s, uint32_t insn)
         }
     }
 
-    if (!sf) {
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, sf);
+    } else {
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     free_alloc_gpr(reg_d);
@@ -6740,14 +7138,15 @@ static void disas_cc(DisasContext *s, uint32_t insn)
     cond = extract32(insn, 12, 4);
     rn = extract32(insn, 5, 5);
     nzcv = extract32(insn, 0, 4);
-// #ifdef CONFIG_LATA_INSTS_PATTERN
-//     s->base.tb->nzcv_use = false;
-// #endif
+
     IR2_OPND reg_n = alloc_gpr_src(rn);
     IR2_OPND reg_m; 
     IR2_OPND temp = ra_alloc_itemp();
     IR2_OPND label_false = ir2_opnd_new_type(IR2_OPND_LABEL);
     IR2_OPND label_end = ir2_opnd_new_type(IR2_OPND_LABEL);
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
 
     la_setarmj(temp, cond);
     la_beqz(temp, label_false);
@@ -6760,9 +7159,11 @@ static void disas_cc(DisasContext *s, uint32_t insn)
         }else{
             reg_m = zero_ir2_opnd;
         }
-
     } else {
         reg_m = alloc_gpr_src(y);
+        if (clearGprHigh && sf && arm_la_map[y] >= 0 && y != 31) {
+           clear_gpr_high(y);
+        }
     }
 
     if(op){ // CCMP
@@ -6831,6 +7232,13 @@ static void disas_cond_select(DisasContext *s, uint32_t insn)
         IR2_OPND temp_m = ra_alloc_itemp();
         IR2_OPND temp_n = ra_alloc_itemp();
 
+        if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+            clear_gpr_high(rn);
+        }
+        if (clearGprHigh && sf && arm_la_map[rm] >= 0 && rm != 31) {
+            clear_gpr_high(rm);
+        }
+
         if (else_inv && else_inc) { // CSNEG, CNEG(FALSE)
             la_orn(temp_m, zero_ir2_opnd, reg_m);
             la_addi_d(temp_m, temp_m, 1);
@@ -6861,8 +7269,12 @@ static void disas_cond_select(DisasContext *s, uint32_t insn)
         free_alloc_gpr(temp_m);
     }
 
-    if (!sf) {
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, sf);
+    } else {
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(rd, reg_d);
@@ -6874,13 +7286,20 @@ static void handle_clz(DisasContext *s, unsigned int sf,
 {
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND reg_n = alloc_gpr_src(rn);
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
 
     if (sf) {
         la_clz_d(reg_d, reg_n);
     } else {
         la_clz_w(reg_d, reg_n);
     }
-    
+
+    if (arm_la_map[rd] >= 0 && rd != 31 && clearGprHigh) {
+        set_w_write_flag(rd, TRUE);
+    }
+
     store_gpr_dst(rd, reg_d);
     free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_d);
@@ -6893,6 +7312,9 @@ static void handle_cls(DisasContext *s, unsigned int sf,
     IR2_OPND reg_n = alloc_gpr_src(rn);
     IR2_OPND zero_label = ir2_opnd_new_type(IR2_OPND_LABEL);
     IR2_OPND exit_label = ir2_opnd_new_type(IR2_OPND_LABEL);
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
 
     if (sf) {
         la_bstrpick_d(reg_d, reg_n, 63, 63);
@@ -6913,6 +7335,10 @@ static void handle_cls(DisasContext *s, unsigned int sf,
     }
     la_addi_d(reg_d, reg_d, -1);
     
+    if (arm_la_map[rd] >= 0 && rd != 31 && clearGprHigh) {
+        set_w_write_flag(rd, TRUE);
+    }
+
     store_gpr_dst(rd, reg_d);
     free_alloc_gpr(reg_n);
     free_alloc_gpr(reg_d);
@@ -6923,12 +7349,22 @@ static void handle_rbit(DisasContext *s, unsigned int sf,
 {
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND reg_n = alloc_gpr_src(rn);
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
 
     if (sf) {
         la_bitrev_d(reg_d, reg_n);
     } else {
         la_bitrev_w(reg_d, reg_n);
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    }
+
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, sf);
+    } else {
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
     store_gpr_dst(rd, reg_d);
     free_alloc_gpr(reg_n);
@@ -6946,8 +7382,15 @@ static void handle_rev64(DisasContext *s, unsigned int sf,
 
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND reg_n = alloc_gpr_src(rn);
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
 
     la_revb_d(reg_d, reg_n);
+
+    if (arm_la_map[rd] >= 0 && rd != 31 && clearGprHigh) {
+        set_w_write_flag(rd, TRUE);
+    }
 
     store_gpr_dst(rd, reg_d);
     free_alloc_gpr(reg_n);
@@ -6962,10 +7405,18 @@ static void handle_rev32(DisasContext *s, unsigned int sf,
 {
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND reg_n = alloc_gpr_src(rn);
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
 
     la_revb_2w(reg_d, reg_n);
-    if (!sf) {
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, sf);
+    } else {
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(rd, reg_d);
@@ -6979,12 +7430,22 @@ static void handle_rev16(DisasContext *s, unsigned int sf,
 {
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND reg_n = alloc_gpr_src(rn);
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
 
     if (sf) {
         la_revb_4h(reg_d, reg_n);
     }else{
         la_revb_2h(reg_d, reg_n);
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    }
+
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, sf);
+    } else {
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(rd, reg_d);
@@ -7201,7 +7662,13 @@ static void handle_div(DisasContext *s, bool is_signed, unsigned int sf,
     IR2_OPND reg_m = alloc_gpr_src(rm);
     IR2_OPND temp_m = ra_alloc_itemp();
     IR2_OPND temp_n = ra_alloc_itemp();
-    
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
+    if (clearGprHigh && sf && arm_la_map[rm] >= 0 && rm != 31) {
+        clear_gpr_high(rm);
+    }
+
     if (is_signed) {
         if(sf){
             la_div_d(reg_d, reg_n, reg_m);
@@ -7214,8 +7681,12 @@ static void handle_div(DisasContext *s, bool is_signed, unsigned int sf,
         la_div_du(reg_d, reg_n, reg_m);
     }
     
-    if (!sf) { /* zero extend final result */
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, sf);
+    } else {
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(rd, reg_d);
@@ -7234,6 +7705,12 @@ static void handle_shift_reg(DisasContext *s,
     IR2_OPND reg_d = alloc_gpr_dst(rd);
     IR2_OPND reg_n = alloc_gpr_src(rn);
     IR2_OPND reg_m = alloc_gpr_src(rm);
+    if (clearGprHigh && sf && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
+    if (clearGprHigh && sf && arm_la_map[rm] >= 0 && rm != 31) {
+        clear_gpr_high(rm);
+    }
 
     switch (shift_type) {
     case A64_SHIFT_TYPE_LSL:
@@ -7269,8 +7746,12 @@ static void handle_shift_reg(DisasContext *s,
         break;
     }
 
-    if (!sf) { /* zero extend final result */
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, sf);
+    } else {
+        if (!sf) {
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(rd, reg_d);
@@ -8785,8 +9266,12 @@ static void handle_fpfpcvt(DisasContext *s, int rd, int rn, int opcode,
                 g_assert_not_reached();
             }
 
-            if(!sf){
-                la_bstrpick_d(reg_d, reg_d, 31, 0);   
+            if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+                set_w_write_flag(rd, sf);
+            } else {
+                if (!sf) {
+                    la_bstrpick_d(reg_d, reg_d, 31, 0);
+                }
             }
             store_gpr_dst(rd, reg_d);
             free_alloc_gpr(reg_d);
@@ -8868,10 +9353,14 @@ static void handle_fpfpcvt(DisasContext *s, int rd, int rn, int opcode,
 
             lata_gen_call_helper_epilogue(tcg_ctx);
             la_mov64(reg_d, a0_ir2_opnd);
-            if(!sf){
-                la_bstrpick_d(reg_d, reg_d, 31, 0);
-            }
 
+            if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+                set_w_write_flag(rd, sf);
+            } else {
+                if (!sf) {
+                    la_bstrpick_d(reg_d, reg_d, 31, 0);
+                }
+            }
             store_gpr_dst(rd, reg_d);
             free_alloc_gpr(reg_d);
             free_alloc_gpr(temp);
@@ -8961,12 +9450,18 @@ static void handle_fmov(DisasContext *s, int rd, int rn, int type, bool itof)
             break;
         case 1:
             /* 64 bit */
+            if (clearGprHigh && arm_la_map[rn] >= 0 && rn != 31) {
+                clear_gpr_high(rn);
+            }
             la_movgr2fr_d(vreg_d, reg_n);
             break;
         case 2:
             /* 64 bit to top half. */
             // tcg_gen_st_i64(tcg_rn, cpu_env, fp_reg_hi_offset(s, rd));
             // clear_vec_high(s, true, rd);
+            if (clearGprHigh && arm_la_map[rn] >= 0 && rn != 31) {
+                clear_gpr_high(rn);
+            }
             la_vinsgr2vr_d(vreg_d, reg_n, 1);
             break;
         case 3:
@@ -9012,6 +9507,10 @@ static void handle_fmov(DisasContext *s, int rd, int rn, int type, bool itof)
             break;
         default:
             g_assert_not_reached();
+        }
+
+        if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+            set_w_write_flag(rd, TRUE);
         }
         store_gpr_dst(rd, reg_d);
         free_alloc_gpr(reg_d);
@@ -10211,8 +10710,12 @@ static void handle_simd_umov_smov(DisasContext *s, int is_q, int is_signed,
         assert(0);
     }
 
-    if (is_signed && !is_q) {
-        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, !(is_signed && !is_q));
+    } else {
+        if(is_signed && !is_q){
+            la_bstrpick_d(reg_d, reg_d, 31, 0);
+        }
     }
 
     store_gpr_dst(rd, reg_d);
@@ -10465,8 +10968,6 @@ static void disas_simd_scalar_pairwise(DisasContext *s, uint32_t insn)
         default:
             g_assert_not_reached();
         }
-        /* 高64位清零 */
-        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
 
     } else {
         assert(0);

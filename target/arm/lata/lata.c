@@ -170,6 +170,7 @@ static __thread TRANSLATION_DATA tr_data_real;
 __thread TRANSLATION_DATA *tr_data;
 
 bool lata_dump = 0;
+bool clearGprHigh = 1;
 uint64_t context_switch_bt_to_native;
 uint64_t context_switch_native_to_bt_ret_0;
 uint64_t context_switch_native_to_bt;
@@ -832,4 +833,28 @@ void free_alloc_fpr(IR2_OPND opnd) {
     if (arm_la_reverse_fmap[opnd.val] == -1) {
         ra_free_temp(opnd);
     }
+}
+
+/* */
+void set_w_write_flag(int i, int sf){
+    uint32_t old = lsenv->tr_data->w_write_flag;
+
+    if(sf){ /* write_X */
+        lsenv->tr_data->w_write_flag = (old & (1 << i)) ? (old - (1 << i)) : old;  
+    }else{ /* write_W */
+        lsenv->tr_data->w_write_flag = old | (1 << i);
+    }
+    // printf("gpr_%d, old : %x, now : %x\n ", i, old, lsenv->tr_data->w_write_flag);
+}
+
+void clear_gpr_high(int i)
+{
+    uint32_t old = lsenv->tr_data->w_write_flag;
+    if (old & (1 << i))
+    {
+        IR2_OPND opnd = ir2_opnd_new(IR2_OPND_GPR, arm_la_map[i]);
+        la_bstrpick_d(opnd, opnd, 31, 0);
+        lsenv->tr_data->w_write_flag = old - (1 << i);       
+    }
+
 }

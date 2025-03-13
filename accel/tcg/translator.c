@@ -206,6 +206,15 @@ void translator_loop(CPUState *cpu, TranslationBlock *tb, int *max_insns,
            or we have executed all of the allowed instructions.  */
         if (tcg_op_buf_full() || db->num_insns >= db->max_insns) {
             db->is_jmp = DISAS_TOO_MANY;
+#ifdef CONFIG_LATA
+            if (clearGprHigh) {
+                for (int i = 0; i < 32; ++i) {
+                    if (arm_la_map[i] >= 0) {
+                        clear_gpr_high(i);
+                    }
+                }
+            }  
+#endif
             break;
         }
     }
@@ -237,6 +246,15 @@ void translator_loop(CPUState *cpu, TranslationBlock *tb, int *max_insns,
             qemu_log_unlock(logfile);
         }
     }
+#ifdef CONFIG_LATA
+    if(clearGprHigh){
+        uint32_t old = lsenv->tr_data->w_write_flag;
+        if(old != 0){
+            printf("0x%lx :old:%x\n", db->pc_first, old);
+            assert(old == 0);
+        }
+    }
+#endif
 }
 
 static void *translator_access(CPUArchState *env, DisasContextBase *db,
