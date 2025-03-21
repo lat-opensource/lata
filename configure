@@ -256,7 +256,7 @@ qemu_suffix="qemu"
 softmmu="yes"
 linux_user=""
 bsd_user=""
-plugins="$default_feature"
+plugins="no"
 ninja=""
 python=
 download="enabled"
@@ -269,6 +269,7 @@ werror=""
 lata="no"
 indirect_jmp_opt="no"
 insts_pattern_opt="no"
+lata_tu_opt="no"
 
 # Don't accept a target_list environment variable.
 unset target_list
@@ -832,6 +833,8 @@ for opt do
   ;;
   --indirect-jmp-opt) indirect_jmp_opt="yes"
   ;;
+  --lata-tu-opt) lata_tu_opt="yes"
+  ;;
   --gdb=*) gdb_bin="$optarg"
   ;;
   # everything else has the same name in configure and meson
@@ -968,6 +971,7 @@ Optional only for LATA:
                           enable indirect branch optimization
   --insts-pattern-opt
                           enable instruction pattern optimization
+  --lata-tu-opt           enable translation unit
 EOF
   meson_options_help
 cat << EOF
@@ -1828,6 +1832,9 @@ if test "$lata" = "yes" ; then
   fi
   if test "$indirect_jmp_opt" = "yes" ; then
     echo "CONFIG_LATA_INDIRECT_JMP=y" >> $config_host_mak
+  fi
+  if test "$lata_tu_opt" = "yes" ; then
+    echo "CONFIG_LATA_TU=y" >> $config_host_mak
   fi
 fi
 
