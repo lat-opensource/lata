@@ -14,6 +14,10 @@ typedef struct {
     disassemble_info *info;
     uint64_t pc;
     uint32_t insn;
+#ifdef CONFIG_LATA
+    void *arg;
+    int insn_type;
+#endif
 } DisasContext;
 
 static inline int plus_1(DisasContext *ctx, int x)

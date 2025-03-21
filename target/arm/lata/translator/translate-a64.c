@@ -29,6 +29,7 @@
 #ifdef CONFIG_LATA
 #include "target/arm/lata/include/translate.h"
 #include "target/arm/lata/include/insts-pattern.h"
+#include "ir1.h"
 #endif
 
 static TCGv_i64 cpu_X[32];
@@ -77,7 +78,7 @@ static int scale_by_log2_tag_granule(DisasContext *s, int x)
  * Include the generated decoders.
  */
 
-#include "decode-sme-fa64.c.inc"
+// #include "decode-sme-fa64.c.inc"
 #include "decode-a64.c.inc"
 
 /* Table based decoder typedefs - used when the relevant bits for decode
@@ -1500,8 +1501,9 @@ static inline AArch64DecodeFn *lookup_disas_fn(const AArch64DecodeTable *table,
  * match up with those in the manual.
  */
 
-static bool trans_B(DisasContext *s, arg_i *a)
+static bool trans_B(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     if (clearGprHigh) {
         for (int i = 0; i < 32; ++i) {
             if (arm_la_map[i] >= 0) {
@@ -1516,8 +1518,9 @@ static bool trans_B(DisasContext *s, arg_i *a)
     return true;
 }
 
-static bool trans_BL(DisasContext *s, arg_i *a)
+static bool trans_BL(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     if (clearGprHigh) {
         for (int i = 0; i < 32; ++i) {
             if (arm_la_map[i] >= 0) {
@@ -1537,8 +1540,9 @@ static bool trans_BL(DisasContext *s, arg_i *a)
 }
 
 
-static bool trans_CBZ(DisasContext *s, arg_cbz *a)
+static bool trans_CBZ(DisasContext *s)
 {
+    arg_cbz *a = (arg_cbz *)s->arg;
     if (clearGprHigh) {
         for (int i = 0; i < 32; ++i) {
             if (arm_la_map[i] >= 0) {
@@ -1577,8 +1581,9 @@ static bool trans_CBZ(DisasContext *s, arg_cbz *a)
     return true;
 }
 
-static bool trans_TBZ(DisasContext *s, arg_tbz *a)
+static bool trans_TBZ(DisasContext *s)
 {
+    arg_tbz *a = (arg_tbz *)s->arg;
     if (clearGprHigh) {
         for (int i = 0; i < 32; ++i) {
             if (arm_la_map[i] >= 0) {
@@ -1607,8 +1612,9 @@ static bool trans_TBZ(DisasContext *s, arg_tbz *a)
     return true;
 }
 
-static bool trans_B_cond(DisasContext *s, arg_B_cond *a)
+static bool trans_B_cond(DisasContext *s)
 {    
+    arg_B_cond *a = (arg_B_cond *)s->arg;
     if (clearGprHigh) {
         for (int i = 0; i < 32; ++i) {
             if (arm_la_map[i] >= 0) {
@@ -1652,8 +1658,9 @@ static void set_btype_for_blr(DisasContext *s)
     }
 }
 
-static bool trans_BR(DisasContext *s, arg_r *a)
+static bool trans_BR(DisasContext *s)
 {
+    arg_r *a = (arg_r *)s->arg;
     if (clearGprHigh) {
         for (int i = 0; i < 32; ++i) {
             if (arm_la_map[i] >= 0) {
@@ -1667,8 +1674,9 @@ static bool trans_BR(DisasContext *s, arg_r *a)
     return true;
 }
 
-static bool trans_BLR(DisasContext *s, arg_r *a)
+static bool trans_BLR(DisasContext *s)
 {
+    arg_r *a = (arg_r *)s->arg;
     if (clearGprHigh) {
         for (int i = 0; i < 32; ++i) {
             if (arm_la_map[i] >= 0) {
@@ -1687,8 +1695,9 @@ static bool trans_BLR(DisasContext *s, arg_r *a)
     return true;
 }
 
-static bool trans_RET(DisasContext *s, arg_r *a)
+static bool trans_RET(DisasContext *s)
 {
+    arg_r *a = (arg_r *)s->arg;
     if (clearGprHigh) {
         for (int i = 0; i < 32; ++i) {
             if (arm_la_map[i] >= 0) {
@@ -1724,8 +1733,9 @@ static TCGv_i64 auth_branch_target(DisasContext *s, TCGv_i64 dst,
     return truedst;
 }
 
-static bool trans_BRAZ(DisasContext *s, arg_braz *a)
+static bool trans_BRAZ(DisasContext *s)
 {
+    arg_braz *a = (arg_braz *)s->arg;
     TCGv_i64 dst;
 
     if (!dc_isar_feature(aa64_pauth, s)) {
@@ -1739,8 +1749,9 @@ static bool trans_BRAZ(DisasContext *s, arg_braz *a)
     return true;
 }
 
-static bool trans_BLRAZ(DisasContext *s, arg_braz *a)
+static bool trans_BLRAZ(DisasContext *s)
 {
+    arg_braz *a = (arg_braz *)s->arg;
     TCGv_i64 dst, lr;
 
     if (!dc_isar_feature(aa64_pauth, s)) {
@@ -1761,8 +1772,9 @@ static bool trans_BLRAZ(DisasContext *s, arg_braz *a)
     return true;
 }
 
-static bool trans_RETA(DisasContext *s, arg_reta *a)
+static bool trans_RETA(DisasContext *s)
 {
+    arg_reta *a = (arg_reta *)s->arg;
     TCGv_i64 dst;
 
     dst = auth_branch_target(s, cpu_reg(s, 30), cpu_X[31], !a->m);
@@ -1771,8 +1783,9 @@ static bool trans_RETA(DisasContext *s, arg_reta *a)
     return true;
 }
 
-static bool trans_BRA(DisasContext *s, arg_bra *a)
+static bool trans_BRA(DisasContext *s)
 {
+    arg_bra *a = (arg_bra *)s->arg;
     TCGv_i64 dst;
 
     if (!dc_isar_feature(aa64_pauth, s)) {
@@ -1785,8 +1798,9 @@ static bool trans_BRA(DisasContext *s, arg_bra *a)
     return true;
 }
 
-static bool trans_BLRA(DisasContext *s, arg_bra *a)
+static bool trans_BLRA(DisasContext *s)
 {
+    arg_bra *a = (arg_bra *)s->arg;
     TCGv_i64 dst, lr;
 
     if (!dc_isar_feature(aa64_pauth, s)) {
@@ -1806,7 +1820,7 @@ static bool trans_BLRA(DisasContext *s, arg_bra *a)
     return true;
 }
 
-static bool trans_ERET(DisasContext *s, arg_ERET *a)
+static bool trans_ERET(DisasContext *s)
 {
     TCGv_i64 dst;
 
@@ -1829,8 +1843,9 @@ static bool trans_ERET(DisasContext *s, arg_ERET *a)
     return true;
 }
 
-static bool trans_ERETA(DisasContext *s, arg_reta *a)
+static bool trans_ERETA(DisasContext *s)
 {
+    arg_reta *a = (arg_reta *)s->arg;
     TCGv_i64 dst;
 
     if (!dc_isar_feature(aa64_pauth, s)) {
@@ -1858,12 +1873,12 @@ static bool trans_ERETA(DisasContext *s, arg_reta *a)
     return true;
 }
 
-static bool trans_NOP(DisasContext *s, arg_NOP *a)
+static bool trans_NOP(DisasContext *s)
 {
     return true;
 }
 
-static bool trans_YIELD(DisasContext *s, arg_YIELD *a)
+static bool trans_YIELD(DisasContext *s)
 {
     /*
      * When running in MTTCG we don't generate jumps to the yield and
@@ -1877,13 +1892,13 @@ static bool trans_YIELD(DisasContext *s, arg_YIELD *a)
     return true;
 }
 
-static bool trans_WFI(DisasContext *s, arg_WFI *a)
+static bool trans_WFI(DisasContext *s)
 {
     s->base.is_jmp = DISAS_WFI;
     return true;
 }
 
-static bool trans_WFE(DisasContext *s, arg_WFI *a)
+static bool trans_WFE(DisasContext *s)
 {
     /*
      * When running in MTTCG we don't generate jumps to the yield and
@@ -1897,7 +1912,7 @@ static bool trans_WFE(DisasContext *s, arg_WFI *a)
     return true;
 }
 
-static bool trans_XPACLRI(DisasContext *s, arg_XPACLRI *a)
+static bool trans_XPACLRI(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_xpaci(cpu_X[30], cpu_env, cpu_X[30]);
@@ -1905,7 +1920,7 @@ static bool trans_XPACLRI(DisasContext *s, arg_XPACLRI *a)
     return true;
 }
 
-static bool trans_PACIA1716(DisasContext *s, arg_PACIA1716 *a)
+static bool trans_PACIA1716(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_pacia(cpu_X[17], cpu_env, cpu_X[17], cpu_X[16]);
@@ -1913,7 +1928,7 @@ static bool trans_PACIA1716(DisasContext *s, arg_PACIA1716 *a)
     return true;
 }
 
-static bool trans_PACIB1716(DisasContext *s, arg_PACIB1716 *a)
+static bool trans_PACIB1716(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_pacib(cpu_X[17], cpu_env, cpu_X[17], cpu_X[16]);
@@ -1921,7 +1936,7 @@ static bool trans_PACIB1716(DisasContext *s, arg_PACIB1716 *a)
     return true;
 }
 
-static bool trans_AUTIA1716(DisasContext *s, arg_AUTIA1716 *a)
+static bool trans_AUTIA1716(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_autia(cpu_X[17], cpu_env, cpu_X[17], cpu_X[16]);
@@ -1929,7 +1944,7 @@ static bool trans_AUTIA1716(DisasContext *s, arg_AUTIA1716 *a)
     return true;
 }
 
-static bool trans_AUTIB1716(DisasContext *s, arg_AUTIB1716 *a)
+static bool trans_AUTIB1716(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_autib(cpu_X[17], cpu_env, cpu_X[17], cpu_X[16]);
@@ -1937,7 +1952,7 @@ static bool trans_AUTIB1716(DisasContext *s, arg_AUTIB1716 *a)
     return true;
 }
 
-static bool trans_ESB(DisasContext *s, arg_ESB *a)
+static bool trans_ESB(DisasContext *s)
 {
     /* Without RAS, we must implement this as NOP. */
     if (dc_isar_feature(aa64_ras, s)) {
@@ -1957,7 +1972,7 @@ static bool trans_ESB(DisasContext *s, arg_ESB *a)
     return true;
 }
 
-static bool trans_PACIAZ(DisasContext *s, arg_PACIAZ *a)
+static bool trans_PACIAZ(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_pacia(cpu_X[30], cpu_env, cpu_X[30], tcg_constant_i64(0));
@@ -1965,7 +1980,7 @@ static bool trans_PACIAZ(DisasContext *s, arg_PACIAZ *a)
     return true;
 }
 
-static bool trans_PACIASP(DisasContext *s, arg_PACIASP *a)
+static bool trans_PACIASP(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_pacia(cpu_X[30], cpu_env, cpu_X[30], cpu_X[31]);
@@ -1973,7 +1988,7 @@ static bool trans_PACIASP(DisasContext *s, arg_PACIASP *a)
     return true;
 }
 
-static bool trans_PACIBZ(DisasContext *s, arg_PACIBZ *a)
+static bool trans_PACIBZ(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_pacib(cpu_X[30], cpu_env, cpu_X[30], tcg_constant_i64(0));
@@ -1981,7 +1996,7 @@ static bool trans_PACIBZ(DisasContext *s, arg_PACIBZ *a)
     return true;
 }
 
-static bool trans_PACIBSP(DisasContext *s, arg_PACIBSP *a)
+static bool trans_PACIBSP(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_pacib(cpu_X[30], cpu_env, cpu_X[30], cpu_X[31]);
@@ -1989,7 +2004,7 @@ static bool trans_PACIBSP(DisasContext *s, arg_PACIBSP *a)
     return true;
 }
 
-static bool trans_AUTIAZ(DisasContext *s, arg_AUTIAZ *a)
+static bool trans_AUTIAZ(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_autia(cpu_X[30], cpu_env, cpu_X[30], tcg_constant_i64(0));
@@ -1997,7 +2012,7 @@ static bool trans_AUTIAZ(DisasContext *s, arg_AUTIAZ *a)
     return true;
 }
 
-static bool trans_AUTIASP(DisasContext *s, arg_AUTIASP *a)
+static bool trans_AUTIASP(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_autia(cpu_X[30], cpu_env, cpu_X[30], cpu_X[31]);
@@ -2005,7 +2020,7 @@ static bool trans_AUTIASP(DisasContext *s, arg_AUTIASP *a)
     return true;
 }
 
-static bool trans_AUTIBZ(DisasContext *s, arg_AUTIBZ *a)
+static bool trans_AUTIBZ(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_autib(cpu_X[30], cpu_env, cpu_X[30], tcg_constant_i64(0));
@@ -2013,7 +2028,7 @@ static bool trans_AUTIBZ(DisasContext *s, arg_AUTIBZ *a)
     return true;
 }
 
-static bool trans_AUTIBSP(DisasContext *s, arg_AUTIBSP *a)
+static bool trans_AUTIBSP(DisasContext *s)
 {
     if (s->pauth_active) {
         gen_helper_autib(cpu_X[30], cpu_env, cpu_X[30], cpu_X[31]);
@@ -2021,7 +2036,7 @@ static bool trans_AUTIBSP(DisasContext *s, arg_AUTIBSP *a)
     return true;
 }
 
-static bool trans_CLREX(DisasContext *s, arg_CLREX *a)
+static bool trans_CLREX(DisasContext *s)
 {
     assert(0);
     tcg_gen_movi_i64(cpu_exclusive_addr, -1);
@@ -2035,7 +2050,7 @@ static void lata_gen_mb(void){
     }
 }
 
-static bool trans_DSB_DMB(DisasContext *s, arg_DSB_DMB *a)
+static bool trans_DSB_DMB(DisasContext *s)
 {
     // /* We handle DSB and DMB the same way */
     // TCGBar bar;
@@ -2055,7 +2070,7 @@ static bool trans_DSB_DMB(DisasContext *s, arg_DSB_DMB *a)
     return true;
 }
 
-static bool trans_ISB(DisasContext *s, arg_ISB *a)
+static bool trans_ISB(DisasContext *s)
 {
     assert(0);
     /*
@@ -2068,7 +2083,7 @@ static bool trans_ISB(DisasContext *s, arg_ISB *a)
     return true;
 }
 
-static bool trans_SB(DisasContext *s, arg_SB *a)
+static bool trans_SB(DisasContext *s)
 {
     if (!dc_isar_feature(aa64_sb, s)) {
         return false;
@@ -2082,7 +2097,7 @@ static bool trans_SB(DisasContext *s, arg_SB *a)
     return true;
 }
 
-static bool trans_CFINV(DisasContext *s, arg_CFINV *a)
+static bool trans_CFINV(DisasContext *s)
 {
     if (!dc_isar_feature(aa64_condm_4, s)) {
         return false;
@@ -2091,7 +2106,7 @@ static bool trans_CFINV(DisasContext *s, arg_CFINV *a)
     return true;
 }
 
-static bool trans_XAFLAG(DisasContext *s, arg_XAFLAG *a)
+static bool trans_XAFLAG(DisasContext *s)
 {
     TCGv_i32 z;
 
@@ -2127,7 +2142,7 @@ static bool trans_XAFLAG(DisasContext *s, arg_XAFLAG *a)
     return true;
 }
 
-static bool trans_AXFLAG(DisasContext *s, arg_AXFLAG *a)
+static bool trans_AXFLAG(DisasContext *s)
 {
     if (!dc_isar_feature(aa64_condm_5, s)) {
         return false;
@@ -2145,8 +2160,9 @@ static bool trans_AXFLAG(DisasContext *s, arg_AXFLAG *a)
     return true;
 }
 
-static bool trans_MSR_i_UAO(DisasContext *s, arg_i *a)
+static bool trans_MSR_i_UAO(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     if (!dc_isar_feature(aa64_uao, s) || s->current_el == 0) {
         return false;
     }
@@ -2160,8 +2176,9 @@ static bool trans_MSR_i_UAO(DisasContext *s, arg_i *a)
     return true;
 }
 
-static bool trans_MSR_i_PAN(DisasContext *s, arg_i *a)
+static bool trans_MSR_i_PAN(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     if (!dc_isar_feature(aa64_pan, s) || s->current_el == 0) {
         return false;
     }
@@ -2175,8 +2192,9 @@ static bool trans_MSR_i_PAN(DisasContext *s, arg_i *a)
     return true;
 }
 
-static bool trans_MSR_i_SPSEL(DisasContext *s, arg_i *a)
+static bool trans_MSR_i_SPSEL(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     if (s->current_el == 0) {
         return false;
     }
@@ -2185,8 +2203,9 @@ static bool trans_MSR_i_SPSEL(DisasContext *s, arg_i *a)
     return true;
 }
 
-static bool trans_MSR_i_SBSS(DisasContext *s, arg_i *a)
+static bool trans_MSR_i_SBSS(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     if (!dc_isar_feature(aa64_ssbs, s)) {
         return false;
     }
@@ -2200,8 +2219,9 @@ static bool trans_MSR_i_SBSS(DisasContext *s, arg_i *a)
     return true;
 }
 
-static bool trans_MSR_i_DIT(DisasContext *s, arg_i *a)
+static bool trans_MSR_i_DIT(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     if (!dc_isar_feature(aa64_dit, s)) {
         return false;
     }
@@ -2215,8 +2235,9 @@ static bool trans_MSR_i_DIT(DisasContext *s, arg_i *a)
     return true;
 }
 
-static bool trans_MSR_i_TCO(DisasContext *s, arg_i *a)
+static bool trans_MSR_i_TCO(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     if (dc_isar_feature(aa64_mte, s)) {
         /* Full MTE is enabled -- set the TCO bit as directed. */
         if (a->imm & 1) {
@@ -2237,23 +2258,26 @@ static bool trans_MSR_i_TCO(DisasContext *s, arg_i *a)
     }
 }
 
-static bool trans_MSR_i_DAIFSET(DisasContext *s, arg_i *a)
+static bool trans_MSR_i_DAIFSET(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     gen_helper_msr_i_daifset(cpu_env, tcg_constant_i32(a->imm));
     s->base.is_jmp = DISAS_TOO_MANY;
     return true;
 }
 
-static bool trans_MSR_i_DAIFCLEAR(DisasContext *s, arg_i *a)
+static bool trans_MSR_i_DAIFCLEAR(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     gen_helper_msr_i_daifclear(cpu_env, tcg_constant_i32(a->imm));
     /* Exit the cpu loop to re-evaluate pending IRQs. */
     s->base.is_jmp = DISAS_UPDATE_EXIT;
     return true;
 }
 
-static bool trans_MSR_i_SVCR(DisasContext *s, arg_MSR_i_SVCR *a)
+static bool trans_MSR_i_SVCR(DisasContext *s)
 {
+    arg_MSR_i_SVCR *a = (arg_MSR_i_SVCR *)s->arg;
     if (!dc_isar_feature(aa64_sme, s) || a->mask == 0) {
         return false;
     }
@@ -2523,14 +2547,16 @@ static void handle_sys(DisasContext *s, bool isread,
     }
 }
 
-static bool trans_SYS(DisasContext *s, arg_SYS *a)
+static bool trans_SYS(DisasContext *s)
 {
+    arg_SYS *a = (arg_SYS *)s->arg;
     handle_sys(s, a->l, a->op0, a->op1, a->op2, a->crn, a->crm, a->rt);
     return true;
 }
 
-static bool trans_SVC(DisasContext *s, arg_i *a)
+static bool trans_SVC(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     if (clearGprHigh) {
         for (int i = 0; i < 32; ++i) {
             if (arm_la_map[i] >= 0) {
@@ -2565,8 +2591,9 @@ static bool trans_SVC(DisasContext *s, arg_i *a)
     return true;
 }
 
-static bool trans_HVC(DisasContext *s, arg_i *a)
+static bool trans_HVC(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     if (s->current_el == 0) {
         unallocated_encoding(s);
         return true;
@@ -2583,8 +2610,9 @@ static bool trans_HVC(DisasContext *s, arg_i *a)
     return true;
 }
 
-static bool trans_SMC(DisasContext *s, arg_i *a)
+static bool trans_SMC(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     if (s->current_el == 0) {
         unallocated_encoding(s);
         return true;
@@ -2597,13 +2625,14 @@ static bool trans_SMC(DisasContext *s, arg_i *a)
     return true;
 }
 
-static bool trans_BRK(DisasContext *s, arg_i *a)
+static bool trans_BRK(DisasContext *s)
 {
+    arg_i *a = (arg_i *)s->arg;
     gen_exception_bkpt_insn(s, syn_aa64_bkpt(a->imm));
     return true;
 }
 
-static bool trans_HLT(DisasContext *s, arg_i *a)
+static bool trans_HLT(DisasContext *s)
 {
     /*
      * HLT. This has two purposes.
@@ -2612,6 +2641,7 @@ static bool trans_HLT(DisasContext *s, arg_i *a)
      * it is required for halting debug disabled: it will UNDEF.
      * Secondly, "HLT 0xf000" is the A64 semihosting syscall instruction.
      */
+    arg_i *a = (arg_i *)s->arg;
     if (semihosting_enabled(s->current_el == 0) && a->imm == 0xf000) {
         gen_exception_internal_insn(s, EXCP_SEMIHOST);
     } else {
@@ -3094,8 +3124,9 @@ static void lata_store_exclusive(DisasContext *s, int rs, int rt, int rt2,
     free_alloc_gpr(reg_t);
 }
 
-static bool trans_STXR(DisasContext *s, arg_stxr *a)
+static bool trans_STXR(DisasContext *s)
 {
+    arg_stxr *a = (arg_stxr *)s->arg;
     if (a->rn == 31) {
         gen_check_sp_alignment(s);
     }
@@ -3106,8 +3137,9 @@ static bool trans_STXR(DisasContext *s, arg_stxr *a)
     return true;
 }
 
-static bool trans_LDXR(DisasContext *s, arg_stxr *a)
+static bool trans_LDXR(DisasContext *s)
 {
+    arg_stxr *a = (arg_stxr *)s->arg;
     if (a->rn == 31) {
         gen_check_sp_alignment(s);
     }
@@ -3118,8 +3150,9 @@ static bool trans_LDXR(DisasContext *s, arg_stxr *a)
     return true;
 }
 
-static bool trans_STLR(DisasContext *s, arg_stlr *a)
+static bool trans_STLR(DisasContext *s)
 {
+    arg_stlr *a = (arg_stlr *)s->arg;
     bool iss_sf = ldst_iss_sf(a->sz, false, false);
     int offset;
     /*
@@ -3186,31 +3219,9 @@ static bool trans_STLR(DisasContext *s, arg_stlr *a)
     return true;
 }
 
-// static bool trans_LDAR(DisasContext *s, arg_stlr *a)
-// {
-//     TCGv_i64 clean_addr;
-//     MemOp memop;
-//     bool iss_sf = ldst_iss_sf(a->sz, false, false);
-
-//     /* LoadLOAcquire is the same as Load-Acquire for QEMU.  */
-//     if (!a->lasr && !dc_isar_feature(aa64_lor, s)) {
-//         return false;
-//     }
-//     /* Generate ISS for non-exclusive accesses including LASR.  */
-//     if (a->rn == 31) {
-//         gen_check_sp_alignment(s);
-//     }
-//     memop = check_ordered_align(s, a->rn, 0, false, a->sz);
-//     clean_addr = gen_mte_check1(s, cpu_reg_sp(s, a->rn),
-//                                 false, a->rn != 31, memop);
-//     do_gpr_ld(s, cpu_reg(s, a->rt), clean_addr, memop, false, true,
-//               a->rt, iss_sf, a->lasr);
-//     tcg_gen_mb(TCG_MO_ALL | TCG_BAR_LDAQ);
-//     return true;
-// }
-
-static bool trans_LDAR(DisasContext *s, arg_stlr *a)
+static bool trans_LDAR(DisasContext *s)
 {
+    arg_stlr *a = (arg_stlr *)s->arg;
     IR2_OPND reg_t = alloc_gpr_dst(a->rt);
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
 
@@ -3254,8 +3265,9 @@ static bool trans_LDAR(DisasContext *s, arg_stlr *a)
     return true;
 }
 
-static bool trans_STXP(DisasContext *s, arg_stxr *a)
+static bool trans_STXP(DisasContext *s)
 {
+    arg_stxr *a = (arg_stxr *)s->arg;
     if (a->rn == 31) {
         gen_check_sp_alignment(s);
     }
@@ -3266,8 +3278,9 @@ static bool trans_STXP(DisasContext *s, arg_stxr *a)
     return true;
 }
 
-static bool trans_LDXP(DisasContext *s, arg_stxr *a)
+static bool trans_LDXP(DisasContext *s)
 {
+    arg_stxr *a = (arg_stxr *)s->arg;
     if (a->rn == 31) {
         gen_check_sp_alignment(s);
     }
@@ -3278,8 +3291,9 @@ static bool trans_LDXP(DisasContext *s, arg_stxr *a)
     return true;
 }
 
-static bool trans_CASP(DisasContext *s, arg_CASP *a)
+static bool trans_CASP(DisasContext *s)
 {
+    arg_CASP *a = (arg_CASP *)s->arg;
     if (!dc_isar_feature(aa64_atomics, s)) {
         return false;
     }
@@ -3291,8 +3305,9 @@ static bool trans_CASP(DisasContext *s, arg_CASP *a)
     return true;
 }
 
-static bool trans_CAS(DisasContext *s, arg_CAS *a)
+static bool trans_CAS(DisasContext *s)
 {
+    arg_CAS *a = (arg_CAS *)s->arg;
     if (!dc_isar_feature(aa64_atomics, s)) {
         return false;
     }
@@ -3300,8 +3315,9 @@ static bool trans_CAS(DisasContext *s, arg_CAS *a)
     return true;
 }
 
-static bool trans_LD_lit(DisasContext *s, arg_ldlit *a)
+static bool trans_LD_lit(DisasContext *s)
 {
+    arg_ldlit *a = (arg_ldlit *)s->arg;
     IR2_OPND reg_d = alloc_gpr_dst(a->rt);
     MemOp memop = a->sz + a->sign * MO_SIGN;
     uint64_t addr = s->pc_curr + a->imm;
@@ -3332,9 +3348,10 @@ static bool trans_LD_lit(DisasContext *s, arg_ldlit *a)
     return true;
 }
 
-static bool trans_LD_lit_v(DisasContext *s, arg_ldlit *a)
+static bool trans_LD_lit_v(DisasContext *s)
 {
     /* Load register (literal), vector version */
+    arg_ldlit *a = (arg_ldlit *)s->arg;
     TCGv_i64 clean_addr;
     MemOp memop;
 
@@ -3359,7 +3376,7 @@ static void op_addr_ldstpair_post(DisasContext *s, arg_ldstpair *a,
     }
 }
 
-static bool trans_STP(DisasContext *s, arg_ldstpair *a)
+static bool trans_STP(DisasContext *s)
 {
     
     /*3 classes: Post-index , Pre-index and Signed offset
@@ -3369,6 +3386,7 @@ static bool trans_STP(DisasContext *s, arg_ldstpair *a)
     *   wback       true            true            false           
     */
 
+    arg_ldstpair *a = (arg_ldstpair *)s->arg;
     uint64_t offset = a->imm << a->sz;
     int dbytes = (8 << a->sz) / 8;
     if(a->w && (a->rt == a->rn || a->rt2 == a->rn) && a->rn !=31 )
@@ -3440,7 +3458,7 @@ static bool trans_STP(DisasContext *s, arg_ldstpair *a)
     return true;
 }
 
-static bool trans_LDP(DisasContext *s, arg_ldstpair *a)
+static bool trans_LDP(DisasContext *s)
 {
     
     /*3 classes: Post-index , Pre-index and Signed offset
@@ -3450,6 +3468,7 @@ static bool trans_LDP(DisasContext *s, arg_ldstpair *a)
     *   wback       true            true            false           
     */
 
+    arg_ldstpair *a = (arg_ldstpair *)s->arg;
     uint64_t offset = a->imm << a->sz;
     int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
     if(a->w && (a->rt == a->rn || a->rt2 == a->rn) && a->rn !=31 )
@@ -3551,7 +3570,7 @@ static bool trans_LDP(DisasContext *s, arg_ldstpair *a)
     return true;
 }
 
-static bool trans_STP_v(DisasContext *s, arg_ldstpair *a)
+static bool trans_STP_v(DisasContext *s)
 {
     /*3 classes: Post-index , Pre-index and Signed offset
     *     
@@ -3560,6 +3579,7 @@ static bool trans_STP_v(DisasContext *s, arg_ldstpair *a)
     *   wback       true            true            false           
     */
 
+    arg_ldstpair *a = (arg_ldstpair *)s->arg;
     uint64_t offset = a->imm << a->sz;
     int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
 
@@ -3628,7 +3648,7 @@ static bool trans_STP_v(DisasContext *s, arg_ldstpair *a)
     return true;
 }
 
-static bool trans_LDP_v(DisasContext *s, arg_ldstpair *a)
+static bool trans_LDP_v(DisasContext *s)
 {
     /*3 classes: Post-index , Pre-index and Signed offset
     *     
@@ -3637,6 +3657,7 @@ static bool trans_LDP_v(DisasContext *s, arg_ldstpair *a)
     *   wback       true            true            false           
     */
 
+    arg_ldstpair *a = (arg_ldstpair *)s->arg;
     uint64_t offset = a->imm << a->sz;
     int dbytes = (8 << a->sz) / 8; // dbytes = datasize / 8;
     /* TODO: CheckFPAdvSIMDEnabled64(s) */
@@ -3732,8 +3753,9 @@ static bool trans_LDP_v(DisasContext *s, arg_ldstpair *a)
     return true;
 }
 
-static bool trans_STGP(DisasContext *s, arg_ldstpair *a)
+static bool trans_STGP(DisasContext *s)
 {
+    arg_ldstpair *a = (arg_ldstpair *)s->arg;
     TCGv_i64 clean_addr, dirty_addr, tcg_rt, tcg_rt2;
     uint64_t offset = a->imm << LOG2_TAG_GRANULE;
     MemOp mop;
@@ -3818,7 +3840,7 @@ static void assist_trans_STR_i(IR2_OPND* reg_t, IR2_OPND* reg_n, uint64_t offset
     }
 }
 
-static bool trans_STR_i(DisasContext *s, arg_ldst_imm *a)
+static bool trans_STR_i(DisasContext *s)
 {
     /*3 classes: Post-index , Pre-index and Unsigned offset
     *     
@@ -3827,6 +3849,7 @@ static bool trans_STR_i(DisasContext *s, arg_ldst_imm *a)
     *   wback       true            true            false           
     */
 
+    arg_ldst_imm *a = (arg_ldst_imm *)s->arg;
     int64_t offset = a->imm;
     if(a->w && a->rt == a->rn && a->rn !=31 )
     {
@@ -3922,7 +3945,7 @@ static void assist_trans_LDR_i(IR2_OPND* reg_t, IR2_OPND* reg_n, uint64_t offset
         }
 }
 
-static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
+static bool trans_LDR_i(DisasContext *s)
 {
     /*3 classes: Post-index , Pre-index and Unsigned offset
     *     
@@ -3931,7 +3954,7 @@ static bool trans_LDR_i(DisasContext *s, arg_ldst_imm *a)
     *   wback       true            true            false           
     */
 
-    /* ???: Qemu把imm看成无符号数，但是在a64手册中imm在Post-index和Pre-index时是符号拓展 */
+    arg_ldst_imm *a = (arg_ldst_imm *)s->arg;
     int64_t offset = a->imm;
     /* iss_sf ? regsize=64 : regsize=32 */ 
     bool iss_sf = ldst_iss_sf(a->sz, a->sign, a->ext); 
@@ -4045,7 +4068,7 @@ static void assist_trans_STR_v_i(IR2_OPND* vreg_t, IR2_OPND* reg_n, uint64_t off
     free_alloc_gpr(temp);
 }
 
-static bool trans_STR_v_i(DisasContext *s, arg_ldst_imm *a)
+static bool trans_STR_v_i(DisasContext *s)
 {
     /*3 classes: Post-index , Pre-index and Unsigned offset
     *     
@@ -4054,6 +4077,7 @@ static bool trans_STR_v_i(DisasContext *s, arg_ldst_imm *a)
     *   wback       true            true            false           
     */
 
+    arg_ldst_imm *a = (arg_ldst_imm *)s->arg;
     int64_t offset = a->imm;
 
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
@@ -4128,7 +4152,7 @@ static void assist_trans_LDR_v_i(IR2_OPND* vreg_t, IR2_OPND* reg_n, uint64_t off
     free_alloc_gpr(temp);
 }
 
-static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
+static bool trans_LDR_v_i(DisasContext *s)
 {
     /*3 classes: Post-index , Pre-index and Unsigned offset
     *     
@@ -4137,6 +4161,7 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
     *   wback       true            true            false           
     */
 
+    arg_ldst_imm *a = (arg_ldst_imm *)s->arg;
     int64_t offset = a->imm;
 
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
@@ -4181,8 +4206,9 @@ static bool trans_LDR_v_i(DisasContext *s, arg_ldst_imm *a)
     return true;
 }
 
-static bool trans_LDR(DisasContext *s, arg_ldst *a)
+static bool trans_LDR(DisasContext *s)
 {
+    arg_ldst *a = (arg_ldst *)s->arg;
     IR2_OPND reg_t = alloc_gpr_dst(a->rt);
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_m = alloc_gpr_src(a->rm);
@@ -4340,8 +4366,9 @@ static bool trans_LDR(DisasContext *s, arg_ldst *a)
     return true;
 }
 
-static bool trans_STR(DisasContext *s, arg_ldst *a)
+static bool trans_STR(DisasContext *s)
 {
+    arg_ldst *a = (arg_ldst *)s->arg;
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_m = alloc_gpr_src(a->rm);
@@ -4466,8 +4493,9 @@ static bool trans_STR(DisasContext *s, arg_ldst *a)
     return true;
 }
 
-static bool trans_LDR_v(DisasContext *s, arg_ldst *a)
+static bool trans_LDR_v(DisasContext *s)
 {
+    arg_ldst *a = (arg_ldst *)s->arg;
     IR2_OPND vreg_t = alloc_fpr_dst(a->rt);
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_m = alloc_gpr_src(a->rm);
@@ -4601,8 +4629,9 @@ static bool trans_LDR_v(DisasContext *s, arg_ldst *a)
     return true;
 }
 
-static bool trans_STR_v(DisasContext *s, arg_ldst *a)
+static bool trans_STR_v(DisasContext *s)
 {
+    arg_ldst *a = (arg_ldst *)s->arg;
     IR2_OPND vreg_t = alloc_fpr_src(a->rt);
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_m = alloc_gpr_src(a->rm);
@@ -4768,18 +4797,19 @@ static bool do_atomic_ld(DisasContext *s, arg_atomic *a, AtomicThreeOpFn *fn,
     return true;
 }
 
-TRANS_FEAT(LDADD, aa64_atomics, do_atomic_ld, a, tcg_gen_atomic_fetch_add_i64, 0, false)
-TRANS_FEAT(LDCLR, aa64_atomics, do_atomic_ld, a, tcg_gen_atomic_fetch_and_i64, 0, true)
-TRANS_FEAT(LDEOR, aa64_atomics, do_atomic_ld, a, tcg_gen_atomic_fetch_xor_i64, 0, false)
-TRANS_FEAT(LDSET, aa64_atomics, do_atomic_ld, a, tcg_gen_atomic_fetch_or_i64, 0, false)
-TRANS_FEAT(LDSMAX, aa64_atomics, do_atomic_ld, a, tcg_gen_atomic_fetch_smax_i64, MO_SIGN, false)
-TRANS_FEAT(LDSMIN, aa64_atomics, do_atomic_ld, a, tcg_gen_atomic_fetch_smin_i64, MO_SIGN, false)
-TRANS_FEAT(LDUMAX, aa64_atomics, do_atomic_ld, a, tcg_gen_atomic_fetch_umax_i64, 0, false)
-TRANS_FEAT(LDUMIN, aa64_atomics, do_atomic_ld, a, tcg_gen_atomic_fetch_umin_i64, 0, false)
-TRANS_FEAT(SWP, aa64_atomics, do_atomic_ld, a, tcg_gen_atomic_xchg_i64, 0, false)
+TRANS_FEAT_NOARG(LDADD, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_add_i64, 0, false)
+TRANS_FEAT_NOARG(LDCLR, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_and_i64, 0, true)
+TRANS_FEAT_NOARG(LDEOR, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_xor_i64, 0, false)
+TRANS_FEAT_NOARG(LDSET, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_or_i64, 0, false)
+TRANS_FEAT_NOARG(LDSMAX, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_smax_i64, MO_SIGN, false)
+TRANS_FEAT_NOARG(LDSMIN, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_smin_i64, MO_SIGN, false)
+TRANS_FEAT_NOARG(LDUMAX, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_umax_i64, 0, false)
+TRANS_FEAT_NOARG(LDUMIN, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_umin_i64, 0, false)
+TRANS_FEAT_NOARG(SWP, aa64_atomics, do_atomic_ld, tcg_gen_atomic_xchg_i64, 0, false)
 
-static bool trans_LDAPR(DisasContext *s, arg_LDAPR *a)
+static bool trans_LDAPR(DisasContext *s)
 {
+    arg_LDAPR *a = (arg_LDAPR *)s->arg;
     bool iss_sf = ldst_iss_sf(a->sz, false, false);
     TCGv_i64 clean_addr;
     MemOp mop;
@@ -4807,8 +4837,9 @@ static bool trans_LDAPR(DisasContext *s, arg_LDAPR *a)
     return true;
 }
 
-static bool trans_LDRA(DisasContext *s, arg_LDRA *a)
+static bool trans_LDRA(DisasContext *s)
 {
+    arg_LDRA *a = (arg_LDRA *)s->arg;
     TCGv_i64 clean_addr, dirty_addr, tcg_rt;
     MemOp memop;
 
@@ -4851,8 +4882,9 @@ static bool trans_LDRA(DisasContext *s, arg_LDRA *a)
     return true;
 }
 
-static bool trans_LDAPR_i(DisasContext *s, arg_ldapr_stlr_i *a)
+static bool trans_LDAPR_i(DisasContext *s)
 {
+    arg_ldapr_stlr_i *a = (arg_ldapr_stlr_i *)s->arg;
     TCGv_i64 clean_addr, dirty_addr;
     MemOp mop = a->sz | (a->sign ? MO_SIGN : 0);
     bool iss_sf = ldst_iss_sf(a->sz, a->sign, a->ext);
@@ -4880,8 +4912,9 @@ static bool trans_LDAPR_i(DisasContext *s, arg_ldapr_stlr_i *a)
     return true;
 }
 
-static bool trans_STLR_i(DisasContext *s, arg_ldapr_stlr_i *a)
+static bool trans_STLR_i(DisasContext *s)
 {
+    arg_ldapr_stlr_i *a = (arg_ldapr_stlr_i *)s->arg;
     TCGv_i64 clean_addr, dirty_addr;
     MemOp mop = a->sz;
     bool iss_sf = ldst_iss_sf(a->sz, a->sign, a->ext);
@@ -4907,8 +4940,9 @@ static bool trans_STLR_i(DisasContext *s, arg_ldapr_stlr_i *a)
     return true;
 }
 
-static bool trans_LD_mult(DisasContext *s, arg_ldst_mult *a)
+static bool trans_LD_mult(DisasContext *s)
 {
+    arg_ldst_mult *a = (arg_ldst_mult *)s->arg;
     IR2_OPND vreg_d, reg_n, reg_m;
 
     int total;    /* total bytes */
@@ -5017,9 +5051,10 @@ static bool trans_LD_mult(DisasContext *s, arg_ldst_mult *a)
     return true;
 }
 
-static bool trans_ST_mult(DisasContext *s, arg_ldst_mult *a)
+static bool trans_ST_mult(DisasContext *s)
 {
     // assert(0);
+    arg_ldst_mult *a = (arg_ldst_mult *)s->arg;
     IR2_OPND vreg_d, reg_n, reg_m;
 
     int total;    /* total bytes */
@@ -5121,8 +5156,9 @@ static bool trans_ST_mult(DisasContext *s, arg_ldst_mult *a)
     return true;
 }
 
-static bool trans_ST_single(DisasContext *s, arg_ldst_single *a)
+static bool trans_ST_single(DisasContext *s)
 {
+    arg_ldst_single *a = (arg_ldst_single *)s->arg;
     IR2_OPND vreg_d, reg_n, reg_m;
     int total;    /* total bytes */
     int esize;
@@ -5190,8 +5226,9 @@ static bool trans_ST_single(DisasContext *s, arg_ldst_single *a)
     return true;
 }
 
-static bool trans_LD_single(DisasContext *s, arg_ldst_single *a)
+static bool trans_LD_single(DisasContext *s)
 {
+    arg_ldst_single *a = (arg_ldst_single *)s->arg;
     IR2_OPND vreg_d, reg_n, reg_m, vtemp;
     int total;    /* total bytes */
     int esize;
@@ -5265,8 +5302,9 @@ static bool trans_LD_single(DisasContext *s, arg_ldst_single *a)
     return true;
 }
 
-static bool trans_LD_single_repl(DisasContext *s, arg_LD_single_repl *a)
+static bool trans_LD_single_repl(DisasContext *s)
 {
+    arg_LD_single_repl *a = (arg_LD_single_repl *)s->arg;
     IR2_OPND vreg_d, reg_n, reg_m;
     int total;    /* total bytes */
     int esize;
@@ -5337,8 +5375,9 @@ static bool trans_LD_single_repl(DisasContext *s, arg_LD_single_repl *a)
     return true;
 }
 
-static bool trans_STZGM(DisasContext *s, arg_ldst_tag *a)
+static bool trans_STZGM(DisasContext *s)
 {
+    arg_ldst_tag *a = (arg_ldst_tag *)s->arg;
     TCGv_i64 addr, clean_addr, tcg_rt;
     int size = 4 << s->dcz_blocksize;
 
@@ -5370,8 +5409,9 @@ static bool trans_STZGM(DisasContext *s, arg_ldst_tag *a)
     return true;
 }
 
-static bool trans_STGM(DisasContext *s, arg_ldst_tag *a)
+static bool trans_STGM(DisasContext *s)
 {
+    arg_ldst_tag *a = (arg_ldst_tag *)s->arg;
     TCGv_i64 addr, clean_addr, tcg_rt;
 
     if (!dc_isar_feature(aa64_mte, s)) {
@@ -5402,8 +5442,9 @@ static bool trans_STGM(DisasContext *s, arg_ldst_tag *a)
     return true;
 }
 
-static bool trans_LDGM(DisasContext *s, arg_ldst_tag *a)
+static bool trans_LDGM(DisasContext *s)
 {
+    arg_ldst_tag *a = (arg_ldst_tag *)s->arg;
     TCGv_i64 addr, clean_addr, tcg_rt;
 
     if (!dc_isar_feature(aa64_mte, s)) {
@@ -5436,8 +5477,9 @@ static bool trans_LDGM(DisasContext *s, arg_ldst_tag *a)
     return true;
 }
 
-static bool trans_LDG(DisasContext *s, arg_ldst_tag *a)
+static bool trans_LDG(DisasContext *s)
 {
+    arg_ldst_tag *a = (arg_ldst_tag *)s->arg;
     TCGv_i64 addr, clean_addr, tcg_rt;
 
     if (!dc_isar_feature(aa64_mte_insn_reg, s)) {
@@ -5546,10 +5588,10 @@ static bool do_STG(DisasContext *s, arg_ldst_tag *a, bool is_zero, bool is_pair)
     return true;
 }
 
-TRANS_FEAT(STG, aa64_mte_insn_reg, do_STG, a, false, false)
-TRANS_FEAT(STZG, aa64_mte_insn_reg, do_STG, a, true, false)
-TRANS_FEAT(ST2G, aa64_mte_insn_reg, do_STG, a, false, true)
-TRANS_FEAT(STZ2G, aa64_mte_insn_reg, do_STG, a, true, true)
+TRANS_FEAT_NOARG(STG, aa64_mte_insn_reg, do_STG, false, false)
+TRANS_FEAT_NOARG(STZG, aa64_mte_insn_reg, do_STG, true, false)
+TRANS_FEAT_NOARG(ST2G, aa64_mte_insn_reg, do_STG, false, true)
+TRANS_FEAT_NOARG(STZ2G, aa64_mte_insn_reg, do_STG, true, true)
 
 typedef void ArithTwoOp(TCGv_i64, TCGv_i64, TCGv_i64);
 
@@ -5557,8 +5599,9 @@ typedef void ArithTwoOp(TCGv_i64, TCGv_i64, TCGv_i64);
  * PC-rel. addressing
  */
 
-static bool trans_ADR(DisasContext *s, arg_ri *a)
+static bool trans_ADR(DisasContext *s)
 {
+    arg_ri *a = (arg_ri *)s->arg;
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);
     li_d(reg_d, (int64_t)(a->imm + s->pc_curr) );
 
@@ -5571,8 +5614,9 @@ static bool trans_ADR(DisasContext *s, arg_ri *a)
     return true;
 }
 
-static bool trans_ADRP(DisasContext *s, arg_ri *a)
+static bool trans_ADRP(DisasContext *s)
 {
+    arg_ri *a = (arg_ri *)s->arg;
     int64_t offset = a->imm << 12;
 
     /* The page offset is ok for CF_PCREL. */
@@ -5595,8 +5639,9 @@ static bool trans_ADRP(DisasContext *s, arg_ri *a)
  * Add/subtract (immediate)
  */
 
-static bool trans_ADD_i(DisasContext *s, arg_ADD_i *a)
+static bool trans_ADD_i(DisasContext *s)
 {
+    arg_ADD_i *a = (arg_ADD_i *)s->arg;
     IR2_OPND reg_d = alloc_gpr_dst_sp(a->rd);   
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);   
     IR2_OPND temp = ra_alloc_itemp();
@@ -5651,8 +5696,9 @@ static bool trans_ADD_i(DisasContext *s, arg_ADD_i *a)
     return true;
 }
 
-static bool trans_SUB_i(DisasContext *s, arg_SUB_i *a)
+static bool trans_SUB_i(DisasContext *s)
 {
+    arg_SUB_i *a = (arg_SUB_i *)s->arg;
     IR2_OPND reg_d = alloc_gpr_dst_sp(a->rd);   
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);   
     IR2_OPND temp = ra_alloc_itemp();
@@ -5707,8 +5753,9 @@ static bool trans_SUB_i(DisasContext *s, arg_SUB_i *a)
     return true;
 }
 
-static bool trans_ADDS_i(DisasContext *s, arg_ADDS_i *a)
+static bool trans_ADDS_i(DisasContext *s)
 {
+    arg_ADDS_i *a = (arg_ADDS_i *)s->arg;
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);   
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);   
     IR2_OPND temp = ra_alloc_itemp();
@@ -5748,8 +5795,9 @@ static bool trans_ADDS_i(DisasContext *s, arg_ADDS_i *a)
     return true;
 }
 
-static bool trans_SUBS_i(DisasContext *s, arg_SUBS_i *a)
+static bool trans_SUBS_i(DisasContext *s)
 {
+    arg_SUBS_i *a = (arg_SUBS_i *)s->arg;
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);   
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);   
     IR2_OPND temp = ra_alloc_itemp();
@@ -5818,8 +5866,8 @@ static bool gen_add_sub_imm_with_tags(DisasContext *s, arg_rri_tag *a,
     return true;
 }
 
-TRANS_FEAT(ADDG_i, aa64_mte_insn_reg, gen_add_sub_imm_with_tags, a, false)
-TRANS_FEAT(SUBG_i, aa64_mte_insn_reg, gen_add_sub_imm_with_tags, a, true)
+TRANS_FEAT_NOARG(ADDG_i, aa64_mte_insn_reg, gen_add_sub_imm_with_tags, false)
+TRANS_FEAT_NOARG(SUBG_i, aa64_mte_insn_reg, gen_add_sub_imm_with_tags, true)
 
 /* The input should be a value in the bottom e bits (with higher
  * bits zero); returns that value replicated into every element
@@ -5906,7 +5954,8 @@ bool logic_imm_decode_wmask(uint64_t *result, unsigned int immn,
     return true;
 }
 
-static bool trans_AND_i(DisasContext *s, arg_AND_i *a){
+static bool trans_AND_i(DisasContext *s){
+    arg_AND_i *a = (arg_AND_i *)s->arg;
     uint64_t imm;
     /* Some immediate field values are reserved. */
     if (!logic_imm_decode_wmask(&imm, extract32(a->dbm, 12, 1),
@@ -5951,7 +6000,8 @@ static bool trans_AND_i(DisasContext *s, arg_AND_i *a){
     return true;
 }
 
-static bool trans_ORR_i(DisasContext *s, arg_ORR_i *a){
+static bool trans_ORR_i(DisasContext *s){
+    arg_ORR_i *a = (arg_ORR_i *)s->arg;
     uint64_t imm;
     /* Some immediate field values are reserved. */
     if (!logic_imm_decode_wmask(&imm, extract32(a->dbm, 12, 1),
@@ -5997,7 +6047,8 @@ static bool trans_ORR_i(DisasContext *s, arg_ORR_i *a){
 }
 
 
-static bool trans_EOR_i(DisasContext *s, arg_EOR_i *a) { 
+static bool trans_EOR_i(DisasContext *s) { 
+    arg_EOR_i *a = (arg_EOR_i *)s->arg;
     uint64_t imm;
     /* Some immediate field values are reserved. */
     if (!logic_imm_decode_wmask(&imm, extract32(a->dbm, 12, 1),
@@ -6042,7 +6093,8 @@ static bool trans_EOR_i(DisasContext *s, arg_EOR_i *a) {
     return true;
 }
     
-static bool trans_ANDS_i(DisasContext *s, arg_ANDS_i *a) { 
+static bool trans_ANDS_i(DisasContext *s) { 
+    arg_ANDS_i *a = (arg_ANDS_i *)s->arg;
     uint64_t imm;
     /* Some immediate field values are reserved. */
     if (!logic_imm_decode_wmask(&imm, extract32(a->dbm, 12, 1),
@@ -6092,8 +6144,9 @@ static bool trans_ANDS_i(DisasContext *s, arg_ANDS_i *a) {
  * Move wide (immediate)
  */
 
-static bool trans_MOVZ(DisasContext *s, arg_MOVZ *a)
+static bool trans_MOVZ(DisasContext *s)
 {
+    arg_MOVZ *a = (arg_MOVZ *)s->arg;
     int pos = a->hw << 4;
     uint64_t imm =  (uint64_t)a->imm << pos;
 
@@ -6117,8 +6170,9 @@ static bool trans_MOVZ(DisasContext *s, arg_MOVZ *a)
     return true;
 }
 
-static bool trans_MOVN(DisasContext *s, arg_movw *a)
+static bool trans_MOVN(DisasContext *s)
 {
+    arg_movw *a = (arg_movw *)s->arg;
     int pos = a->hw << 4;
 
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);    
@@ -6143,8 +6197,9 @@ static bool trans_MOVN(DisasContext *s, arg_movw *a)
     return true;
 }
 
-static bool trans_MOVK(DisasContext *s, arg_movw *a)
+static bool trans_MOVK(DisasContext *s)
 {
+    arg_movw *a = (arg_movw *)s->arg;
     int pos = a->hw << 4;
     IR2_OPND reg_d = alloc_gpr_src(a->rd);    
     IR2_OPND temp = ra_alloc_itemp();
@@ -6183,8 +6238,9 @@ static bool trans_MOVK(DisasContext *s, arg_movw *a)
  * Bitfield
  */
 
-static bool trans_SBFM(DisasContext *s, arg_SBFM *a)
+static bool trans_SBFM(DisasContext *s)
 {
+    arg_SBFM *a = (arg_SBFM *)s->arg;
     unsigned int bitsize = a->sf ? 64 : 32;
     unsigned int ri = a->immr;
     unsigned int si = a->imms;
@@ -6241,8 +6297,9 @@ static bool trans_SBFM(DisasContext *s, arg_SBFM *a)
     return true;
 }
 
-static bool trans_UBFM(DisasContext *s, arg_UBFM *a)
+static bool trans_UBFM(DisasContext *s)
 {
+    arg_UBFM *a = (arg_UBFM *)s->arg;
     unsigned int bitsize = a->sf ? 64 : 32;
     unsigned int ri = a->immr;
     unsigned int si = a->imms;
@@ -6291,8 +6348,9 @@ static bool trans_UBFM(DisasContext *s, arg_UBFM *a)
     return true;
 }
 
-static bool trans_BFM(DisasContext *s, arg_BFM *a)
+static bool trans_BFM(DisasContext *s)
 {
+    arg_BFM *a = (arg_BFM *)s->arg;
     unsigned int bitsize = a->sf ? 64 : 32;
     unsigned int ri = a->immr;
     unsigned int si = a->imms;
@@ -6356,8 +6414,9 @@ static bool trans_BFM(DisasContext *s, arg_BFM *a)
     return true;
 }
 
-static bool trans_EXTR(DisasContext *s, arg_extract *a)
+static bool trans_EXTR(DisasContext *s)
 {
+    arg_extract *a = (arg_extract *)s->arg;
     IR2_OPND reg_d = alloc_gpr_dst(a->rd);
     IR2_OPND reg_m = alloc_gpr_src(a->rm);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
@@ -7929,8 +7988,9 @@ static void disas_data_proc_2src(DisasContext *s, uint32_t insn)
  * |  |op0|  |op1| 1 0 1 | op2 |       |  op3  |         |
  * +--+---+--+---+-------+-----+-------+-------+---------+
  */
-static void disas_data_proc_reg(DisasContext *s, uint32_t insn)
+static bool disas_data_proc_reg(DisasContext *s)
 {
+    uint32_t insn = *(uint32_t *)s->arg;
     int op0 = extract32(insn, 30, 1);
     int op1 = extract32(insn, 28, 1);
     int op2 = extract32(insn, 21, 4);
@@ -7949,7 +8009,7 @@ static void disas_data_proc_reg(DisasContext *s, uint32_t insn)
             /* Logical (shifted register) */
             disas_logic_reg(s, insn);
         }
-        return;
+        return true;
     }
 
     switch (op2) {
@@ -8002,6 +8062,8 @@ static void disas_data_proc_reg(DisasContext *s, uint32_t insn)
         unallocated_encoding(s);
         break;
     }
+
+    return true;
 }
 
 static void handle_fp_compare(DisasContext *s, int size,
@@ -17476,24 +17538,15 @@ static void disas_data_proc_simd(DisasContext *s, uint32_t insn)
 }
 
 /* C3.6 Data processing - SIMD and floating point */
-static void disas_data_proc_simd_fp(DisasContext *s, uint32_t insn)
+static bool disas_data_proc_simd_fp(DisasContext *s)
 {
+    uint32_t insn = *(uint32_t *)s->arg;
     if (extract32(insn, 28, 1) == 1 && extract32(insn, 30, 1) == 0) {
         disas_data_proc_fp(s, insn);
     } else {
         /* SIMD, including crypto */
         disas_data_proc_simd(s, insn);
     }
-}
-
-static bool trans_OK(DisasContext *s, arg_OK *a)
-{
-    return true;
-}
-
-static bool trans_FAIL(DisasContext *s, arg_OK *a)
-{
-    s->is_nonstreaming = true;
     return true;
 }
 
@@ -17586,11 +17639,13 @@ static void disas_a64_legacy(DisasContext *s, uint32_t insn)
     switch (extract32(insn, 25, 4)) {
     case 0x5:
     case 0xd:      /* Data processing - register */
-        disas_data_proc_reg(s, insn);
+        s->insn_type = AARCH64_A64_DATA_PROC_REG;
+        s->arg = &insn;
         break;
     case 0x7:
     case 0xf:      /* Data processing - SIMD and floating point */
-        disas_data_proc_simd_fp(s, insn);
+        s->insn_type = AARCH64_A64_DATA_PROC_SIMD_FD;
+        s->arg = &insn;
         break;
     default:
         lata_unallocated_encoding(s);
@@ -17598,6 +17653,136 @@ static void disas_a64_legacy(DisasContext *s, uint32_t insn)
         break;
     }
 }
+
+static bool (*translate_functions[])(DisasContext *) = {
+    TRANS_FUNC_GEN_REAL(AARCH64_A64_NULL, NULL),
+    TRANS_FUNC_GEN(AARCH64_A64_ADDG_i, ADDG_i),
+    TRANS_FUNC_GEN(AARCH64_A64_ADDS_i, ADDS_i),
+    TRANS_FUNC_GEN(AARCH64_A64_ADD_i, ADD_i),
+    TRANS_FUNC_GEN(AARCH64_A64_ADR, ADR),
+    TRANS_FUNC_GEN(AARCH64_A64_ADRP, ADRP),
+    TRANS_FUNC_GEN(AARCH64_A64_ANDS_i, ANDS_i),
+    TRANS_FUNC_GEN(AARCH64_A64_AND_i, AND_i),
+    TRANS_FUNC_GEN(AARCH64_A64_AUTIA1716, AUTIA1716),
+    TRANS_FUNC_GEN(AARCH64_A64_AUTIASP, AUTIASP),
+    TRANS_FUNC_GEN(AARCH64_A64_AUTIAZ, AUTIAZ),
+    TRANS_FUNC_GEN(AARCH64_A64_AUTIB1716, AUTIB1716),
+    TRANS_FUNC_GEN(AARCH64_A64_AUTIBSP, AUTIBSP),
+    TRANS_FUNC_GEN(AARCH64_A64_AUTIBZ, AUTIBZ),
+    TRANS_FUNC_GEN(AARCH64_A64_AXFLAG, AXFLAG),
+    TRANS_FUNC_GEN(AARCH64_A64_B, B),
+    TRANS_FUNC_GEN(AARCH64_A64_BFM, BFM),
+    TRANS_FUNC_GEN(AARCH64_A64_BL, BL),
+    TRANS_FUNC_GEN(AARCH64_A64_BLR, BLR),
+    TRANS_FUNC_GEN(AARCH64_A64_BLRA, BLRA),
+    TRANS_FUNC_GEN(AARCH64_A64_BLRAZ, BLRAZ),
+    TRANS_FUNC_GEN(AARCH64_A64_BR, BR),
+    TRANS_FUNC_GEN(AARCH64_A64_BRA, BRA),
+    TRANS_FUNC_GEN(AARCH64_A64_BRAZ, BRAZ),
+    TRANS_FUNC_GEN(AARCH64_A64_BRK, BRK),
+    TRANS_FUNC_GEN(AARCH64_A64_B_cond, B_cond),
+    TRANS_FUNC_GEN(AARCH64_A64_CAS, CAS),
+    TRANS_FUNC_GEN(AARCH64_A64_CASP, CASP),
+    TRANS_FUNC_GEN(AARCH64_A64_CBZ, CBZ),
+    TRANS_FUNC_GEN(AARCH64_A64_CFINV, CFINV),
+    TRANS_FUNC_GEN(AARCH64_A64_CLREX, CLREX),
+    TRANS_FUNC_GEN(AARCH64_A64_DSB_DMB, DSB_DMB),
+    TRANS_FUNC_GEN(AARCH64_A64_EOR_i, EOR_i),
+    TRANS_FUNC_GEN(AARCH64_A64_ERET, ERET),
+    TRANS_FUNC_GEN(AARCH64_A64_ERETA, ERETA),
+    TRANS_FUNC_GEN(AARCH64_A64_ESB, ESB),
+    TRANS_FUNC_GEN(AARCH64_A64_EXTR, EXTR),
+    TRANS_FUNC_GEN(AARCH64_A64_HLT, HLT),
+    TRANS_FUNC_GEN(AARCH64_A64_HVC, HVC),
+    TRANS_FUNC_GEN(AARCH64_A64_ISB, ISB),
+    TRANS_FUNC_GEN(AARCH64_A64_LDADD, LDADD),
+    TRANS_FUNC_GEN(AARCH64_A64_LDAPR, LDAPR),
+    TRANS_FUNC_GEN(AARCH64_A64_LDAPR_i, LDAPR_i),
+    TRANS_FUNC_GEN(AARCH64_A64_LDAR, LDAR),
+    TRANS_FUNC_GEN(AARCH64_A64_LDCLR, LDCLR),
+    TRANS_FUNC_GEN(AARCH64_A64_LDEOR, LDEOR),
+    TRANS_FUNC_GEN(AARCH64_A64_LDG, LDG),
+    TRANS_FUNC_GEN(AARCH64_A64_LDGM, LDGM),
+    TRANS_FUNC_GEN(AARCH64_A64_LDP, LDP),
+    TRANS_FUNC_GEN(AARCH64_A64_LDP_v, LDP_v),
+    TRANS_FUNC_GEN(AARCH64_A64_LDR, LDR),
+    TRANS_FUNC_GEN(AARCH64_A64_LDRA, LDRA),
+    TRANS_FUNC_GEN(AARCH64_A64_LDR_i, LDR_i),
+    TRANS_FUNC_GEN(AARCH64_A64_LDR_v, LDR_v),
+    TRANS_FUNC_GEN(AARCH64_A64_LDR_v_i, LDR_v_i),
+    TRANS_FUNC_GEN(AARCH64_A64_LDSET, LDSET),
+    TRANS_FUNC_GEN(AARCH64_A64_LDSMAX, LDSMAX),
+    TRANS_FUNC_GEN(AARCH64_A64_LDSMIN, LDSMIN),
+    TRANS_FUNC_GEN(AARCH64_A64_LDUMAX, LDUMAX),
+    TRANS_FUNC_GEN(AARCH64_A64_LDUMIN, LDUMIN),
+    TRANS_FUNC_GEN(AARCH64_A64_LDXP, LDXP),
+    TRANS_FUNC_GEN(AARCH64_A64_LDXR, LDXR),
+    TRANS_FUNC_GEN(AARCH64_A64_LD_lit, LD_lit),
+    TRANS_FUNC_GEN(AARCH64_A64_LD_lit_v, LD_lit_v),
+    TRANS_FUNC_GEN(AARCH64_A64_LD_mult, LD_mult),
+    TRANS_FUNC_GEN(AARCH64_A64_LD_single, LD_single),
+    TRANS_FUNC_GEN(AARCH64_A64_LD_single_repl, LD_single_repl),
+    TRANS_FUNC_GEN(AARCH64_A64_MOVK, MOVK),
+    TRANS_FUNC_GEN(AARCH64_A64_MOVN, MOVN),
+    TRANS_FUNC_GEN(AARCH64_A64_MOVZ, MOVZ),
+    TRANS_FUNC_GEN(AARCH64_A64_MSR_i_DAIFCLEAR, MSR_i_DAIFCLEAR),
+    TRANS_FUNC_GEN(AARCH64_A64_MSR_i_DAIFSET, MSR_i_DAIFSET),
+    TRANS_FUNC_GEN(AARCH64_A64_MSR_i_DIT, MSR_i_DIT),
+    TRANS_FUNC_GEN(AARCH64_A64_MSR_i_PAN, MSR_i_PAN),
+    TRANS_FUNC_GEN(AARCH64_A64_MSR_i_SBSS, MSR_i_SBSS),
+    TRANS_FUNC_GEN(AARCH64_A64_MSR_i_SPSEL, MSR_i_SPSEL),
+    TRANS_FUNC_GEN(AARCH64_A64_MSR_i_SVCR, MSR_i_SVCR),
+    TRANS_FUNC_GEN(AARCH64_A64_MSR_i_TCO, MSR_i_TCO),
+    TRANS_FUNC_GEN(AARCH64_A64_MSR_i_UAO, MSR_i_UAO),
+    TRANS_FUNC_GEN(AARCH64_A64_NOP, NOP),
+    TRANS_FUNC_GEN(AARCH64_A64_ORR_i, ORR_i),
+    TRANS_FUNC_GEN(AARCH64_A64_PACIA1716, PACIA1716),
+    TRANS_FUNC_GEN(AARCH64_A64_PACIASP, PACIASP),
+    TRANS_FUNC_GEN(AARCH64_A64_PACIAZ, PACIAZ),
+    TRANS_FUNC_GEN(AARCH64_A64_PACIB1716, PACIB1716),
+    TRANS_FUNC_GEN(AARCH64_A64_PACIBSP, PACIBSP),
+    TRANS_FUNC_GEN(AARCH64_A64_PACIBZ, PACIBZ),
+    TRANS_FUNC_GEN(AARCH64_A64_RET, RET),
+    TRANS_FUNC_GEN(AARCH64_A64_RETA, RETA),
+    TRANS_FUNC_GEN(AARCH64_A64_SB, SB),
+    TRANS_FUNC_GEN(AARCH64_A64_SBFM, SBFM),
+    TRANS_FUNC_GEN(AARCH64_A64_SMC, SMC),
+    TRANS_FUNC_GEN(AARCH64_A64_ST2G, ST2G),
+    TRANS_FUNC_GEN(AARCH64_A64_STG, STG),
+    TRANS_FUNC_GEN(AARCH64_A64_STGM, STGM),
+    TRANS_FUNC_GEN(AARCH64_A64_STGP, STGP),
+    TRANS_FUNC_GEN(AARCH64_A64_STLR, STLR),
+    TRANS_FUNC_GEN(AARCH64_A64_STLR_i, STLR_i),
+    TRANS_FUNC_GEN(AARCH64_A64_STP, STP),
+    TRANS_FUNC_GEN(AARCH64_A64_STP_v, STP_v),
+    TRANS_FUNC_GEN(AARCH64_A64_STP_v, STP_v),
+    TRANS_FUNC_GEN(AARCH64_A64_STR, STR),
+    TRANS_FUNC_GEN(AARCH64_A64_STR_i, STR_i),
+    TRANS_FUNC_GEN(AARCH64_A64_STR_v, STR_v),
+    TRANS_FUNC_GEN(AARCH64_A64_STR_v_i, STR_v_i),
+    TRANS_FUNC_GEN(AARCH64_A64_STXP, STXP),
+    TRANS_FUNC_GEN(AARCH64_A64_STXR, STXR),
+    TRANS_FUNC_GEN(AARCH64_A64_STZ2G, STZ2G),
+    TRANS_FUNC_GEN(AARCH64_A64_STZG, STZG),
+    TRANS_FUNC_GEN(AARCH64_A64_STZGM, STZGM),
+    TRANS_FUNC_GEN(AARCH64_A64_ST_mult, ST_mult),
+    TRANS_FUNC_GEN(AARCH64_A64_ST_single, ST_single),
+    TRANS_FUNC_GEN(AARCH64_A64_SUBG_i, SUBG_i),
+    TRANS_FUNC_GEN(AARCH64_A64_SUBS_i, SUBS_i),
+    TRANS_FUNC_GEN(AARCH64_A64_SUB_i, SUB_i),
+    TRANS_FUNC_GEN(AARCH64_A64_SVC, SVC),
+    TRANS_FUNC_GEN(AARCH64_A64_SWP, SWP),
+    TRANS_FUNC_GEN(AARCH64_A64_SYS, SYS),
+    TRANS_FUNC_GEN(AARCH64_A64_TBZ, TBZ),
+    TRANS_FUNC_GEN(AARCH64_A64_UBFM, UBFM),
+    TRANS_FUNC_GEN(AARCH64_A64_WFE, WFE),
+    TRANS_FUNC_GEN(AARCH64_A64_WFI, WFI),
+    TRANS_FUNC_GEN(AARCH64_A64_XAFLAG, XAFLAG),
+    TRANS_FUNC_GEN(AARCH64_A64_XPACLRI, XPACLRI),
+    TRANS_FUNC_GEN(AARCH64_A64_YIELD, YIELD),
+    TRANS_DISAS_FUNC_GEN(AARCH64_A64_DATA_PROC_REG, reg),
+    TRANS_DISAS_FUNC_GEN(AARCH64_A64_DATA_PROC_SIMD_FD, simd_fp),
+};
 
 static void aarch64_tr_init_disas_context(DisasContextBase *dcbase,
                                           CPUState *cpu)
@@ -17756,7 +17941,7 @@ static void aarch64_tr_translate_insn(DisasContextBase *dcbase, CPUState *cpu)
     if (s->pstate_il) {
         /*
          * Illegal execution state. This has priority over BTI
-         * exceptions, but comes after instruction abort exceptions.
+         * exceptions, but comaes after instruction abort exceptions.
          */
         gen_exception_insn(s, 0, EXCP_UDEF, syn_illegalstate());
         return;
@@ -17799,28 +17984,29 @@ static void aarch64_tr_translate_insn(DisasContextBase *dcbase, CPUState *cpu)
     }
 
     s->is_nonstreaming = false;
-    if (s->sme_trap_nonstreaming) {
-        disas_sme_fa64(s, insn);
-    }
+    // if (s->sme_trap_nonstreaming) {
+    //     disas_sme_fa64(s, insn);
+    // }
 
     // Scan pattern
 #ifdef CONFIG_LATA_INSTS_PATTERN
-    nzcv_use(s->base.tb , insn);
-    if(insts_pattern(s, cpu, insn)){
-        //count recovery
-        s->pc_curr = pc + 4;
-        s->base.pc_next = pc + 8;
-        dcbase->num_insns++;
-        return;
-    }
+    // nzcv_use(s->base.tb , insn);
+    // if(insts_pattern(s, cpu, insn)){
+    //     //count recovery
+    //     s->pc_curr = pc + 4;
+    //     s->base.pc_next = pc + 8;
+    //     dcbase->num_insns++;
+    //     return;
+    // }
 #endif
 
-    if (!disas_a64(s, insn) &&
-        !disas_sme(s, insn) &&
-        !disas_sve(s, insn)) {
+    //don't support sme and sve
+    if (!disas_a64(s, insn) ) {
         disas_a64_legacy(s, insn);
     }
 
+    bool trans_success = translate_functions[s->insn_type](s);
+    // printf("translate %d: %d - %x\n ", trans_success,s->insn_type,s->insn);
     /*
      * After execution of most insns, btype is reset to 0.
      * Note that we set btype == -1 when the insn sets btype.

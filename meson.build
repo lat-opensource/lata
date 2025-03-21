@@ -3364,7 +3364,7 @@ qemuutil = declare_dependency(link_with: libqemuutil,
                               dependencies: [event_loop_base])
 
 if have_system or have_user
-  decodetree = generator(find_program('scripts/decodetree.py'),
+  decodetree = generator(find_program('scripts/decodetree_aarch64.py'),
                          output: 'decode-@BASENAME@.c.inc',
                          arguments: ['@INPUT@', '@EXTRA_ARGS@', '-o', '@OUTPUT@'])
   subdir('libdecnumber')

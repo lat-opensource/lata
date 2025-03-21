@@ -59,6 +59,10 @@ typedef struct DisasContext {
     bool eci_handled;
     int sctlr_b;
     MemOp be_data;
+#ifdef CONFIG_LATA
+    void *arg;
+    int insn_type;
+#endif
 #if !defined(CONFIG_USER_ONLY)
     int user;
 #endif
@@ -708,6 +712,10 @@ static inline void gen_restore_rmode(TCGv_i32 old, TCGv_ptr fpst)
 #define TRANS_FEAT(NAME, FEAT, FUNC, ...) \
     static bool trans_##NAME(DisasContext *s, arg_##NAME *a) \
     { return dc_isar_feature(FEAT, s) && FUNC(s, __VA_ARGS__); }
+#define TRANS_FEAT_NOARG(NAME, FEAT, FUNC, ...) \
+    static bool trans_##NAME(DisasContext *s) \
+    { arg_##NAME *a = (arg_##NAME *)s->arg; \
+    return dc_isar_feature(FEAT, s) && FUNC(s, a, __VA_ARGS__); }
 
 #define TRANS_FEAT_NONSTREAMING(NAME, FEAT, FUNC, ...)            \
     static bool trans_##NAME(DisasContext *s, arg_##NAME *a)      \

@@ -33,6 +33,10 @@ typedef struct DisasContext {
     uint16_t plv;
     int vl;   /* Vector length */
     TCGv zero;
+    #ifdef CONFIG_LATA
+    void *arg;
+    int insn_type;
+#endif
 } DisasContext;
 
 void generate_exception(DisasContext *ctx, int excp);
