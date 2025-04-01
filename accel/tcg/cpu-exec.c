@@ -43,7 +43,9 @@
 #include "tb-hash.h"
 #include "tb-context.h"
 #include "internal.h"
-
+#ifdef CONFIG_LATA_TU
+#include "tu.h"
+#endif
 /* -icount align implementation. */
 
 typedef struct SyncClocks {
@@ -1039,7 +1041,13 @@ cpu_exec_loop(CPUState *cpu, SyncClocks *sc)
                 uint32_t h;
 
                 mmap_lock();
+#ifdef CONFIG_LATA_TU
+                tb = tu_gen_code(cpu, pc, cs_base, flags, cflags);
+                // latx_pre_translate((void **)tu_data->tb_list, tu_data->tb_num,
+                //             cpu, cs_base, flags, cflags);
+#else
                 tb = tb_gen_code(cpu, pc, cs_base, flags, cflags);
+#endif
                 mmap_unlock();
 
                 /*

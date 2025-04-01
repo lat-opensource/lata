@@ -1,6 +1,7 @@
 #include "qemu/osdep.h"
 #include "qemu/log.h"
 #include "target/arm/tcg/translate.h"
+#include "target/arm/lata/include/translate.h"
 #include "target/arm/tcg/arm_ldst.h"
 #include "insts-pattern.h"
 #include "ir2.h"

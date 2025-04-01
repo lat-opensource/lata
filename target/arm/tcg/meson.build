@@ -19,16 +19,9 @@ gen_a32 = [
   decodetree.process('t16.decode', extra_args: ['-w', '16', '--static-decode=disas_t16']),
 ]
 
-arm_ss.add(gen_a32)
-arm_ss.add(when: 'TARGET_AARCH64', if_true: gen_a64)
 
 arm_ss.add(files(
   'cpu32.c',
-  'translate.c',
-  'translate-m-nocp.c',
-  'translate-mve.c',
-  'translate-neon.c',
-  'translate-vfp.c',
   'crypto_helper.c',
   'hflags.c',
   'iwmmxt_helper.c',
@@ -44,25 +37,29 @@ if 'CONFIG_LATA' in config_host
   arm_ss.add(when: 'TARGET_AARCH64', if_true: files(
   'cpu64.c',
   '../lata/translator/translate-a64.c',
-  'translate-sve.c',
-  'translate-sme.c',
+  '../lata/ir1/ir1.c',
   'helper-a64.c',
   'mte_helper.c',
   'pauth_helper.c',
-  'sme_helper.c',
-  'sve_helper.c',
 ))
 else
+  arm_ss.add(gen_a32)
+  arm_ss.add(when: 'TARGET_AARCH64', if_true: gen_a64)
   arm_ss.add(when: 'TARGET_AARCH64', if_true: files(
   'cpu64.c',
+  'translate.c',
   'translate-a64.c',
   'translate-sve.c',
   'translate-sme.c',
+  'translate-m-nocp.c',
   'helper-a64.c',
   'mte_helper.c',
   'pauth_helper.c',
   'sme_helper.c',
   'sve_helper.c',
+  'translate-mve.c',
+  'translate-neon.c',
+  'translate-vfp.c',
 ))
 endif
 arm_system_ss.add(files(

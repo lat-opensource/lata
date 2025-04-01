@@ -65,6 +65,12 @@
 #include "perf.h"
 #include "tcg/insn-start-words.h"
 
+#ifdef CONFIG_LATA
+#include "target/arm/tcg/translate.h"
+#include "target/arm/lata/include/translate.h"
+#include "target/arm/lata/include/translate-a64.h"
+#endif
+
 TBContext tb_ctx;
 
 /*
@@ -275,6 +281,7 @@ static int setjmp_gen_code(CPUArchState *env, TranslationBlock *tb,
     tcg_func_start(tcg_ctx);
 
     tcg_ctx->cpu = env_cpu(env);
+    tcg_ctx->gen_insn_data = tcg_malloc(sizeof(uint64_t) * (*max_insns) * tcg_ctx->insn_start_words);
 
 #ifdef CONFIG_LATA
     tr_init(tb);
@@ -290,7 +297,11 @@ static int setjmp_gen_code(CPUArchState *env, TranslationBlock *tb,
 #endif
 #endif
 
+#ifdef CONFIG_LATA
+    target_disasm(tb, max_insns, env_cpu(env), host_pc);
+#else
     gen_intermediate_code(env_cpu(env), tb, max_insns, pc, host_pc);
+#endif
     assert(tb->size != 0);
     tcg_ctx->cpu = NULL;
     *max_insns = tb->icount;
@@ -301,8 +312,6 @@ static int setjmp_gen_code(CPUArchState *env, TranslationBlock *tb,
     int gen_code_size = tr_ir2_assemble(gen_code_buf) * 4;
     tr_fini();
 
-    tcg_ctx->gen_insn_data =
-        tcg_malloc(sizeof(uint64_t) * tcg_ctx->gen_tb->icount * tcg_ctx->insn_start_words);
     return gen_code_size;
 #else
     return tcg_gen_code(tcg_ctx, tb, pc);
@@ -485,7 +494,7 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
             fprintf(logfile, "OUT: [size=%d]\n", gen_code_size);
             fprintf(logfile,
                     "  -- guest addr 0x%016" PRIx64 " + tb prologue\n",
-                    tcg_ctx->gen_insn_data[insn * TARGET_INSN_START_WORDS]);
+                    (uint64_t)tcg_ctx->gen_insn_data[insn * TARGET_INSN_START_WORDS]);
             chunk_start = tcg_ctx->gen_insn_end_off[insn];
             disas(logfile, tb->tc.ptr, chunk_start);
 
@@ -498,7 +507,7 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
                 size_t chunk_end = tcg_ctx->gen_insn_end_off[insn];
                 if (chunk_end > chunk_start) {
                     fprintf(logfile, "  -- guest addr 0x%016" PRIx64 "\n",
-                            tcg_ctx->gen_insn_data[insn * TARGET_INSN_START_WORDS]);
+                            (uint64_t)tcg_ctx->gen_insn_data[insn * TARGET_INSN_START_WORDS]);
                     disas(logfile, tb->tc.ptr + chunk_start,
                           chunk_end - chunk_start);
                     chunk_start = chunk_end;
@@ -535,6 +544,7 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
         }
     }
 
+    /*code cache space apply*/
     qatomic_set(&tcg_ctx->code_gen_ptr, (void *)
         ROUND_UP((uintptr_t)gen_code_buf + gen_code_size + search_size,
                  CODE_GEN_ALIGN));

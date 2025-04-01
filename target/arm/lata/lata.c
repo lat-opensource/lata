@@ -6,7 +6,9 @@
 #include "exec/exec-all.h"
 #include "qemu/log.h"
 #include "env.h"
-
+#ifdef CONFIG_LATA_TU
+    #include "tu.h"
+#endif
 //sp
 //tp
 //zero---unused
@@ -237,6 +239,9 @@ void lata_tr_data_init(void)
     lsenv = &lsenv_real;
     tr_data = &tr_data_real;
     lsenv->tr_data = tr_data;
+#ifdef CONFIG_LATA_TU
+    tu_control_init();
+#endif
     global_register_init();
 }
 

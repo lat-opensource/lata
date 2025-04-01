@@ -36,7 +36,18 @@ typedef ram_addr_t tb_page_addr_t;
 struct tb_tc {
     const void *ptr;    /* pointer to the translated code */
     size_t size;
+#ifdef CONFIG_LATA_TU
+    size_t offset_in_tu;
+#endif
 };
+
+#ifdef CONFIG_LATA_TU
+typedef enum tu_tb_mode_type {
+    TU_TB_MODE_NONE = 0,
+    TU_TB_MODE_SWITCH_TO_TB,
+    TU_TB_MODE_BROKEN
+} tu_tb_mode_type;
+#endif
 
 struct TranslationBlock {
     /*
@@ -144,7 +155,39 @@ struct TranslationBlock {
     uintptr_t jmp_list_head;
     uintptr_t jmp_list_next[2];
     uintptr_t jmp_dest[2];
+#ifdef CONFIG_LATA
+    void *ir1;
+#endif
+#ifdef CONFIG_LATA_TU
+    uint64_t *return_target_ptr;
+    uint64_t next_aarch64_pc;
+    uint8_t last_aarch64_type;
+    uint8_t tb_num;
+    uint64_t next_pc;
+    uint64_t target_pc;
+    uint64_t tu_aarch64_pc;
+    uint64_t *next_tb[2];
+    uint16_t tu_jmp[2];
+    tu_tb_mode_type tu_tb_mode;
+    void *aarch64_insns;
+    /* only first tb saved tu_size */
+    union {
+        int is_first_tb;
+        int tu_size;
+    };
+#endif
 };
+
+#ifdef CONFIG_LATA_TU
+typedef enum AARCH64_TYPE {
+    AARCH64_TYPE_NORMAL = 0,
+    AARCH64_TYPE_BRANCH,
+    AARCH64_TYPE_JUMP,
+    AARCH64_TYPE_CALL,
+    AARCH64_TYPE_RET,
+    AARCH64_TYPE_SYSCALL,
+} AARCH64_TYPE;
+#endif
 
 /* The alignment given to TranslationBlock during allocation. */
 #define CODE_GEN_ALIGN  16

@@ -8,8 +8,9 @@
 #include "exec/translator.h"
 #include "exec/helper-gen.h"
 #include "internals.h"
-
-
+#ifdef CONFIG_LATA
+#include "ir1-arg.h"
+#endif
 /* internal defines */
 
 /*
@@ -22,7 +23,11 @@ typedef struct DisasLabel {
 } DisasLabel;
 
 typedef struct DisasContext {
+#ifdef CONFIG_LATA
+    DisasContextBase *base;
+#else
     DisasContextBase base;
+#endif 
     const ARMISARegisters *isar;
 
     /* The address of the current instruction being translated. */
@@ -60,7 +65,7 @@ typedef struct DisasContext {
     int sctlr_b;
     MemOp be_data;
 #ifdef CONFIG_LATA
-    void *arg;
+    union a64_u arg;
     int insn_type;
 #endif
 #if !defined(CONFIG_USER_ONLY)
@@ -269,7 +274,11 @@ static inline void disas_set_insn_syndrome(DisasContext *s, uint32_t syn)
 
 static inline int curr_insn_len(DisasContext *s)
 {
+#ifdef CONFIG_LATA
+    return s->base->pc_next - s->pc_curr;
+#else
     return s->base.pc_next - s->pc_curr;
+#endif
 }
 
 /* is_jmp field values */
@@ -712,11 +721,14 @@ static inline void gen_restore_rmode(TCGv_i32 old, TCGv_ptr fpst)
 #define TRANS_FEAT(NAME, FEAT, FUNC, ...) \
     static bool trans_##NAME(DisasContext *s, arg_##NAME *a) \
     { return dc_isar_feature(FEAT, s) && FUNC(s, __VA_ARGS__); }
-#define TRANS_FEAT_NOARG(NAME, FEAT, FUNC, ...) \
+#define TRANS_FEAT_ATOMIC(NAME, FEAT, FUNC, ...) \
     static bool trans_##NAME(DisasContext *s) \
-    { arg_##NAME *a = (arg_##NAME *)s->arg; \
+    { arg_##NAME *a = &(s->arg.f_atomic); \
     return dc_isar_feature(FEAT, s) && FUNC(s, a, __VA_ARGS__); }
-
+#define TRANS_FEAT_LDST_TAG(NAME, FEAT, FUNC, ...) \
+    static bool trans_##NAME(DisasContext *s) \
+    { arg_##NAME *a = &(s->arg.f_ldst_tag); \
+    return dc_isar_feature(FEAT, s) && FUNC(s, a, __VA_ARGS__); }
 #define TRANS_FEAT_NONSTREAMING(NAME, FEAT, FUNC, ...)            \
     static bool trans_##NAME(DisasContext *s, arg_##NAME *a)      \
     {                                                             \
