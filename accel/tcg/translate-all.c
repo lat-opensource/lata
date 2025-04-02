@@ -458,7 +458,12 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     }
     tcg_ctx->gen_tb = NULL;
 
+    
+#ifdef CONFIG_SPLIT_TB
+    search_size = encode_search(tb, (void *)(tcg_ctx->tb_gen_tail));
+#else
     search_size = encode_search(tb, (void *)gen_code_buf + gen_code_size);
+#endif
     if (unlikely(search_size < 0)) {
         tb_unlock_pages(tb);
         goto buffer_overflow;
@@ -545,10 +550,13 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     }
 
     /*code cache space apply*/
+#ifdef CONFIG_SPLIT_TB
+    qatomic_set(&tcg_ctx->code_gen_ptr, (void *)ROUND_UP(((uintptr_t)gen_code_buf + gen_code_size), CODE_GEN_ALIGN));
+#else
     qatomic_set(&tcg_ctx->code_gen_ptr, (void *)
         ROUND_UP((uintptr_t)gen_code_buf + gen_code_size + search_size,
                  CODE_GEN_ALIGN));
-
+#endif
     /* init jump list */
     qemu_spin_init(&tb->jmp_lock);
     tb->jmp_list_head = (uintptr_t)NULL;
@@ -592,8 +600,9 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     /* if the TB already exists, discard what we just translated */
     if (unlikely(existing_tb != tb)) {
         uintptr_t orig_aligned = (uintptr_t)gen_code_buf;
-
+#ifndef CONFIG_SPLIT_TB
         orig_aligned -= ROUND_UP(sizeof(*tb), qemu_icache_linesize);
+#endif
         qatomic_set(&tcg_ctx->code_gen_ptr, (void *)orig_aligned);
         tcg_tb_remove(tb);
         return existing_tb;

@@ -669,6 +669,43 @@ static int alloc_code_gen_buffer_splitwx(size_t size, Error **errp)
     return -1;
 }
 
+#ifdef CONFIG_SPLIT_TB
+static bool alloc_tb_gen_head(size_t size)
+{
+    void *buf;
+
+    buf = mmap(NULL, size, PROT_READ | PROT_WRITE,
+            MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (buf == MAP_FAILED) {
+        return false;
+    }
+
+    /* Request large pages for the buffer.  */
+    qemu_madvise(buf, size, QEMU_MADV_HUGEPAGE);
+
+    tcg_ctx->tb_gen_head = buf;
+    tcg_ctx->tb_gen_highwater = buf + size - 1024;
+    return true;
+}
+
+static bool alloc_tb_gen_tail(size_t size)
+{
+    void *buf;
+
+    buf = mmap(NULL, size, PROT_READ | PROT_WRITE,
+            MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (buf == MAP_FAILED) {
+        return false;
+    }
+
+    /* Request large pages for the buffer.  */
+    qemu_madvise(buf, size, QEMU_MADV_HUGEPAGE);
+
+    tcg_ctx->tb_gen_tail = buf;
+    return true;
+}
+#endif
+
 static int alloc_code_gen_buffer(size_t size, int splitwx, Error **errp)
 {
     ERRP_GUARD();
@@ -760,6 +797,12 @@ void tcg_region_init(size_t tb_size, int splitwx, unsigned max_cpus)
     }
 
     have_prot = alloc_code_gen_buffer(tb_size, splitwx, &error_fatal);
+#ifdef CONFIG_SPLIT_TB
+    int head_have_prot, tail_have_prot;
+    head_have_prot = alloc_tb_gen_head(tb_size);
+    tail_have_prot = alloc_tb_gen_tail(tb_size);
+    assert(head_have_prot && tail_have_prot);    
+#endif
     assert(have_prot >= 0);
 
     /* Request large pages for the buffer and the splitwx.  */

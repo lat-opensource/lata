@@ -527,6 +527,12 @@ struct TCGContext {
     void *code_gen_ptr;
     void *data_gen_ptr;
 
+#ifdef CONFIG_SPLIT_TB
+    /* split TB code and TB ptr*/
+    void *tb_gen_head;
+    void *tb_gen_tail;
+    void *tb_gen_highwater;
+#endif
     /* Threshold to flush the translated code buffer.  */
     void *code_gen_highwater;
 

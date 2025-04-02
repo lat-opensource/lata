@@ -270,6 +270,7 @@ lata="no"
 indirect_jmp_opt="no"
 insts_pattern_opt="no"
 lata_tu_opt="no"
+split_tb_opt="no"
 
 # Don't accept a target_list environment variable.
 unset target_list
@@ -835,6 +836,8 @@ for opt do
   ;;
   --lata-tu-opt) lata_tu_opt="yes"
   ;;
+  --split-tb-opt) split_tb_opt="yes"
+  ;;
   --gdb=*) gdb_bin="$optarg"
   ;;
   # everything else has the same name in configure and meson
@@ -972,6 +975,7 @@ Optional only for LATA:
   --insts-pattern-opt
                           enable instruction pattern optimization
   --lata-tu-opt           enable translation unit
+  --split-tb-opt          enable tb split
 EOF
   meson_options_help
 cat << EOF
@@ -1835,6 +1839,9 @@ if test "$lata" = "yes" ; then
   fi
   if test "$lata_tu_opt" = "yes" ; then
     echo "CONFIG_LATA_TU=y" >> $config_host_mak
+  fi
+  if test "$split_tb_opt" = "yes" ; then
+    echo "CONFIG_SPLIT_TB=y" >> $config_host_mak
   fi
 fi
 

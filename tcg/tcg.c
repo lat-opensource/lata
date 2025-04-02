@@ -1372,8 +1372,22 @@ TranslationBlock *tcg_tb_alloc(TCGContext *s)
     void *next;
 
  retry:
+ #ifdef CONFIG_SPLIT_TB
+    tb = (void *)ROUND_UP((uintptr_t)s->tb_gen_head, align);
+    void *next_tb = (void *)ROUND_UP((uintptr_t)(tb + 1), align);
+    if (unlikely(next_tb > s->tb_gen_highwater)) {
+        if (tcg_region_alloc(s)) {
+            return NULL;
+        }
+        goto retry;
+    }
+    qatomic_set(&s->tb_gen_head, next_tb);
+    next = (void *)ROUND_UP((uintptr_t)s->code_gen_ptr, align);
+#else
+
     tb = (void *)ROUND_UP((uintptr_t)s->code_gen_ptr, align);
     next = (void *)ROUND_UP((uintptr_t)(tb + 1), align);
+#endif
 
     if (unlikely(next > s->code_gen_highwater)) {
         if (tcg_region_alloc(s)) {

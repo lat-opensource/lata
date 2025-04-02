@@ -467,7 +467,11 @@ cpu_tb_exec(CPUState *cpu, TranslationBlock *itb, int *tb_exit)
      * If we insist on touching both the RX and the RW pages, we
      * double the host TLB pressure.
      */
+#ifdef CONFIG_SPLIT_TB
+    last_tb = (void *)(ret & ~TB_EXIT_MASK);
+#else
     last_tb = tcg_splitwx_to_rw((void *)(ret & ~TB_EXIT_MASK));
+#endif
     *tb_exit = ret & TB_EXIT_MASK;
 
     trace_exec_tb_exit(last_tb, *tb_exit);
@@ -642,7 +646,7 @@ void tb_set_jmp_target(TranslationBlock *tb, int n, uintptr_t addr)
      * executable code address, and tb_target_set_jmp_target can
      * produce a pc-relative displacement to jmp_target_addr[n].
      */
-    const TranslationBlock *c_tb = tcg_splitwx_to_rx(tb);
+    const TranslationBlock *c_tb = tb;
     uintptr_t offset = tb->jmp_insn_offset[n];
     uintptr_t jmp_rx = (uintptr_t)tb->tc.ptr + offset;
     uintptr_t jmp_rw = jmp_rx - tcg_splitwx_diff;
