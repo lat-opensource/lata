@@ -31,6 +31,6 @@ typedef struct AArch64PatternTable
     dt_aarch64_insn aarch_pattern;
 } AArch64PatternTable;
 
-bool insts_pattern(DisasContext *s, CPUState *cpu, uint32_t insn);
+bool insts_pattern(DisasContext *s, DisasContext *s2);
 void nzcv_use(TranslationBlock *tb, uint32_t insn);
 #endif

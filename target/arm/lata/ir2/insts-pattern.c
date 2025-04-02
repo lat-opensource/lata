@@ -118,7 +118,7 @@ static void pattern_goto_tb(DisasContext *s, int n, int64_t diff)
         la_lu32i_d(a0_ir2_opnd, hi32 & 0xfffff);
     }
 
-    int64_t curr_ins_pos = (unsigned long)s->base.tb->tc.ptr + (lsenv->tr_data->real_ir2_inst_num << 2);
+    int64_t curr_ins_pos = (unsigned long)s->base->tb->tc.ptr + (lsenv->tr_data->real_ir2_inst_num << 2);
     int64_t exit_offset = context_switch_native_to_bt - curr_ins_pos;
 
     ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, exit_offset >> 2);
@@ -222,7 +222,6 @@ static void trans_CMPI_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
     la_label(label);
     nzcv_caculate(temp_n, temp, reg_n, sf, 1);
     pattern_goto_tb(s, 1, offset);
-    s->base.is_jmp = DISAS_NORETURN;
 
     free_alloc_gpr(reg_n);
     free_alloc_gpr(temp);
@@ -314,7 +313,6 @@ static void trans_CMPE_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
     la_label(label);
     nzcv_caculate(temp_n, temp, reg_n, sf, 1);
     pattern_goto_tb(s, 1, offset);
-    s->base.is_jmp = DISAS_NORETURN;
 
     free_alloc_gpr(reg_m);
     free_alloc_gpr(reg_n);
@@ -435,7 +433,6 @@ static void trans_CMPS_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
     }
 
     pattern_goto_tb(s, 1, offset);
-    s->base.is_jmp = DISAS_NORETURN;
 
     free_alloc_gpr(reg_n);
     free_alloc_gpr(temp);
@@ -456,16 +453,17 @@ void nzcv_use(TranslationBlock *tb, uint32_t insn)
     }
 }
 
-bool insts_pattern(DisasContext *s, CPUState *cpu, uint32_t insn)
+bool insts_pattern(DisasContext *s, DisasContext *s2)
 {
-    uint32_t insn2 = arm_ldl_code(cpu->env_ptr, &s->base, s->base.pc_next, s->sctlr_b);
+    uint32_t insn2 = s2->insn;
+    uint32_t insn = s->insn;
     dt_aarch64_insn cmp_type = lookup_pattern(&cmp_table[0], insn);
     dt_aarch64_insn b_type = lookup_pattern(&bcond_table[0], insn2);
     
     if (b_type && cmp_type)
     {
         int offset = sextract32(insn2, 5, 19) << 2;
-        // s->base.tb->nzcv_use = false;
+        // s->base->tb->nzcv_use = false;
         switch (cmp_type)
         {
         case CMP_IMM:

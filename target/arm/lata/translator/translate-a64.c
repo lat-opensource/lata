@@ -12899,10 +12899,6 @@ DisasContext *get_ir1_list(CPUState *cpu, TranslationBlock *tb, vaddr pc, int ma
     tb->size = db->pc_next - db->pc_first;
     tb->icount = db->num_insns;
 
-#ifdef CONFIG_LATA_INSTS_PATTERN
-    tb->nzcv_use = db->tb->nzcv_use ; 
-#endif
-
     if (qemu_loglevel_mask(CPU_LOG_TB_IN_ASM)
         && qemu_log_in_addr_range(db->pc_first)) {
         FILE *logfile = qemu_log_trylock();
@@ -12996,6 +12992,10 @@ void translate_aarch64_insn(DisasContext *s, CPUState *cpu)
         disas_a64_legacy(s, insn);
     }
 
+#ifdef CONFIG_LATA_INSTS_PATTERN
+    nzcv_use(s->base->tb, insn);
+#endif
+
     //Determine whether the instruction is a jump type
     set_base_isjump(s);
 }
@@ -13009,6 +13009,15 @@ bool tr_ir2_generate(struct TranslationBlock *tb)
 
     DisasContext *pir1 = (DisasContext *)tb->ir1;
     for (i = 0; i < ir1_nr; ++i) {
+#ifdef CONFIG_LATA_INSTS_PATTERN
+        /*Only check if the last two elements are CMP+B.COND*/
+        if(i == ir1_nr - 2 && insts_pattern(pir1,pir1 + 1)) {
+            tcg_ctx->gen_insn_end_off[i] = (lsenv->tr_data->real_ir2_inst_num)<<2;
+            tcg_ctx->gen_insn_data[i * TARGET_INSN_START_WORDS]= pir1->pc_curr;  
+            pir1 += 2; //update true pir1 for tb stop check 
+            break;          
+        }
+#endif
         bool trans_success = translate_functions[pir1->insn_type](pir1);
         if (!trans_success) {
             lsassertm(0, "ir1_translate fail");
