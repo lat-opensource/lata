@@ -937,72 +937,72 @@ static bool trans_WFE(DisasContext *s)
 
 static bool trans_XPACLRI(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_PACIA1716(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_PACIB1716(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_AUTIA1716(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_AUTIB1716(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_ESB(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_PACIAZ(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_PACIASP(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_PACIBZ(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_PACIBSP(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_AUTIAZ(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_AUTIASP(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_AUTIBZ(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_AUTIBSP(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_CLREX(DisasContext *s)
