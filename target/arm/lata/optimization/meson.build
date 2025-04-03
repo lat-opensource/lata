@@ -1,3 +1,7 @@
 arm_ss.add(when: 'CONFIG_LATA', if_true: files(
-  'translate-a64.c',
+  'insts-pattern.c',
+  'tu.c',
 ))
+
+
+
