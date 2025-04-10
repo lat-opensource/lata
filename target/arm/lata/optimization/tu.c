@@ -191,7 +191,7 @@ static inline void get_tu_queue(CPUState *cpu,
     TranslationBlock** tb_list = tu_data->tb_list;
     uint32_t *tb_num_in_tu = &tu_data->tb_num;
     TranslationBlock *next_tb, *target_tb, *tb;
-    for (int i = 0; i <  *tb_num_in_tu && *tb_num_in_tu < MAX_TB_IN_TU; i++) {
+    for (int i = 0; i <  *tb_num_in_tu && *tb_num_in_tu < MAX_TB_IN_TU - 1; i++) {
         tb = tb_list[i];
         ir1_next_pc = tb->next_pc;
         ir1_target_pc = tb->target_pc;
@@ -294,7 +294,7 @@ static inline void get_tu_queue(CPUState *cpu,
     }
 
 /* Note: *tb_num_in_tu maybe greater than MAX_TB_IN_TU. */
-    if (*tb_num_in_tu > MAX_TB_IN_TU + 1) {
+    if (*tb_num_in_tu > MAX_TB_IN_TU) {
         lsassert(0);
     }
 }
@@ -349,11 +349,11 @@ static void tu_split_tb(TranslationBlock *pre_tb, TranslationBlock *tb)
     }
 }
 
-void solve_tb_overlap(uint tb_num_in_tu,
-		TranslationBlock **tb_list, int max_insns)
+void solve_tb_overlap(TranslationBlock **tb_list, int max_insns)
 {
     TranslationBlock *pre_tb = tb_list[0];
     TranslationBlock *tb;
+    uint32_t tb_num_in_tu = tu_data->tb_num;
     for (int i = 1; i < tb_num_in_tu; i++) {
         tb = tb_list[i];
         tb->isplit = 0;
@@ -456,7 +456,7 @@ static TranslationBlock *tb_explore(CPUState *cpu,
     qsort(tb_list, *tb_num_in_tu, sizeof(TranslationBlock *), tb_sort_cmp);
 
     /* Some TBS may overlap. We split these overlapping TBS. */
-    solve_tb_overlap(*tb_num_in_tu, tb_list, max_insns);
+    solve_tb_overlap(tb_list, max_insns);
 
     for (int i = 0; i < *tb_num_in_tu; i++){
         /* record tu pc and tb_num */
@@ -480,8 +480,9 @@ void tu_relocat_branch(TranslationBlock * tb, int n)
 }
 
 /* translate tu from ir1->ir2 and link tbs if next_tb in tu*/
-void translate_tu(uint32 tb_num_in_tu, TranslationBlock **tb_list)
+void translate_tu(TranslationBlock **tb_list)
 {
+    uint32_t tb_num_in_tu = tu_data->tb_num;
     if (tb_num_in_tu == 0) {
         return;
     }
@@ -542,7 +543,8 @@ void translate_tu(uint32 tb_num_in_tu, TranslationBlock **tb_list)
 }
 
 /* print tu if open in_asm/out_asm debug mode */
-static void print_tu(CPUState *cpu, uint32 tb_num_in_tu, TranslationBlock **tb_list){
+static void print_tu(CPUState *cpu, TranslationBlock **tb_list){
+    uint32_t tb_num_in_tu = tu_data->tb_num;
     if (qemu_loglevel_mask(CPU_LOG_TB_IN_ASM)
         && qemu_log_in_addr_range(tb_list[0]->pc)) {
         FILE *logfile = qemu_log_trylock();
@@ -580,9 +582,10 @@ static void print_tu(CPUState *cpu, uint32 tb_num_in_tu, TranslationBlock **tb_l
     }
 }
 
-static void register_tu(uint32 tb_num_in_tu, TranslationBlock **tb_list,
+static void register_tu(TranslationBlock **tb_list,
 		CPUState *cpu, int cflags)
 {
+    uint32_t tb_num_in_tu = tu_data->tb_num;
     for (int i = 0; i < tb_num_in_tu; i++) {
         TranslationBlock *tb = tb_list[i];
         if (tb->s_data->tu_tb_mode != TU_TB_MODE_BROKEN) {
@@ -616,7 +619,6 @@ TranslationBlock *tu_gen_code(CPUState *cpu,
 {
     TranslationBlock* entry;
     TranslationBlock** tb_list = tu_data->tb_list;
-    uint32_t *tb_num_in_tu = &tu_data->tb_num;
 
     assert_memory_lock();
     qemu_thread_jit_write();
@@ -624,10 +626,10 @@ TranslationBlock *tu_gen_code(CPUState *cpu,
     /* 1.Search all TBs in the function */
     entry = tb_explore(cpu, pc, cs_base, flags, cflags);
     /* 2.Translate TU*/
-    translate_tu(*tb_num_in_tu, tb_list);
+    translate_tu(tb_list);
     /* 3.Insert TBs in TU to QHT */
-    register_tu(*tb_num_in_tu, tb_list, cpu, cflags);
-    print_tu(cpu, *tb_num_in_tu, tb_list);
+    register_tu(tb_list, cpu, cflags);
+    print_tu(cpu, tb_list);
     tu_trees_reset();
     return entry;
 }
