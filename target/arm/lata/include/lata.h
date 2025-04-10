@@ -58,8 +58,6 @@ typedef struct TRANSLATION_DATA {
 } TRANSLATION_DATA;
 
 
-
-
 typedef struct ENV {
     void *cpu_state;            /* from QEMU,CPUArchState */
     TRANSLATION_DATA *tr_data;  /* from LATR */
@@ -86,8 +84,7 @@ void lata_fast_jmp_cache_init(CPUArchState *env, uint64_t start_code, uint64_t e
 void lata_fast_jmp_cache_add(CPUArchState *env, uint64_t guest_pc, uint64_t host_pc);
 
 int tr_ir2_assemble(const void *code_start_addr);
-// int INS_translate(CPUState *cs, INS INS);
-// void INS_append_exit(INS INS, uint32_t index);
+void label_dispose(void);
 
 void lata_gen_call_helper_prologue(TCGContext *tcg_ctx);
 void lata_gen_call_helper_epilogue(TCGContext *tcg_ctx);

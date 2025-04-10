@@ -7,7 +7,7 @@
 #include "qemu/log.h"
 #include "env.h"
 #ifdef CONFIG_LATA_TU
-    #include "tu.h"
+#include "tu.h"
 #endif
 //sp
 //tp
@@ -470,8 +470,7 @@ int lata_gen_epilogue(CPUState *cs, TCGContext *tcg_ctx)
     return ins_nr;
 }
 
-
-static void label_dispose(void)
+void label_dispose(void)
 {
     /* 1. record the positions of label */
     int *label_num_to_ir2_num =

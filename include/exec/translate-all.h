@@ -25,6 +25,7 @@
 /* translate-all.c */
 void tb_invalidate_phys_page(tb_page_addr_t addr);
 void tb_check_watchpoint(CPUState *cpu, uintptr_t retaddr);
+int encode_search(TranslationBlock *tb, uint8_t *block);
 
 #ifdef CONFIG_USER_ONLY
 void page_protect(tb_page_addr_t page_addr);

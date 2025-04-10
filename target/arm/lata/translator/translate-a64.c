@@ -31,6 +31,7 @@
 #include "ir1.h"
 #include "ir1-arg.h"
 #include "translate-a64.h"
+#include "tu.h"
 #endif
 
 static TCGv_i64 cpu_X[32];
@@ -468,7 +469,7 @@ static void gen_goto_tb(DisasContext *s, int n, int64_t diff)
         uint64_t host_dest = pc_map_cache_ptr[guest_dest];
 
         if(host_dest){
-            uint64_t curr_ins_pos = (unsigned long)s->base->tb->tc.ptr + (lsenv->tr_data->real_ir2_inst_num << 2);
+            uint64_t curr_ins_pos = (unsigned long)tb->tc.ptr + (lsenv->tr_data->real_ir2_inst_num << 2);
             uint64_t exit_offset = host_dest - curr_ins_pos;
 
             ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, exit_offset >> 2);
@@ -494,7 +495,7 @@ static void gen_goto_tb(DisasContext *s, int n, int64_t diff)
         li_tb(a0_ir2_opnd, (uint64_t)tb | n);
     }
 
-    int64_t curr_ins_pos = (unsigned long)s->base->tb->tc.ptr + (lsenv->tr_data->real_ir2_inst_num << 2);
+    int64_t curr_ins_pos = (unsigned long)tb->tc.ptr + (lsenv->tr_data->real_ir2_inst_num << 2);
     int64_t exit_offset = context_switch_native_to_bt - curr_ins_pos;
 
     ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, exit_offset >> 2);
@@ -1398,7 +1399,7 @@ static bool trans_SMC(DisasContext *s)
 
 static bool trans_BRK(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static bool trans_HLT(DisasContext *s)
@@ -6197,6 +6198,8 @@ static void handle_fp_1src_double(DisasContext *s, int opcode, int rd, int rn)
     case 0x8: /* FRINTN */
         break;
     case 0x9: /* FRINTP */
+        la_vfrintrp_d(vreg_d, vreg_n);
+        goto done;
         break;
     case 0xa: /* FRINTM */
         la_vfrintrm_d(vreg_d, vreg_n);
@@ -12833,6 +12836,49 @@ static void disas_a64_legacy(DisasContext *s, uint32_t insn)
     }
 }
 
+#ifdef CONFIG_LATA_TU
+void get_last_info(TranslationBlock *tb, DisasContext *s)
+{
+    switch (s->insn_type) {
+    case AARCH64_A64_B:
+        tb->last_ir1_type = IR1_TYPE_JMP;
+        tb->target_pc = s->pc_curr + ((arg_i)(s->arg.f_i)).imm;
+        break;
+    case AARCH64_A64_BR:
+        tb->last_ir1_type = IR1_TYPE_JMPIN;
+        break;        
+    case AARCH64_A64_BL:
+        tb->last_ir1_type = IR1_TYPE_CALL;
+        tb->target_pc = s->pc_curr + ((arg_i)(s->arg.f_i)).imm;
+        break;
+    case AARCH64_A64_BLR:
+        tb->last_ir1_type = IR1_TYPE_CALLIN;
+        break;
+    case AARCH64_A64_B_cond:
+        tb->last_ir1_type = IR1_TYPE_BRANCH;
+        tb->target_pc = s->pc_curr + ((arg_B_cond)(s->arg.f_decode_insn3211)).imm;
+        break;
+    case AARCH64_A64_TBZ:
+        tb->last_ir1_type = IR1_TYPE_BRANCH;
+        tb->target_pc = s->pc_curr + ((arg_tbz)(s->arg.f_tbz)).imm;
+        break;
+    case AARCH64_A64_CBZ:
+        tb->last_ir1_type = IR1_TYPE_BRANCH;
+        tb->target_pc = s->pc_curr + ((arg_cbz)(s->arg.f_cbz)).imm;
+        break;
+    case AARCH64_A64_RET:
+        tb->last_ir1_type = IR1_TYPE_RET;
+        break;
+    case AARCH64_A64_SVC:
+        tb->last_ir1_type = IR1_TYPE_SYSCALL;
+        break;
+    default:
+        tb->last_ir1_type = IR1_TYPE_NORMAL;
+        break;
+    }
+}
+#endif
+
 static void set_base_isjump(DisasContext *s)
 {
     if(ir1_is_branch(s) || ir1_is_jmp(s) || ir1_is_call(s) || ir1_is_ret(s) || ir1_is_syscall(s)){
@@ -12843,7 +12889,7 @@ static void set_base_isjump(DisasContext *s)
 /*
     generate ir1_list
 */
-DisasContext *get_ir1_list(CPUState *cpu, TranslationBlock *tb, vaddr pc, int max_insns, void *host_pc)
+DisasContext *get_ir1_list(CPUState *cpu, TranslationBlock *tb, vaddr pc, int max_insns)
 {
     DisasContext *ir1_list = (DisasContext *)mm_calloc(max_insns, sizeof(DisasContext));
     DisasContext *pir1 = NULL;
@@ -12859,15 +12905,16 @@ DisasContext *get_ir1_list(CPUState *cpu, TranslationBlock *tb, vaddr pc, int ma
     db->num_insns = 0;
     db->max_insns = max_insns;
     db->singlestep_enabled = cflags & CF_SINGLE_STEP;
-    db->host_addr[0] = host_pc;
+    db->host_addr[0] = (void *)pc;
     db->host_addr[1] = NULL;
 
     tcg_debug_assert(db->is_jmp == DISAS_NEXT);  /* no early exit */
 
     while (true) {
-        max_insns = db->num_insns++;
+        max_insns = db->num_insns;
         pir1 = &ir1_list[max_insns];
         pir1->base = db;
+        pir1->insn_type = AARCH64_A64_NULL;
         aarch64_tr_init_disas_context(pir1, cpu);
         tcg_debug_assert(db->is_jmp == DISAS_NEXT);  /* no early exit */
 
@@ -12882,6 +12929,17 @@ DisasContext *get_ir1_list(CPUState *cpu, TranslationBlock *tb, vaddr pc, int ma
             tcg_debug_assert(!(cflags & CF_MEMI_ONLY));
             translate_aarch64_insn(pir1, cpu);
         }
+
+#ifdef CONFIG_LATA_TU
+        if(pir1->insn_type == AARCH64_A64_NULL){
+            tb->s_data->tu_tb_mode = TU_TB_MODE_BROKEN;
+            tb->next_pc = tb->pc;
+            db->pc_next = tb->pc;
+            break;            
+        }            
+#endif
+
+        db->num_insns++;
 
         /* Stop translation if translate_insn so indicated.  */
         if (db->is_jmp != DISAS_NEXT) {
@@ -12899,18 +12957,21 @@ DisasContext *get_ir1_list(CPUState *cpu, TranslationBlock *tb, vaddr pc, int ma
     tb->size = db->pc_next - db->pc_first;
     tb->icount = db->num_insns;
 
+#ifndef CONFIG_LATA_TU
     if (qemu_loglevel_mask(CPU_LOG_TB_IN_ASM)
         && qemu_log_in_addr_range(db->pc_first)) {
         FILE *logfile = qemu_log_trylock();
-        if (logfile) {
-            fprintf(logfile, "----------------\n");
+        if (logfile && tb->icount) {
             fprintf(logfile, "IN: %s\n", lookup_symbol(db->pc_first));
+            fprintf(logfile, "-----------------------------------------\n");
+          
             target_disas(logfile, cpu, db->pc_first, db->tb->size);
-            fprintf(logfile, "\n");
+            fprintf(logfile, "-----------------------------------------\n");
             qemu_log_unlock(logfile);
         }
     }
-    
+#endif     
+
 #ifdef CONFIG_LATA
     if(clearGprHigh){
         uint32_t old = lsenv->tr_data->w_write_flag;
@@ -12920,19 +12981,23 @@ DisasContext *get_ir1_list(CPUState *cpu, TranslationBlock *tb, vaddr pc, int ma
         }
     }
 #endif
+
+#ifdef CONFIG_LATA_TU 
+    tb->next_pc = db->pc_next;
+    get_last_info(tb, pir1);
+#endif
+
     return ir1_list;
 }
 
 /*
     TB translate:replace original translate_insn funtion to store insn in ir1_list
     a) store insns information in ir1_list,tb->ir1 points to the first element of ir_list
-    b) translate ir1_list to ir2_list
 */
-void target_disasm(struct TranslationBlock *tb, int *max_insns, CPUState *cpu,void *host_pc)
+void target_disasm(struct TranslationBlock *tb, int *max_insns, CPUState *cpu)
 {
     uint64_t pc = tb->pc;
-    tb->ir1 = get_ir1_list(cpu, tb, pc, *max_insns, host_pc);
-    tr_ir2_generate(tb);
+    tb->ir1 = get_ir1_list(cpu, tb, pc, *max_insns);
 }
 
 /* Decode one aarch64 instruction(just generate insns information,don't translate)
@@ -13004,14 +13069,17 @@ void translate_aarch64_insn(DisasContext *s, CPUState *cpu)
 bool tr_ir2_generate(struct TranslationBlock *tb)
 {
     int i;
+    int start = 0;
+#ifdef CONFIG_LATA_TU
+    start = tu_data->curr_insns;
+#endif
 
     int ir1_nr = tb->icount;
-
     DisasContext *pir1 = (DisasContext *)tb->ir1;
-    for (i = 0; i < ir1_nr; ++i) {
+    for (i = start; i < ir1_nr + start; ++i) {
 #ifdef CONFIG_LATA_INSTS_PATTERN
         /*Only check if the last two elements are CMP+B.COND*/
-        if(i == ir1_nr - 2 && insts_pattern(pir1,pir1 + 1)) {
+        if(i == ir1_nr + start - 2 && insts_pattern(pir1,pir1 + 1)) {
             tcg_ctx->gen_insn_end_off[i] = (lsenv->tr_data->real_ir2_inst_num)<<2;
             tcg_ctx->gen_insn_data[i * TARGET_INSN_START_WORDS]= pir1->pc_curr;  
             pir1 += 2; //update true pir1 for tb stop check 
@@ -13022,10 +13090,24 @@ bool tr_ir2_generate(struct TranslationBlock *tb)
         if (!trans_success) {
             lsassertm(0, "ir1_translate fail");
         }
+#ifndef CONFIG_LATA_TU
         tcg_ctx->gen_insn_end_off[i] = (lsenv->tr_data->real_ir2_inst_num)<<2;
         tcg_ctx->gen_insn_data[i * TARGET_INSN_START_WORDS]= pir1->pc_curr;
+#endif
         pir1++;
     }
+
+#ifdef CONFIG_LATA_TU
+    if(tb->isplit){
+        tb->last_ir1_type = IR1_TYPE_NORMAL;
+        IR2_OPND goto_label = ir2_opnd_new_type(IR2_OPND_LABEL);
+        IR2_OPND ir2_opnd_addr;
+        la_label(goto_label);
+        tb->jmp_reset_offset[0] = ir2_opnd_label_id(&goto_label);
+        ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, 1);
+        la_b(ir2_opnd_addr); // nop
+    }
+#endif
 
     /*tb stop function*/
     pir1--;

@@ -216,7 +216,7 @@ static bool tb_lookup_cmp(const void *p, const void *d)
     return false;
 }
 
-static TranslationBlock *tb_htable_lookup(CPUState *cpu, vaddr pc,
+TranslationBlock *tb_htable_lookup(CPUState *cpu, vaddr pc,
                                           uint64_t cs_base, uint32_t flags,
                                           uint32_t cflags)
 {
@@ -626,21 +626,6 @@ void cpu_exec_step_atomic(CPUState *cpu)
 
 void tb_set_jmp_target(TranslationBlock *tb, int n, uintptr_t addr)
 {
-// #ifdef CONFIG_LATA
-//     uintptr_t b_addr = (uintptr_t)(tb->tc.ptr + tb->jmp_reset_offset[n]) - 0x4 ;
-//     uint b_ins = *(uint *)b_addr;
-//     if ((b_ins & 0xfc000000) == 0x50000000){
-
-//         long offset = ((uintptr_t)addr - b_addr) >> 2;
-//         b_ins &= 0xfc000000;
-//         b_ins |= (offset & 0xffff) << 10;
-//         b_ins |= (offset >> 16) & 0x3ff;
-//         *(uint *)(b_addr) = b_ins;
-
-//     } else {
-//         assert(0);
-//     }
-// #else
     /*
      * Get the rx view of the structure, from which we find the
      * executable code address, and tb_target_set_jmp_target can
@@ -1047,10 +1032,9 @@ cpu_exec_loop(CPUState *cpu, SyncClocks *sc)
                 mmap_lock();
 #ifdef CONFIG_LATA_TU
                 tb = tu_gen_code(cpu, pc, cs_base, flags, cflags);
-                // latx_pre_translate((void **)tu_data->tb_list, tu_data->tb_num,
-                //             cpu, cs_base, flags, cflags);
 #else
                 tb = tb_gen_code(cpu, pc, cs_base, flags, cflags);
+                lata_fast_jmp_cache_add(cpu->env_ptr, pc, (uint64_t)(tb->tc.ptr));
 #endif
                 mmap_unlock();
 
@@ -1068,9 +1052,7 @@ cpu_exec_loop(CPUState *cpu, SyncClocks *sc)
                     /* Use the pc value already stored in tb->pc. */
                     qatomic_set(&jc->array[h].tb, tb);
                 }
-#ifdef CONFIG_LATA
-                lata_fast_jmp_cache_add(cpu->env_ptr, pc, (uint64_t)(tb->tc.ptr));
-#endif
+
             }
 
 #ifndef CONFIG_USER_ONLY

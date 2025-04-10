@@ -217,10 +217,30 @@ static void trans_CMPI_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
         }
     }
 
+#ifdef CONFIG_LATA_TU
+    TranslationBlock *next_tb = s->base->tb->next_tb[0];
+    if(next_tb){
+        if(next_tb->nzcv_use)
+            nzcv_caculate(temp_n, temp, reg_n, sf, 0);
+    } else {
+        nzcv_caculate(temp_n, temp, reg_n, sf, 0);
+    }
+#else
     nzcv_caculate(temp_n, temp, reg_n, sf, 0);
+#endif
     pattern_goto_tb(s, 0, 4);
     la_label(label);
+#ifdef CONFIG_LATA_TU
+    next_tb = s->base->tb->next_tb[1];
+    if(next_tb){
+        if(next_tb->nzcv_use)
+            nzcv_caculate(temp_n, temp, reg_n, sf, 1);
+    }else{
+        nzcv_caculate(temp_n, temp, reg_n, sf, 0);
+    }
+#else
     nzcv_caculate(temp_n, temp, reg_n, sf, 1);
+#endif
     pattern_goto_tb(s, 1, offset);
 
     free_alloc_gpr(reg_n);
@@ -307,11 +327,30 @@ static void trans_CMPE_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
             }
         }
     }
-
+#ifdef CONFIG_LATA_TU
+    TranslationBlock *next_tb = s->base->tb->next_tb[0];
+    if(next_tb){
+        if(next_tb->nzcv_use)
+            nzcv_caculate(temp_n, temp, reg_n, sf, 0);
+    }else{
+        nzcv_caculate(temp_n, temp, reg_n, sf, 0);
+    }
+#else
     nzcv_caculate(temp_n, temp, reg_n, sf, 0);
+#endif
     pattern_goto_tb(s, 0, 4);
     la_label(label);
+#ifdef CONFIG_LATA_TU
+    next_tb = s->base->tb->next_tb[1];
+    if(next_tb){
+        if(next_tb->nzcv_use)
+            nzcv_caculate(temp_n, temp, reg_n, sf, 1);
+    }else{
+        nzcv_caculate(temp_n, temp, reg_n, sf, 0);
+    }
+#else
     nzcv_caculate(temp_n, temp, reg_n, sf, 1);
+#endif
     pattern_goto_tb(s, 1, offset);
 
     free_alloc_gpr(reg_m);
@@ -400,11 +439,30 @@ static void trans_CMPS_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
             }
         }
     }
+#ifdef CONFIG_LATA_TU
+        TranslationBlock *next_tb = s->base->tb->next_tb[0];
+        if(next_tb){
+            if(next_tb->nzcv_use)
+                nzcv_caculate(temp_n, temp, reg_n, sf, 0);
+        }else{
+            nzcv_caculate(temp_n, temp, reg_n, sf, 0);
+        }
+#else
         nzcv_caculate(temp_n, temp, reg_n, sf, 0);
+#endif
         pattern_goto_tb(s, 0, 4);
-
         la_label(label);
+#ifdef CONFIG_LATA_TU
+        next_tb = s->base->tb->next_tb[1];
+        if(next_tb){
+            if(next_tb->nzcv_use)
+                nzcv_caculate(temp_n, temp, reg_n, sf, 1);
+        }else{
+            nzcv_caculate(temp_n, temp, reg_n, sf, 0);
+        }
+#else
         nzcv_caculate(temp_n, temp, reg_n, sf, 1);
+#endif
     }
     else
     {
@@ -425,11 +483,30 @@ static void trans_CMPS_BCOND(DisasContext *s, uint32_t insn, dt_aarch64_insn b_t
                 }
             }
         }
+#ifdef CONFIG_LATA_TU
+        TranslationBlock *next_tb = s->base->tb->next_tb[0];
+        if(next_tb){
+            if(next_tb->nzcv_use)
+                nzcv_caculate(temp_n, reg_m, reg_n, sf, 0);
+        }else{
+            nzcv_caculate(temp_n, reg_m, reg_n, sf, 0);
+        }
+#else
         nzcv_caculate(temp_n, reg_m, reg_n, sf, 0);
+#endif
         pattern_goto_tb(s, 0, 4);
-
         la_label(label);
+#ifdef CONFIG_LATA_TU
+        next_tb = s->base->tb->next_tb[1];
+        if(next_tb){
+            if(next_tb->nzcv_use)
+                nzcv_caculate(temp_n, reg_m, reg_n, sf, 1);
+        }else{
+            nzcv_caculate(temp_n, reg_m, reg_n, sf, 0);
+        }
+#else
         nzcv_caculate(temp_n, reg_m, reg_n, sf, 1);
+#endif
     }
 
     pattern_goto_tb(s, 1, offset);

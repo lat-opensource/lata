@@ -5,10 +5,13 @@ bool logic_imm_decode_wmask(uint64_t *result, unsigned int immn,
                             unsigned int imms, unsigned int immr);
 bool sve_access_check(DisasContext *s);
 
-DisasContext *get_ir1_list(CPUState *cpu, TranslationBlock *tb, vaddr pc, int max_insns, void *host_pc);
-void target_disasm(struct TranslationBlock *tb, int *max_insns, CPUState *cpu,void *host_pc);
+DisasContext *get_ir1_list(CPUState *cpu, TranslationBlock *tb, vaddr pc, int max_insns);
+void target_disasm(struct TranslationBlock *tb, int *max_insns, CPUState *cpu);
 bool tr_ir2_generate(struct TranslationBlock *tb);
 void translate_aarch64_insn(DisasContext *s, CPUState *cpu);
+#ifdef CONFIG_LATA_TU
+void get_last_info(TranslationBlock *tb, DisasContext *s);
+#endif
 
 static inline void assert_fp_access_checked(DisasContext *s)
 {

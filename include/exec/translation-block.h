@@ -42,11 +42,36 @@ struct tb_tc {
 };
 
 #ifdef CONFIG_LATA_TU
+#define TU_TB_INDEX_NEXT 0
+#define TU_TB_INDEX_TARGET 1
+
 typedef enum tu_tb_mode_type {
     TU_TB_MODE_NONE = 0,
     TU_TB_MODE_SWITCH_TO_TB,
-    TU_TB_MODE_BROKEN
+    TU_TB_MODE_BROKEN,
+    TU_TB_MODE_STATIC,
+    TB_GEN_CODE,
 } tu_tb_mode_type;
+
+struct separated_data{
+    tu_tb_mode_type tu_tb_mode;
+    union {
+        int is_first_tb;
+        int tu_size;
+    };
+    uint64_t tu_id;
+};
+
+typedef enum AARCH64_TYPE {
+    IR1_TYPE_NORMAL = 0,
+    IR1_TYPE_BRANCH,
+    IR1_TYPE_CALL,
+    IR1_TYPE_CALLIN,
+    IR1_TYPE_JMP,
+    IR1_TYPE_JMPIN,
+    IR1_TYPE_RET,
+    IR1_TYPE_SYSCALL,
+} AARCH64_TYPE;
 #endif
 
 struct TranslationBlock {
@@ -157,37 +182,27 @@ struct TranslationBlock {
     uintptr_t jmp_dest[2];
 #ifdef CONFIG_LATA
     void *ir1;
+    int codesize;
 #endif
 #ifdef CONFIG_LATA_TU
-    uint64_t *return_target_ptr;
-    uint64_t next_aarch64_pc;
-    uint8_t last_aarch64_type;
-    uint8_t tb_num;
-    uint64_t next_pc;
-    uint64_t target_pc;
-    uint64_t tu_aarch64_pc;
-    uint64_t *next_tb[2];
-    uint16_t tu_jmp[2];
-    tu_tb_mode_type tu_tb_mode;
-    void *aarch64_insns;
-    /* only first tb saved tu_size */
+#define TU_UNLINK_STUB_INVALID 0xffffffff /* TU no unlink stub. */
     union {
-        int is_first_tb;
-        int tu_size;
+        uint64_t target_pc;
+        uint32_t tu_unlink_stub_offset;
     };
+    union {
+        uint64_t next_pc;
+        uint32_t tu_link_ins;
+    };
+    uint16_t tu_jmp[2];
+    uint8_t *tu_search_addr;
+    struct separated_data *s_data;
+    TranslationBlock *next_tb[2];
+    AARCH64_TYPE last_ir1_type;
+    int isplit;
+    CPUArchState *env;
 #endif
 };
-
-#ifdef CONFIG_LATA_TU
-typedef enum AARCH64_TYPE {
-    AARCH64_TYPE_NORMAL = 0,
-    AARCH64_TYPE_BRANCH,
-    AARCH64_TYPE_JUMP,
-    AARCH64_TYPE_CALL,
-    AARCH64_TYPE_RET,
-    AARCH64_TYPE_SYSCALL,
-} AARCH64_TYPE;
-#endif
 
 /* The alignment given to TranslationBlock during allocation. */
 #define CODE_GEN_ALIGN  16

@@ -765,6 +765,10 @@ void *tcg_malloc_internal(TCGContext *s, int size);
 void tcg_pool_reset(TCGContext *s);
 TranslationBlock *tcg_tb_alloc(TCGContext *s);
 
+#ifdef CONFIG_LATA_TU
+TranslationBlock *tcg_tb_alloc_full(TCGContext *s);
+#endif
+
 void tcg_region_reset_all(void);
 
 size_t tcg_code_size(void);

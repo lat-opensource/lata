@@ -1400,6 +1400,47 @@ TranslationBlock *tcg_tb_alloc(TCGContext *s)
     return tb;
 }
 
+#ifdef CONFIG_LATA_TU
+TranslationBlock *tcg_tb_alloc_full(TCGContext *s)
+{
+    uintptr_t align = qemu_icache_linesize;
+    TranslationBlock *tb;
+    void *next;
+    struct separated_data *new_s_data;
+
+ retry:
+ #ifdef CONFIG_SPLIT_TB
+    tb = (void *)ROUND_UP((uintptr_t)s->tb_gen_head, align);
+    new_s_data = (void *)ROUND_UP((uintptr_t)(tb + 1), align);
+    void *next_tb = (void *)ROUND_UP((uintptr_t)(new_s_data + 1), align);
+    if (unlikely(next_tb > s->tb_gen_highwater)) {
+        if (tcg_region_alloc(s)) {
+            return NULL;
+        }
+        goto retry;
+    }
+    qatomic_set(&s->tb_gen_head, next_tb);
+    next = (void *)ROUND_UP((uintptr_t)s->code_gen_ptr, align);
+#else
+
+    tb = (void *)ROUND_UP((uintptr_t)s->code_gen_ptr, align);
+    new_s_data = (void *)ROUND_UP((uintptr_t)(tb + 1), align);
+    next = (void *)ROUND_UP((uintptr_t)(new_s_data + 1), align);
+#endif
+
+    if (unlikely(next > s->code_gen_highwater)) {
+        if (tcg_region_alloc(s)) {
+            return NULL;
+        }
+        goto retry;
+    }
+    qatomic_set(&s->code_gen_ptr, next);
+    s->data_gen_ptr = NULL;
+    tb->s_data = new_s_data;
+    return tb;
+}
+#endif
+
 #ifdef CONFIG_LATA
 void lata_prologue_init(TCGContext *s, CPUState *cpu)
 {

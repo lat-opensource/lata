@@ -130,7 +130,7 @@ static int64_t decode_sleb128(const uint8_t **pp)
    That is, the first column is seeded with the guest pc, the last column
    with the host pc, and the middle columns with zeros.  */
 
-static int encode_search(TranslationBlock *tb, uint8_t *block)
+int encode_search(TranslationBlock *tb, uint8_t *block)
 {
     uint8_t *highwater = tcg_ctx->code_gen_highwater;
     uint64_t *insn_data = tcg_ctx->gen_insn_data;
@@ -266,6 +266,26 @@ void page_init(void)
 }
 
 /*
+    trasnlate ir1->ir2->host instractions
+*/
+int tr_translate_tb(struct TranslationBlock *tb)
+{
+#ifdef CONFIG_LATA
+    tr_init(tb);
+    tcg_insn_unit *gen_code_buf;
+    gen_code_buf = tcg_ctx->code_gen_ptr;
+    tr_ir2_generate(tb);
+    int gen_code_size = tr_ir2_assemble(gen_code_buf) * 4;
+    tb->codesize = gen_code_size;
+    tr_fini();
+
+    return gen_code_size;
+#else
+    return tcg_gen_code(tcg_ctx, tb, pc);
+#endif
+}
+
+/*
  * Isolate the portion of code gen which can setjmp/longjmp.
  * Return the size of the generated code, or negative on error.
  */
@@ -284,21 +304,7 @@ static int setjmp_gen_code(CPUArchState *env, TranslationBlock *tb,
     tcg_ctx->gen_insn_data = tcg_malloc(sizeof(uint64_t) * (*max_insns) * tcg_ctx->insn_start_words);
 
 #ifdef CONFIG_LATA
-    tr_init(tb);
-    /* Initialize goto_tb jump offsets. */
-    tb->jmp_reset_offset[0] = TB_JMP_OFFSET_INVALID;
-    tb->jmp_reset_offset[1] = TB_JMP_OFFSET_INVALID;
-    tb->jmp_insn_offset[0] = TB_JMP_OFFSET_INVALID;
-    tb->jmp_insn_offset[1] = TB_JMP_OFFSET_INVALID;
-#ifdef CONFIG_LATA_INSTS_PATTERN
-    tb->nzcv_save[0] = TB_JMP_OFFSET_INVALID;
-    tb->nzcv_save[1] = TB_JMP_OFFSET_INVALID;
-    tb->nzcv_use = true ;
-#endif
-#endif
-
-#ifdef CONFIG_LATA
-    target_disasm(tb, max_insns, env_cpu(env), host_pc);
+    target_disasm(tb, max_insns, env_cpu(env));
 #else
     gen_intermediate_code(env_cpu(env), tb, max_insns, pc, host_pc);
 #endif
@@ -306,16 +312,7 @@ static int setjmp_gen_code(CPUArchState *env, TranslationBlock *tb,
     tcg_ctx->cpu = NULL;
     *max_insns = tb->icount;
 
-#ifdef CONFIG_LATA
-    tcg_insn_unit *gen_code_buf;
-    gen_code_buf = tcg_ctx->code_gen_ptr;
-    int gen_code_size = tr_ir2_assemble(gen_code_buf) * 4;
-    tr_fini();
-
-    return gen_code_size;
-#else
-    return tcg_gen_code(tcg_ctx, tb, pc);
-#endif
+    return tr_translate_tb(tb);
 }
 
 /* Called with mmap_lock held for user mode emulation.  */
@@ -387,6 +384,18 @@ TranslationBlock *tb_gen_code(CPUState *cpu,
     tcg_ctx->guest_mo = TCG_GUEST_DEFAULT_MO;
 #else
     tcg_ctx->guest_mo = TCG_MO_ALL;
+#endif
+#ifdef CONFIG_LATA
+    /* Initialize goto_tb jump offsets. */
+    tb->jmp_reset_offset[0] = TB_JMP_OFFSET_INVALID;
+    tb->jmp_reset_offset[1] = TB_JMP_OFFSET_INVALID;
+    tb->jmp_insn_offset[0] = TB_JMP_OFFSET_INVALID;
+    tb->jmp_insn_offset[1] = TB_JMP_OFFSET_INVALID;
+#ifdef CONFIG_LATA_INSTS_PATTERN
+    tb->nzcv_save[0] = TB_JMP_OFFSET_INVALID;
+    tb->nzcv_save[1] = TB_JMP_OFFSET_INVALID;
+    tb->nzcv_use = true ;
+#endif
 #endif
 
  restart_translate:
