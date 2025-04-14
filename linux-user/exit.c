@@ -41,7 +41,7 @@ void preexit_cleanup(CPUArchState *env, int code)
         gdb_exit(code);
         qemu_plugin_user_exit();
         perf_exit();
-#ifdef CONFIG_LATA
+#ifdef CONFIG_LATA_INDIRECT_JMP
         if (indirect_jmp_opt_profile) {
                 long jr_cnt = thread_cpu->env_ptr->jr_cnt;
                 long jr_hit = thread_cpu->env_ptr->jr_hit;

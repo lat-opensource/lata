@@ -74,7 +74,11 @@ char real_exec_path[PATH_MAX];
 
 #ifdef CONFIG_LATA
 int indirect_jmp_opt_profile = 0;
+#ifdef CONFIG_LATA_INDIRECT_JMP
 int option_fam_jmp_cache = 1;
+#else
+int option_fam_jmp_cache = 0;
+#endif
 #endif
 
 static bool opt_one_insn_per_tb;

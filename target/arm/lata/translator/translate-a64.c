@@ -484,9 +484,6 @@ static void gen_goto_tb(DisasContext *s, int n, int64_t diff)
     ir2_opnd_build(&ir2_opnd_addr, IR2_OPND_IMM, 1);
     la_b(ir2_opnd_addr); // nop
 
-    // target_ulong dest = s->pc_curr + diff;
-    // li_d(a0_ir2_opnd, dest);
-    // la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_pc());
     lata_gen_a64_update_pc(s, diff);
 
     if (qemu_loglevel_mask(CPU_LOG_TB_NOCHAIN)) {
@@ -8599,7 +8596,67 @@ static void handle_scalar_simd_shri(DisasContext *s,
                                     bool is_u, int immh, int immb,
                                     int opcode, int rn, int rd)
 {
-    assert(0);
+    int size = 32 - clz32(immh) - 1;
+    int immhb = immh << 3 | immb;
+    int shift = 2 * (8 << size)- immhb;
+    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+
+    if (extract32(immh, 3, 1)) {
+        lata_unallocated_encoding(s);
+        return;
+    }
+
+    if (!fp_access_check(s)) {
+        return;
+    }
+
+    la_vbsrl_v(vtemp, vreg_n, 0);
+
+    switch (opcode) {
+    case 0x02: /* SSRA / USRA (accumulate) */
+        assert(0);
+        break;
+
+    case 0x08: /* SRI */
+        assert(0);
+        break;
+
+    case 0x00: /* SSHR / USHR */
+        if (is_u) {
+            /* Shift count the same size as element size produces zero.  */
+            if(shift == 8 << size){
+                la_vandi_b(vreg_d, vtemp, 0);
+                break;
+            }
+            la_vsrli_d(vreg_d,vtemp,shift);
+        } else {
+            /* Shift count the same size as element size produces all sign.  */
+            if(shift == 8 << size){
+                shift -= 1;
+            }
+            la_vsrai_d(vreg_d,vtemp,shift);
+        }
+        assert(0);
+        break;
+
+    case 0x04: /* SRSHR / URSHR (rounding) */
+        assert(0);
+        break;
+
+    case 0x06: /* SRSRA / URSRA (accum + rounding) */
+        assert(0);
+        break;
+
+    default:
+        g_assert_not_reached();
+    }
+
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vtemp);
 }
 
 /* SHL/SLI - Scalar shift left */
@@ -11439,7 +11496,21 @@ static void handle_rev(DisasContext *s, int opcode, bool u,
             }
             break;
         case 1: /* REV32 */
-            assert(0);
+            for(i = 0; i < (is_q ? 2 : 1); ++i){
+                la_vpickve2gr_d(temp, vreg_n, i);
+                switch (size)
+                {
+                case 0:
+                    la_revb_2w(temp, temp);
+                    break;
+                case 1:
+                    la_revh_2w(temp, temp);
+                    break;
+                default:
+                    break;
+                }
+                la_vinsgr2vr_d(vreg_d, temp, i);
+            }
             break;
         case 2: /* REV16 */
             assert(0);
@@ -11474,10 +11545,6 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
     bool is_q = extract32(insn, 30, 1);
     int rn = extract32(insn, 5, 5);
     int rd = extract32(insn, 0, 5);
-    // bool need_fpstatus = false;
-    // int rmode = -1;
-    // TCGv_i32 tcg_rmode;
-    // TCGv_ptr tcg_fpstatus;
 
     switch (opcode) {
     case 0x0: /* REV64, REV32 */
@@ -11869,8 +11936,33 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
         free_alloc_fpr(vreg_d);
         free_alloc_fpr(vreg_n);
         return;
-    case 0xb:
-        assert(0);
+    case 0xb:/* ABS */
+        la_vsub_d(vreg_d, vreg_n, vreg_n);
+        switch (size)
+        {
+        case 0:
+            la_vabsd_b(vreg_d, vreg_n, vreg_d);
+            break;
+        case 1:
+            la_vabsd_h(vreg_d, vreg_n, vreg_d);
+            break;
+        case 2:
+            la_vabsd_w(vreg_d, vreg_n, vreg_d);
+            break;
+        case 3:
+            la_vabsd_d(vreg_d, vreg_n, vreg_d);
+            break;
+        default:
+            break;
+        }
+        if(!is_q){
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        }
+        store_fpr_dst(rd, vreg_d);
+        free_alloc_fpr(vreg_d);
+        free_alloc_fpr(vreg_n);
+        return;
         return;
     }
 
@@ -12586,7 +12678,7 @@ static bool disas_data_proc_simd_fp(DisasContext *s)
 
 // /* C3.1 A64 instruction index by encoding */
 static bool (*translate_functions[])(DisasContext *) = {
-    TRANS_FUNC_GEN_REAL(AARCH64_A64_NULL, NULL),
+    TRANS_FUNC_GEN_REAL(AARCH64_A64_NULL, (void *)lata_unallocated_encoding),
     TRANS_FUNC_GEN(AARCH64_A64_ADDG_i, ADDG_i),
     TRANS_FUNC_GEN(AARCH64_A64_ADDS_i, ADDS_i),
     TRANS_FUNC_GEN(AARCH64_A64_ADD_i, ADD_i),
@@ -12883,7 +12975,13 @@ static void set_base_isjump(DisasContext *s)
 {
     if(ir1_is_branch(s) || ir1_is_jmp(s) || ir1_is_call(s) || ir1_is_ret(s) || ir1_is_syscall(s)){
         s->base->is_jmp = DISAS_NORETURN;
+        return;
     }
+    if(s->insn_type == AARCH64_A64_NULL){
+        s->base->is_jmp = DISAS_NORETURN;
+        return;        
+    }
+
 }
 
 /*
