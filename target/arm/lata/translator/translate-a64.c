@@ -1299,7 +1299,15 @@ static void handle_sys(DisasContext *s, bool isread,
         } else if (ri->readfn) {    
             lata_helper_get_sysReg(s, key, rt);
         } else {
-            la_ld_d(reg_t, env_ir2_opnd, ri->fieldoffset);
+            if(ri->fieldoffset > 0x7ff) {
+                IR2_OPND temp = ra_alloc_itemp();
+                li_d(temp, ri->fieldoffset);  
+                la_add_d(temp, env_ir2_opnd, temp);
+                la_ld_d(reg_t, temp, 0);
+                free_alloc_gpr(temp);
+            } else {
+                la_ld_d(reg_t, env_ir2_opnd, ri->fieldoffset);
+            }
             store_gpr_dst(rt, reg_t);
         }
         free_alloc_gpr(reg_t);
