@@ -1311,7 +1311,15 @@ static void handle_sys(DisasContext *s, bool isread,
         } else if (ri->writefn) {
             lata_helper_set_sysReg(s, key, rt);
         } else {
-            la_st_d(reg_t, env_ir2_opnd, ri->fieldoffset);
+            if(ri->fieldoffset > 0x7ff) {
+                IR2_OPND temp = ra_alloc_itemp();
+                li_d(temp, ri->fieldoffset);  
+                la_add_d(temp, env_ir2_opnd, temp);
+                la_st_d(reg_t, temp, 0);
+                free_alloc_gpr(temp);
+            } else {
+                la_st_d(reg_t, env_ir2_opnd, ri->fieldoffset);
+            }  
         }
 
         free_alloc_gpr(reg_t);
