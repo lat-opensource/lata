@@ -1496,12 +1496,28 @@ static void lata_load_exclusive(DisasContext *s, int rt, int rt2, int rn,
         /*  LL支持4字节和8字节，1字节和2字节使用普通的访存指令
             在单线程下不会出现问题。
             */
+        IR2_OPND aligned_mem = ra_alloc_itemp();
+        IR2_OPND offset = ra_alloc_itemp();
         switch(size){
-            case 0:
-                la_ld_bu(reg_t, reg_n, 0);
+            case 0://deal with the situation when memory is not aligned
+                la_bstrpick_d(offset, reg_n, 2, 0);
+                la_or(aligned_mem, reg_n, zero_ir2_opnd);
+                la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
+                la_ll_d(reg_t, aligned_mem, 0);
+                la_st_d(reg_t, env_ir2_opnd, env_offset(exclusive_memdata));
+                la_slli_d(offset, offset, 3);
+                la_srl_d(reg_t, reg_t, offset);
+                la_bstrpick_d(reg_t, reg_t, 7, 0);
                 break;
             case 1:
-                la_ld_hu(reg_t, reg_n, 0);
+                la_bstrpick_d(offset, reg_n, 2, 0);
+                la_or(aligned_mem, reg_n, zero_ir2_opnd);
+                la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
+                la_ll_d(reg_t, aligned_mem, 0);
+                la_st_d(reg_t, env_ir2_opnd, env_offset(exclusive_memdata));
+                la_slli_d(offset, offset, 3);
+                la_srl_d(reg_t, reg_t, offset);
+                la_bstrpick_d(reg_t, reg_t, 15, 0);
                 break;
             case 2:
                 la_ll_w(reg_t, reg_n, 0);
@@ -1511,6 +1527,8 @@ static void lata_load_exclusive(DisasContext *s, int rt, int rt2, int rn,
                 la_ll_d(reg_t, reg_n, 0);
                 break;
         }
+        free_alloc_gpr(aligned_mem);
+        free_alloc_gpr(offset);
     }
 
     if(arm_la_map[rt] >= 0 && rt != 31 && clearGprHigh){
@@ -1574,16 +1592,51 @@ static void lata_store_exclusive(DisasContext *s, int rs, int rt, int rt2,
         /*  LL/SC支持4字节和8字节，1字节和2字节使用普通的访存指令
             在单线程下不会出现问题。
         */
+        IR2_OPND offset = ra_alloc_itemp();
+        IR2_OPND aligned_mem = ra_alloc_itemp();
+        IR2_OPND mem_data = ra_alloc_itemp();
         switch(size){
             case 0:
-                assert(0);
-                la_st_b(reg_t, reg_n, 0);
-                la_xor(reg_s, reg_s, reg_s);
+                /* get aligned memory*/
+                la_bstrpick_d(offset, reg_n, 2, 0);
+                la_slli_d(offset, offset, 3);
+                la_or(aligned_mem, reg_n, zero_ir2_opnd);
+                la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
+
+                /*merge data*/
+                la_bstrpick_d(reg_s, reg_t, 7, 0);
+                la_sll_d(reg_s, reg_s, offset);
+                
+                li_d(mem_data, 0xff);
+                la_sll_d(offset, mem_data, offset);
+                la_ld_d(mem_data, env_ir2_opnd, env_offset(exclusive_memdata));
+                la_orn(mem_data, mem_data, offset);
+
+                la_or(mem_data, reg_s, mem_data);              
+
+                la_sc_d(reg_s, aligned_mem, 0);
+                la_xori(reg_s, reg_s, 1);
                 break;
             case 1:
-                assert(0);
-                la_st_h(reg_t, reg_n, 0);
-                la_xor(reg_s, reg_s, reg_s);
+                /* get aligned memory*/
+                la_bstrpick_d(offset, reg_n, 2, 0);
+                la_slli_d(offset, offset, 3);
+                la_or(aligned_mem, reg_n, zero_ir2_opnd);
+                la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
+
+                /*merge data*/
+                la_bstrpick_d(reg_s, reg_t, 15, 0);
+                la_sll_d(reg_s, reg_s, offset);
+                
+                li_d(mem_data, 0xffff);
+                la_sll_d(offset, mem_data, offset);
+                la_ld_d(mem_data, env_ir2_opnd, env_offset(exclusive_memdata));
+                la_orn(mem_data, mem_data, offset);
+
+                la_or(mem_data, reg_s, mem_data);              
+
+                la_sc_d(reg_s, aligned_mem, 0);
+                la_xori(reg_s, reg_s, 1);
                 break;
             case 2:
                 la_or(reg_s, reg_t, zero_ir2_opnd);
@@ -1596,6 +1649,9 @@ static void lata_store_exclusive(DisasContext *s, int rs, int rt, int rt2,
                 la_xori(reg_s, reg_s, 1); /* 龙芯的SC返回值和arm相反 */
                 break;
         }
+        free_alloc_gpr(aligned_mem);
+        free_alloc_gpr(offset);
+        free_alloc_gpr(mem_data);
     }
 
     /*  the value of reg_s must be 0 or 1, 
