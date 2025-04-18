@@ -12056,15 +12056,16 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
     case 0x5:
         if (u && size == 0) { /* NOT */
             la_vnori_b(vreg_d, vreg_n, 0);
+            if(!is_q){
+                /* 高64位清零 */
+                la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+            }
+            store_fpr_dst(rd, vreg_d);
+            free_alloc_fpr(vreg_d);
+            free_alloc_fpr(vreg_n);
+            return;            
         }
-        if(!is_q){
-            /* 高64位清零 */
-            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
-        }
-        store_fpr_dst(rd, vreg_d);
-        free_alloc_fpr(vreg_d);
-        free_alloc_fpr(vreg_n);
-        return;
+        break;
     case 0x8: /* CMGT, CMGE */
         switch (size)
         {
@@ -12203,7 +12204,6 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
         free_alloc_fpr(vreg_d);
         free_alloc_fpr(vreg_n);
         return;
-        return;
     }
 
     if (size == 3) {
@@ -12303,7 +12303,21 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
             
         } else {
             /* Use helpers for 8 and 16 bit elements */
-            assert(0);
+            switch (opcode) {
+            case 0x5: /* CNT, RBIT */
+                if (u) {//RBIT
+                    assert(0);
+                } else {//CNT
+                    la_vpcnt_b(vreg_d, vreg_n);
+                }
+                break;
+            case 0x7: /* SQABS, SQNEG */
+                assert(0);
+            case 0x4: /* CLS, CLZ */
+                assert(0);
+            default:
+                g_assert_not_reached();
+            }
         }
     }
 
