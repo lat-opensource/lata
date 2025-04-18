@@ -10054,7 +10054,93 @@ static void handle_vec_simd_wshli(DisasContext *s, bool is_q, bool is_u,
 static void handle_vec_simd_shrn(DisasContext *s, bool is_q,
                                  int immh, int immb, int opcode, int rn, int rd)
 {
-    assert(0);
+    int immhb = immh << 3 | immb;
+    int size = 32 - clz32(immh) - 1;
+    int esize = 8 << size;
+    int shift = (2 * esize) - immhb;
+    bool round = extract32(opcode, 0, 1);
+    IR2_OPND vreg_d = alloc_fpr_src(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vtemp2 = ra_alloc_ftemp();
+
+    if (extract32(immh, 3, 1)) {
+        lata_unallocated_encoding(s);
+        return;
+    }
+
+    if (!fp_access_check(s)) {
+        return;
+    }
+
+    la_vandi_b(vtemp2, vtemp2, 0);
+
+    if (is_q) {//SHRN2/RSHRN2 (writes the upper, keep the lower)
+        switch (size){
+        case 0:
+            if(round) {
+                la_vsrlri_h(vtemp, vreg_n, shift);
+            } else {
+                la_vsrli_h(vtemp, vreg_n, shift);
+            }       
+            la_vsrln_b_h(vtemp, vtemp, vtemp2);  
+            break;
+        case 1:
+            if(round) {
+                la_vsrlri_w(vtemp, vreg_n, shift);
+            } else {
+                la_vsrli_w(vtemp, vreg_n, shift);
+            }  
+            la_vsrln_h_w(vtemp, vtemp, vtemp2);
+            break;
+        case 2:
+            if(round) {
+                la_vsrlri_d(vtemp, vreg_n, shift);
+            } else {
+                la_vsrli_d(vtemp, vreg_n, shift);
+            }  
+            la_vsrln_w_d(vtemp, vtemp, vtemp2);
+            break;
+        default:
+            assert(0);
+        }  
+        la_vpickev_d(vreg_d, vtemp, vreg_d);
+    } else {//SHRN/RSHRN (writes the lower, clears the upper)
+        switch (size){
+        case 0:
+            if(round) {
+                la_vsrlri_h(vtemp, vreg_n, shift);
+            } else {
+                la_vsrli_h(vtemp, vreg_n, shift);
+            }  
+            la_vsrln_b_h(vreg_d, vtemp, vtemp2);
+            break;            
+        case 1:
+            if(round) {
+                la_vsrlri_w(vtemp, vreg_n, shift);
+            } else {
+                la_vsrli_w(vtemp, vreg_n, shift);
+            }  
+            la_vsrln_h_w(vreg_d, vtemp, vtemp2);
+            break;
+        case 2:
+            if(round) {
+                la_vsrlri_d(vtemp, vreg_n, shift);
+            } else {
+                la_vsrli_d(vtemp, vreg_n, shift);
+            }  
+            la_vsrln_w_d(vreg_d, vtemp, vtemp2);
+            break;
+        default:
+            assert(0);
+        }          
+    }
+
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vtemp);
+    free_alloc_fpr(vtemp2);
 }
 
 
