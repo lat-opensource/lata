@@ -10836,7 +10836,48 @@ static void handle_simd_3same_pair(DisasContext *s, int is_q, int u, int opcode,
     }
     case 0x14: /* SMAXP, UMAXP */
     {
-        assert(0);
+        switch (size)
+        {
+        case 0:
+            /* pack vector pair*/
+            la_vpickev_b(vtemp, vreg_m, vreg_n);
+            la_vpickod_b(vtemp1, vreg_m, vreg_n);
+            
+            /* compare*/
+            if(u) {//UMAXP
+                la_vmax_bu(vreg_d, vtemp, vtemp1);
+            } else {//SMAXP
+                la_vmax_b(vreg_d, vtemp, vtemp1);
+            }
+            break;
+        case 1:
+            la_vpickev_h(vtemp, vreg_m, vreg_n);
+            la_vpickod_h(vtemp1, vreg_m, vreg_n);
+
+            if(u) {
+                la_vmax_hu(vreg_d, vtemp, vtemp1);
+            } else {
+                la_vmax_h(vreg_d, vtemp, vtemp1);
+            }
+            break;
+        case 2:
+            la_vpickev_w(vtemp, vreg_m, vreg_n);
+            la_vpickod_w(vtemp1, vreg_m, vreg_n);
+
+            if(u) {
+                la_vmax_wu(vreg_d, vtemp, vtemp1);
+            } else {
+                la_vmax_w(vreg_d, vtemp, vtemp1);
+            }
+            break;
+        default:
+            assert(0);
+        }
+
+        /* move vector to the lower*/
+        if(!is_q){
+            la_vpickev_w(vreg_d,vreg_d,vreg_d);
+        }
         break;
     }
     case 0x15: /* SMINP, UMINP */
@@ -10851,7 +10892,7 @@ static void handle_simd_3same_pair(DisasContext *s, int is_q, int u, int opcode,
             /* compare*/
             if(u) {//UMINP
                 la_vmin_bu(vreg_d, vtemp, vtemp1);
-            } else {//SMIP
+            } else {//SMINP
                 la_vmin_b(vreg_d, vtemp, vtemp1);
             }
             break;
