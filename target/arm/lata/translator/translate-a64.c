@@ -11118,9 +11118,12 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
         vreg_d = alloc_fpr_dst(rd);
     }
     /* 分别执行左移和右移 */
-    IR2_OPND vtemp = ra_alloc_ftemp();
-    IR2_OPND vleft = ra_alloc_ftemp();
-    IR2_OPND vright = ra_alloc_ftemp();
+    IR2_OPND vtemp,vleft,vright;
+    if(opcode == 0x08) {
+        vtemp = ra_alloc_ftemp();
+        vleft = ra_alloc_ftemp();
+        vright = ra_alloc_ftemp();         
+    }
 
     switch (opcode) {
     case 0x01: /* SQADD, UQADD */
@@ -11576,9 +11579,11 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
         free_alloc_fpr(vreg_d);
         free_alloc_fpr(vreg_n);
         free_alloc_fpr(vreg_m);
-        free_alloc_fpr(vtemp);
-        free_alloc_fpr(vleft);
-        free_alloc_fpr(vright);
+        if(opcode == 0x08) {
+            free_alloc_fpr(vtemp);
+            free_alloc_fpr(vleft);
+            free_alloc_fpr(vright);            
+        }
         return;
     }
 
