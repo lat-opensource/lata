@@ -11766,6 +11766,99 @@ static void handle_rev(DisasContext *s, int opcode, bool u,
     free_alloc_gpr(temp);
 }
 
+static void handle_2misc_pairwise(DisasContext *s, int opcode, bool u,
+                                  bool is_q, int size, int rn, int rd)
+{
+    /* Implement the pairwise operations from 2-misc:
+     * SADDLP, UADDLP, SADALP, UADALP.
+     * These all add pairs of elements in the input to produce a
+     * double-width result element in the output (possibly accumulating).
+     */
+    bool accum = (opcode == 0x6);
+    IR2_OPND vreg_d;
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+
+    if(accum) {
+        vreg_d = alloc_fpr_src(rd);
+        IR2_OPND vtemp = ra_alloc_ftemp();
+        if(u) { // UADALP
+            switch(size){
+            case 0:
+                la_vhaddw_hu_bu(vtemp, vreg_n, vreg_n);
+                la_vadd_h(vreg_d, vreg_d, vtemp);
+                break;
+            case 1:
+                la_vhaddw_wu_hu(vtemp, vreg_n, vreg_n);
+                la_vadd_w(vreg_d, vreg_d, vtemp);
+                break;
+            case 2:
+                la_vhaddw_du_wu(vtemp, vreg_n, vreg_n);
+                la_vadd_d(vreg_d, vreg_d, vtemp);
+                break;
+            default:
+                assert(0);
+            }
+        } else { // SADALP
+            switch(size){
+            case 0:
+                la_vhaddw_h_b(vtemp, vreg_n, vreg_n);
+                la_vadd_h(vreg_d, vreg_d, vtemp);
+                break;
+            case 1:
+                la_vhaddw_w_h(vtemp, vreg_n, vreg_n);
+                la_vadd_w(vreg_d, vreg_d, vtemp);
+                break;
+            case 2:
+                la_vhaddw_d_w(vtemp, vreg_n, vreg_n);
+                la_vadd_d(vreg_d, vreg_d, vtemp);
+                break;
+            default:
+                assert(0);
+            }
+        }
+        free_alloc_gpr(vtemp);
+    } else {
+        vreg_d = alloc_fpr_dst(rd);
+        if(u) { // UADDLP
+            switch(size){
+            case 0:
+                la_vhaddw_hu_bu(vreg_d, vreg_n, vreg_n);
+                break;
+            case 1:
+                la_vhaddw_wu_hu(vreg_d, vreg_n, vreg_n);
+                break;
+            case 2:
+                la_vhaddw_du_wu(vreg_d, vreg_n, vreg_n);
+                break;
+            default:
+                assert(0);
+            }
+        } else { // SADDLP
+            switch(size){
+            case 0:
+                la_vhaddw_h_b(vreg_d, vreg_n, vreg_n);
+                break;
+            case 1:
+                la_vhaddw_w_h(vreg_d, vreg_n, vreg_n);
+                break;
+            case 2:
+                la_vhaddw_d_w(vreg_d, vreg_n, vreg_n);
+                break;
+            default:
+                assert(0);
+            }
+        }
+    }
+
+    if (!is_q) {
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    }
+
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+}
+
 static void handle_shll(DisasContext *s, bool is_q, int size, int rn, int rd)
 {
     assert(0);
@@ -11831,7 +11924,7 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
         if (!fp_access_check(s)) {
             return;
         }
-        assert(0);
+        handle_2misc_pairwise(s, opcode, u, is_q, size, rn, rd);
         return;
     case 0x13: /* SHLL, SHLL2 */
         if (u == 0 || size == 3) {
