@@ -1114,7 +1114,7 @@ static bool trans_MSR_i_SVCR(DisasContext *s)
     assert(0);
 }
 
-static void lata_helper_get_sysReg(DisasContext *ctx, uint32_t key, int rt)
+static void lata_helper_access_check_sysReg(DisasContext *ctx, void *la_ri, uint32_t key, uint32_t syndrome, uint32_t isread)
 {
     IR2_OPND temp = ra_alloc_itemp();
     li_d(temp, ctx->base->pc_next);
@@ -1123,15 +1123,13 @@ static void lata_helper_get_sysReg(DisasContext *ctx, uint32_t key, int rt)
 
     la_mov64(a0_ir2_opnd, env_ir2_opnd);
     li_d(a1_ir2_opnd, key);
-    li_d(temp, (uint64_t)helper_lookup_cp_reg);
-    la_jirl(ra_ir2_opnd, temp, 0);
-
-    la_mov64(a1_ir2_opnd, a0_ir2_opnd);
-    la_mov64(a0_ir2_opnd, env_ir2_opnd);
-    li_d(temp, (uint64_t)helper_get_cp_reg64);
+    li_d(a2_ir2_opnd, syndrome);
+    li_d(a3_ir2_opnd, isread);
+    li_d(temp, (uint64_t)helper_access_check_cp_reg);
     la_jirl(ra_ir2_opnd, temp, 0);
     
-    la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_gpr(rt));
+    li_d(temp, (uint64_t)&la_ri);
+    la_st_d(a0_ir2_opnd, temp, 0);
 
     lata_gen_call_helper_epilogue(tcg_ctx);
     free_alloc_gpr(temp);
@@ -1139,20 +1137,73 @@ static void lata_helper_get_sysReg(DisasContext *ctx, uint32_t key, int rt)
     return ;
 }
 
-static void lata_helper_set_sysReg(DisasContext *ctx, uint32_t key, int rt)
+static void lata_helper_get_sysReg(DisasContext *ctx, uint32_t key, int rt, void *la_ri)
 {
     IR2_OPND temp = ra_alloc_itemp();
+    IR2_OPND no_lookup = ir2_opnd_new_type(IR2_OPND_LABEL);
+    IR2_OPND set_reg = ir2_opnd_new_type(IR2_OPND_LABEL);
     li_d(temp, ctx->base->pc_next);
     la_st_d(temp, env_ir2_opnd, env_offset_pc());
     lata_gen_call_helper_prologue(tcg_ctx);
 
+    IR2_OPND ri_isnull = ra_alloc_itemp();
+    li_d(ri_isnull, (uint64_t)la_ri);
     la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    la_bnez(ri_isnull, no_lookup);
+
+    /* la_ri == NULL, helper_lookup_cp_reg */
     li_d(a1_ir2_opnd, key);
     li_d(temp, (uint64_t)helper_lookup_cp_reg);
     la_jirl(ra_ir2_opnd, temp, 0);
+    la_mov64(a1_ir2_opnd, a0_ir2_opnd);
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);\
+    la_b(set_reg);
 
+    /* la_ri != NULL */
+    la_label(no_lookup);
+    la_mov64(a1_ir2_opnd, ri_isnull);
+
+    /* helper_get_cp_reg64 */
+    la_label(set_reg);
+    li_d(temp, (uint64_t)helper_get_cp_reg64);
+    la_jirl(ra_ir2_opnd, temp, 0);
+    
+    la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_gpr(rt));
+
+    lata_gen_call_helper_epilogue(tcg_ctx);
+    free_alloc_gpr(temp);
+    free_alloc_gpr(ri_isnull);
+
+    return ;
+}
+
+static void lata_helper_set_sysReg(DisasContext *ctx, uint32_t key, int rt, void *la_ri)
+{
+    IR2_OPND temp = ra_alloc_itemp();
+    IR2_OPND no_lookup = ir2_opnd_new_type(IR2_OPND_LABEL);
+    IR2_OPND set_reg = ir2_opnd_new_type(IR2_OPND_LABEL);
+    li_d(temp, ctx->base->pc_next);
+    la_st_d(temp, env_ir2_opnd, env_offset_pc());
+    lata_gen_call_helper_prologue(tcg_ctx);
+
+    IR2_OPND ri_isnull = ra_alloc_itemp();
+    li_d(ri_isnull, (uint64_t)la_ri);
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    la_bnez(ri_isnull, no_lookup);
+
+    /* la_ri == NULL, helper_lookup_cp_reg */
+    li_d(a1_ir2_opnd, key);
+    li_d(temp, (uint64_t)helper_lookup_cp_reg);
+    la_jirl(ra_ir2_opnd, temp, 0);
     la_mov64(a1_ir2_opnd, a0_ir2_opnd);
     la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    la_b(set_reg);
+
+    /* la_ri != NULL */
+    la_label(no_lookup);
+    la_mov64(a1_ir2_opnd, ri_isnull);
+
+    la_label(set_reg);
     la_ld_d(a2_ir2_opnd, env_ir2_opnd, env_offset_gpr(rt));
     li_d(temp, (uint64_t)helper_set_cp_reg64);
     la_jirl(ra_ir2_opnd, temp, 0);
@@ -1202,6 +1253,7 @@ static void handle_sys(DisasContext *s, bool isread,
                                       crn, crm, op0, op1, op2);
     const ARMCPRegInfo *ri = get_arm_cp_reginfo(s->cp_regs, key);
     bool need_exit_tb = false;
+    void *la_ri = NULL;
 
     if (!ri) {
         /* Unknown register; this might be a guest error or a QEMU
@@ -1219,7 +1271,10 @@ static void handle_sys(DisasContext *s, bool isread,
         /* Emit code to perform further access permissions checks at
          * runtime; this may result in an exception.
          */
-        assert(0);
+        uint32_t syndrome;
+        syndrome = syn_aa64_sysregtrap(op0, op1, op2, crn, crm, rt, isread);
+        lata_gen_a64_update_pc(s, 0);
+        lata_helper_access_check_sysReg(s, la_ri,  key, syndrome, isread);
     } else if (ri->type & ARM_CP_RAISES_EXC) {
         /*
          * The readfn or writefn might raise an exception;
@@ -1297,7 +1352,7 @@ static void handle_sys(DisasContext *s, bool isread,
             li_d(reg_t, ri->resetvalue);
             store_gpr_dst(rt, reg_t);
         } else if (ri->readfn) {    
-            lata_helper_get_sysReg(s, key, rt);
+            lata_helper_get_sysReg(s, key, rt, la_ri);
         } else {
             if(ri->fieldoffset > 0x7ff) {
                 IR2_OPND temp = ra_alloc_itemp();
@@ -1317,7 +1372,7 @@ static void handle_sys(DisasContext *s, bool isread,
             assert(0); /* 需要释放reg_t */
             return;
         } else if (ri->writefn) {
-            lata_helper_set_sysReg(s, key, rt);
+            lata_helper_set_sysReg(s, key, rt, la_ri);
         } else {
             if(ri->fieldoffset > 0x7ff) {
                 IR2_OPND temp = ra_alloc_itemp();
