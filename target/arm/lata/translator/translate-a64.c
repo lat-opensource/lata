@@ -1959,6 +1959,8 @@ static bool trans_STP(DisasContext *s)
         clear_gpr_high(a->rt2);
     }
 
+    lata_clean_data_tbi(s, &reg_n, &reg_n, s->tbid);
+
     if(!a->w && offset){ // wback = false && offset!=0
         la_addi_d(temp, reg_n, offset);
         switch(dbytes){
@@ -2140,6 +2142,8 @@ static bool trans_STP_v(DisasContext *s)
     if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
         clear_gpr_high(a->rn);
     }
+
+    lata_clean_data_tbi(s, &reg_n, &reg_n, s->tbid);
 
     if(!a->w && offset){ // wback = false && offset!=0
         la_addi_d(temp, reg_n, offset);
@@ -2367,6 +2371,8 @@ static bool trans_STR_i(DisasContext *s)
     if(clearGprHigh && a->sz == 3 && arm_la_map[a->rt] >= 0 && a->rt != 31){
         clear_gpr_high(a->rt);
     }
+
+    lata_clean_data_tbi(s, &reg_n, &reg_n, s->tbid);
     if(!a->w && offset){ // postindex = false
         /* Unsigned offset立即数是uimm12位，
         la_addi_d立即数是imm12，需要将立即数加载到寄存器
@@ -2570,6 +2576,8 @@ static bool trans_STR_v_i(DisasContext *s)
     if(clearGprHigh && arm_la_map[a->rn] >= 0){ /* all reg_n is 64-bit size*/
         clear_gpr_high(a->rn);
     }
+
+    lata_clean_data_tbi(s, &reg_n, &reg_n, s->tbid);
 
     if(!a->w && offset){ // postindex = false
         /* Unsigned offset立即数是uimm12位，
