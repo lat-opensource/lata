@@ -1880,7 +1880,130 @@ static bool trans_CASP(DisasContext *s)
 
 static bool trans_CAS(DisasContext *s)
 {
-    assert(0);
+    int acquire = extract32(s->insn, 22, 1);
+    int release = extract32(s->insn, 15, 1);
+    
+    if (!dc_isar_feature(aa64_atomics, s)) {
+        return false;
+    }
+
+    arg_CAS *a = &(s->arg.f_decode_insn3221);
+
+    IR2_OPND reg_s = alloc_gpr_src(a->rs);
+    IR2_OPND reg_t = alloc_gpr_src(a->rt);
+    IR2_OPND reg_n = alloc_gpr_src(a->rn);
+    IR2_OPND src = ra_alloc_itemp();
+    IR2_OPND dest = ra_alloc_itemp();
+    IR2_OPND label_unequal = ir2_opnd_new_type(IR2_OPND_LABEL);
+    IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
+
+    if (a->rn == 31) {
+        gen_check_sp_alignment(s);
+    }
+
+    if(acquire){
+        la_dbar(0x1c);
+    }
+
+    if(a->sz == 3) {
+        la_label(label_ll);
+        la_or(dest, reg_t, zero_ir2_opnd);
+        la_ll_d(src, reg_n, 0);
+        la_bne(src, reg_s, label_unequal);
+        la_sc_d(dest, reg_n, 0);
+        la_beq(dest, zero_ir2_opnd, label_ll);
+    } else if(a->sz == 2) {
+        la_label(label_ll);
+        la_ll_w(src, reg_n, 0);
+        la_bstrpick_d(src, src, 31, 0);
+        la_bstrpick_d(dest, reg_s, 31, 0);
+        la_bne(src, dest, label_unequal);
+        la_or(dest, reg_t, zero_ir2_opnd);
+        la_sc_w(dest, reg_n, 0);
+        la_beq(dest, zero_ir2_opnd, label_ll);
+    } else if(a->sz == 1) {
+        IR2_OPND offset = ra_alloc_itemp();
+        IR2_OPND aligned_mem = ra_alloc_itemp();
+        /* deal with the situation when memory is not aligned */
+        la_bstrpick_d(offset, reg_n, 2, 0);
+        la_or(aligned_mem, reg_n, zero_ir2_opnd);
+        la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
+        la_label(label_ll);
+        la_ll_d(src, aligned_mem, 0);
+        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_slli_d(offset, offset, 3);
+        la_srl_d(src, src, offset);
+        la_bstrpick_d(src, src, 15, 0);
+
+        /* compare */
+        la_bstrpick_d(dest, reg_s, 15, 0);
+        la_bne(src, dest, label_unequal);
+
+        /* get new value */
+        la_bstrpick_d(dest, reg_t, 15, 0);
+        la_sll_d(dest, dest, offset);
+
+        /* merge data */
+        li_d(src, 0xffff);
+        la_sll_d(offset, src, offset);
+        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_orn(src, src, offset);
+
+        /* store new value */
+        la_or(dest, dest, src);              
+        la_sc_d(dest, aligned_mem, 0);
+        la_beq(dest, zero_ir2_opnd, label_ll);
+
+        free_alloc_gpr(offset);
+        free_alloc_gpr(aligned_mem);
+    } else {
+        IR2_OPND offset = ra_alloc_itemp();
+        IR2_OPND aligned_mem = ra_alloc_itemp();
+        /* deal with the situation when memory is not aligned */
+        la_bstrpick_d(offset, reg_n, 2, 0);
+        la_or(aligned_mem, reg_n, zero_ir2_opnd);
+        la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
+        la_label(label_ll);
+        la_ll_d(src, aligned_mem, 0);
+        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_slli_d(offset, offset, 3);
+        la_srl_d(src, src, offset);
+        la_bstrpick_d(src, src, 7, 0);
+
+        /* compare */
+        la_bstrpick_d(dest, reg_s, 7, 0);
+        la_bne(src, dest, label_unequal);
+
+        /* get new value */
+        la_bstrpick_d(dest, reg_t, 7, 0);
+        la_sll_d(dest, dest, offset);
+
+        /* merge data */
+        li_d(src, 0xff);
+        la_sll_d(offset, src, offset);
+        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_orn(src, src, offset);
+
+        /* store new value */
+        la_or(dest, dest, src);              
+        la_sc_d(dest, aligned_mem, 0);
+        la_beq(dest, zero_ir2_opnd, label_ll);
+
+        free_alloc_gpr(offset);
+        free_alloc_gpr(aligned_mem);
+    }
+
+    la_label(label_unequal);
+    if(release){
+        la_dbar(0x13);
+    }
+    
+    free_alloc_gpr(reg_s);
+    free_alloc_gpr(reg_t);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(src);
+    free_alloc_gpr(dest);
+    return true;
 }
 
 static bool trans_LD_lit(DisasContext *s)
