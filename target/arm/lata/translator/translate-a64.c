@@ -3484,15 +3484,145 @@ static bool trans_LDCLR(DisasContext *s)
     assert(0);
 }
 
-TRANS_FEAT_ATOMIC(LDADD, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_add_i64, 0, false)
-TRANS_FEAT_ATOMIC(LDCLR, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_and_i64, 0, true)
-TRANS_FEAT_ATOMIC(LDEOR, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_xor_i64, 0, false)
-TRANS_FEAT_ATOMIC(LDSET, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_or_i64, 0, false)
-TRANS_FEAT_ATOMIC(LDSMAX, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_smax_i64, MO_SIGN, false)
-TRANS_FEAT_ATOMIC(LDSMIN, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_smin_i64, MO_SIGN, false)
-TRANS_FEAT_ATOMIC(LDUMAX, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_umax_i64, 0, false)
-TRANS_FEAT_ATOMIC(LDUMIN, aa64_atomics, do_atomic_ld, tcg_gen_atomic_fetch_umin_i64, 0, false)
-TRANS_FEAT_ATOMIC(SWP, aa64_atomics, do_atomic_ld, tcg_gen_atomic_xchg_i64, 0, false)
+static bool trans_LDEOR(DisasContext *s)
+{
+    assert(0);
+}
+
+
+static bool trans_LDSET(DisasContext *s)
+{
+    assert(0);
+}
+
+static bool trans_LDSMAX(DisasContext *s)
+{
+    assert(0);
+}
+
+static bool trans_LDSMIN(DisasContext *s)
+{
+    assert(0);
+}
+
+static bool trans_LDUMAX(DisasContext *s)
+{
+    assert(0);
+}
+
+static bool trans_LDUMIN(DisasContext *s)
+{
+    assert(0);
+}
+
+static bool trans_SWP(DisasContext *s)
+{
+    int acquire = extract32(s->insn, 23, 1);
+    int release = extract32(s->insn, 22, 1);
+    
+    if (!dc_isar_feature(aa64_atomics, s)) {
+        return false;
+    }
+
+    arg_atomic *a = &(s->arg.f_atomic);
+
+    IR2_OPND reg_s = alloc_gpr_src(a->rs);
+    IR2_OPND reg_t = alloc_gpr_src(a->rt);
+    IR2_OPND reg_n = alloc_gpr_src(a->rn);
+    IR2_OPND src = ra_alloc_itemp();
+    IR2_OPND dest = ra_alloc_itemp();
+
+    if (a->rn == 31) {
+        gen_check_sp_alignment(s);
+    }
+
+    if(acquire){
+        la_dbar(0x1c);
+    }
+
+    if(a->sz == 3) {
+        la_amswap_d(reg_t, reg_s, reg_n);
+    } else if(a->sz == 2) {
+        la_amswap_w(reg_t, reg_s, reg_n);
+    } else if(a->sz == 1) {
+        IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
+        IR2_OPND offset = ra_alloc_itemp();
+        IR2_OPND aligned_mem = ra_alloc_itemp();
+        /* deal with the situation when memory is not aligned */
+        la_bstrpick_d(offset, reg_n, 2, 0);
+        la_or(aligned_mem, reg_n, zero_ir2_opnd);
+        la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
+        la_label(label_ll);
+        la_ll_d(src, aligned_mem, 0);
+        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_slli_d(offset, offset, 3);
+        la_srl_d(src, src, offset);
+
+        /* store back to rt*/
+        la_bstrpick_d(reg_t, src, 15, 0);
+
+        /* swap */
+        la_bstrpick_d(dest, reg_s, 15, 0);
+
+        /* merge data */
+        li_d(src, 0xffff);
+        la_sll_d(offset, src, offset);
+        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_orn(src, src, offset);
+
+        /* store new value */
+        la_or(dest, dest, src);              
+        la_sc_d(dest, aligned_mem, 0);
+        la_beq(dest, zero_ir2_opnd, label_ll);
+
+        free_alloc_gpr(offset);
+        free_alloc_gpr(aligned_mem);
+    } else {
+        IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
+        IR2_OPND offset = ra_alloc_itemp();
+        IR2_OPND aligned_mem = ra_alloc_itemp();
+        /* deal with the situation when memory is not aligned */
+        la_bstrpick_d(offset, reg_n, 2, 0);
+        la_or(aligned_mem, reg_n, zero_ir2_opnd);
+        la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
+        la_label(label_ll);
+        la_ll_d(src, aligned_mem, 0);
+        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_slli_d(offset, offset, 3);
+        la_srl_d(src, src, offset);
+
+        /* store back to rt*/
+        la_bstrpick_d(reg_t, src, 7, 0);
+
+        /* swap */
+        la_bstrpick_d(dest, reg_s, 7, 0);
+
+        /* merge data */
+        li_d(src, 0xff);
+        la_sll_d(offset, src, offset);
+        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_orn(src, src, offset);
+
+        /* store new value */
+        la_or(dest, dest, src);              
+        la_sc_d(dest, aligned_mem, 0);
+        la_beq(dest, zero_ir2_opnd, label_ll);
+
+        free_alloc_gpr(offset);
+        free_alloc_gpr(aligned_mem);
+    }
+
+    if(release){
+        la_dbar(0x13);
+    }
+    
+    free_alloc_gpr(reg_s);
+    free_alloc_gpr(reg_t);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(src);
+    free_alloc_gpr(dest);
+    return true;
+}
 
 static bool trans_LDAPR(DisasContext *s)
 {
@@ -6002,6 +6132,80 @@ static void handle_shift_reg(DisasContext *s,
     free_alloc_gpr(reg_m);
 }
 
+/* CRC32[BHWX], CRC32C[BHWX] */
+static void handle_crc32(DisasContext *s,
+                         unsigned int sf, unsigned int sz, bool crc32c,
+                         unsigned int rm, unsigned int rn, unsigned int rd)
+{
+    if (!dc_isar_feature(aa64_crc32, s)
+        || (sf == 1 && sz != 3)
+        || (sf == 0 && sz == 3)) {
+        lata_unallocated_encoding(s);
+        return;
+    }
+
+    IR2_OPND reg_d = alloc_gpr_dst(rd);
+    IR2_OPND reg_n = alloc_gpr_src(rn);
+    IR2_OPND reg_m = alloc_gpr_src(rm);
+
+    if (clearGprHigh && arm_la_map[rn] >= 0 && rn != 31) {
+        clear_gpr_high(rn);
+    }
+
+    if (clearGprHigh && arm_la_map[rm] >= 0 && rm != 31) {
+        clear_gpr_high(rm);
+    }
+
+    if(crc32c) {
+        switch (sz)
+        {
+        case 0:
+            la_crcc_w_b_w(reg_d, reg_n, reg_m);
+            break;
+        case 1:
+            la_crcc_w_h_w(reg_d, reg_n, reg_m);
+            break;  
+        case 2:
+            la_crcc_w_w_w(reg_d, reg_n, reg_m);
+            break;   
+        case 3:
+            la_crcc_w_d_w(reg_d, reg_n, reg_m);
+            break;   
+        default:
+            assert(0);
+        }
+    } else {
+        switch (sz)
+        {
+        case 0:
+            la_crc_w_b_w(reg_d, reg_n, reg_m);
+            break;
+        case 1:
+            la_crc_w_h_w(reg_d, reg_n, reg_m);
+            break;  
+        case 2:
+            la_crc_w_w_w(reg_d, reg_n, reg_m);
+            break;   
+        case 3:
+            la_crc_w_d_w(reg_d, reg_n, reg_m);
+            break;   
+        default:
+            assert(0);
+        }
+    }
+
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
+        set_w_write_flag(rd, sf);
+    } else {
+        la_bstrpick_d(reg_d, reg_d, 31, 0);
+    }
+    
+    store_gpr_dst(rd, reg_d);
+    free_alloc_gpr(reg_d);
+    free_alloc_gpr(reg_n);
+    free_alloc_gpr(reg_m);
+}
+
 /* Data-processing (2 source)
  *   31   30  29 28             21 20  16 15    10 9    5 4    0
  * +----+---+---+-----------------+------+--------+------+------+
@@ -6068,7 +6272,9 @@ static void disas_data_proc_2src(DisasContext *s, uint32_t insn)
     case 22:
     case 23: /* CRC32 */
     {
-        assert(0);
+        int sz = extract32(opcode, 0, 2);
+        bool crc32c = extract32(opcode, 2, 1);
+        handle_crc32(s, sf, sz, crc32c, rm, rn, rd);
         break;
     }
     default:
