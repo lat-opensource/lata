@@ -1442,7 +1442,7 @@ TranslationBlock *tcg_tb_alloc_full(TCGContext *s)
 #endif
 
 #ifdef CONFIG_LATA
-void lata_prologue_init(TCGContext *s, CPUState *cpu)
+void lata_prologue_init(TCGContext *s)
 {
     int ins_nr;
 
@@ -1450,9 +1450,9 @@ void lata_prologue_init(TCGContext *s, CPUState *cpu)
     /* tcg_splitwx_to_rx(gen_code_buf); // rx */
     tcg_qemu_tb_exec = (tcg_prologue_fn *)tcg_splitwx_to_rx(s->code_ptr);
 
-    ins_nr = lata_gen_prologue(cpu, s);
+    ins_nr = lata_gen_prologue(s);
     s->code_ptr += ins_nr;
-    ins_nr = lata_gen_epilogue(cpu, s);
+    ins_nr = lata_gen_epilogue(s);
     s->code_ptr += ins_nr;
     // s->code_gen_ptr = s->code_ptr; // tcg_region_prologue_set() will set this
     // TODO: find out the effort of fuction.

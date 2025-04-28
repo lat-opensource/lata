@@ -78,8 +78,8 @@ extern uint64_t context_switch_bt_to_native;
 extern uint64_t context_switch_native_to_bt_ret_0;
 extern uint64_t context_switch_native_to_bt;
 
-int lata_gen_prologue(CPUState *cs, TCGContext *tcg_ctx);
-int lata_gen_epilogue(CPUState *cs, TCGContext *tcg_ctx);
+int lata_gen_prologue(TCGContext *tcg_ctx);
+int lata_gen_epilogue(TCGContext *tcg_ctx);
 void lata_fast_jmp_cache_init(CPUArchState *env, uint64_t start_code, uint64_t end_code);
 void lata_fast_jmp_cache_add(CPUArchState *env, uint64_t guest_pc, uint64_t host_pc);
 

@@ -306,7 +306,7 @@ void tr_fini(void)
 #define FCSR_EXTRA_SPACE        (RA_EXTRA_SPACE + REG_LEN)
 
 
-static void generate_context_switch_bt_to_native(CPUState *cs)
+static void generate_context_switch_bt_to_native()
 {
     la_addi_d(sp_ir2_opnd, sp_ir2_opnd, -256);
 
@@ -369,7 +369,7 @@ static void generate_context_switch_bt_to_native(CPUState *cs)
 
 }
 
-static void generate_context_switch_native_to_bt(CPUState *cs)
+static void generate_context_switch_native_to_bt()
 {
     la_mov64(a0_ir2_opnd, zero_ir2_opnd);
     for(int i = 0; i <= 31; ++i) {
@@ -428,7 +428,7 @@ static void generate_context_switch_native_to_bt(CPUState *cs)
 
 
 /* bt -> native */
-int lata_gen_prologue(CPUState *cs, TCGContext *tcg_ctx)
+int lata_gen_prologue(TCGContext *tcg_ctx)
 {
     lsassert(context_switch_bt_to_native == 0);
     void *code_buf_rw = tcg_ctx->code_ptr;
@@ -440,7 +440,7 @@ int lata_gen_prologue(CPUState *cs, TCGContext *tcg_ctx)
                 (void *)context_switch_bt_to_native);
 
     tr_init(NULL);
-    generate_context_switch_bt_to_native(cs);
+    generate_context_switch_bt_to_native();
 //    int ins_nr = la_encode(tcg_ctx, code_buf_rw);
     int ins_nr = tr_ir2_assemble(code_buf_rw);
     tr_fini();
@@ -449,7 +449,7 @@ int lata_gen_prologue(CPUState *cs, TCGContext *tcg_ctx)
 }
 
 /* native -> bt */
-int lata_gen_epilogue(CPUState *cs, TCGContext *tcg_ctx)
+int lata_gen_epilogue(TCGContext *tcg_ctx)
 {
     lsassert(context_switch_native_to_bt == 0);
     void *code_buf_rw = tcg_ctx->code_ptr;
@@ -462,8 +462,7 @@ int lata_gen_epilogue(CPUState *cs, TCGContext *tcg_ctx)
                 (void *)context_switch_native_to_bt);
 
     tr_init(NULL);
-    generate_context_switch_native_to_bt(cs);
-//    int ins_nr = la_encode(tcg_ctx, code_buf_rw);
+    generate_context_switch_native_to_bt();
     int ins_nr = tr_ir2_assemble(code_buf_rw);
     tr_fini();
 

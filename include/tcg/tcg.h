@@ -800,7 +800,7 @@ static inline void *tcg_malloc(int size)
 }
 
 #ifdef CONFIG_LATA
-void lata_prologue_init(TCGContext *s, CPUState *cpu);
+void lata_prologue_init(TCGContext *s);
 #endif
 
 void tcg_init(size_t tb_size, int splitwx, unsigned max_cpus);
