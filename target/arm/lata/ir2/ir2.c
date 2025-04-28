@@ -80,7 +80,7 @@ void ir2_opnd_build_type(IR2_OPND *opnd, IR2_OPND_TYPE t)
 {
     lsassert(t == IR2_OPND_LABEL);
     opnd->_type = t;
-    opnd->_label_id = ++(tr_data->label_num);
+    opnd->_label_id = ++(lsenv->tr_data->label_num);
 }
 
 IR2_OPND ir2_opnd_new_type(IR2_OPND_TYPE t)
@@ -323,7 +323,7 @@ IR2_INST *ir2_prev(const IR2_INST *ir2)
     if (ir2->_prev == -1) {
         return NULL;
     } else {
-        return tr_data->ir2_inst_array + ir2->_prev;
+        return lsenv->tr_data->ir2_inst_array + ir2->_prev;
     }
 }
 
@@ -332,7 +332,7 @@ IR2_INST *ir2_next(const IR2_INST *ir2)
     if (ir2->_next == -1) {
         return NULL;
     } else {
-        return tr_data->ir2_inst_array + ir2->_next;
+        return lsenv->tr_data->ir2_inst_array + ir2->_next;
     }
 }
 
@@ -406,7 +406,7 @@ void ir2_build(IR2_INST *ir2, IR2_OPCODE opcode, IR2_OPND opnd0, IR2_OPND opnd1,
 
 void ir2_append(IR2_INST *ir2)
 {
-    TRANSLATION_DATA *t = tr_data;
+    TRANSLATION_DATA *t = lsenv->tr_data;
     IR2_INST *former_last = t->last_ir2;
 
     if (former_last != NULL) {
@@ -429,7 +429,7 @@ void ir2_append(IR2_INST *ir2)
 
 void ir2_remove(IR2_INST *ir2)
 {
-    TRANSLATION_DATA *t = tr_data;
+    TRANSLATION_DATA *t = lsenv->tr_data;
 
     IR2_INST *next = ir2_next(ir2);
     IR2_INST *prev = ir2_prev(ir2);
@@ -456,7 +456,7 @@ void ir2_remove(IR2_INST *ir2)
 
 void ir2_insert_before(IR2_INST *ir2, IR2_INST *next)
 {
-    TRANSLATION_DATA *t = tr_data;
+    TRANSLATION_DATA *t = lsenv->tr_data;
 
     if (t->first_ir2 == next) {
         t->first_ir2 = ir2;
@@ -476,7 +476,7 @@ void ir2_insert_before(IR2_INST *ir2, IR2_INST *next)
 
 void ir2_insert_after(IR2_INST *ir2, IR2_INST *prev)
 {
-    TRANSLATION_DATA *t = tr_data;
+    TRANSLATION_DATA *t = lsenv->tr_data;
 
     if (t->last_ir2 == prev) {
         t->last_ir2 = ir2;
@@ -496,7 +496,7 @@ void ir2_insert_after(IR2_INST *ir2, IR2_INST *prev)
 
 IR2_INST *ir2_allocate(void)
 {
-    TRANSLATION_DATA *t = tr_data;
+    TRANSLATION_DATA *t = lsenv->tr_data;
 
     /* 1. make sure we have enough space */
     if (t->ir2_inst_num_current == t->ir2_inst_num_max) {

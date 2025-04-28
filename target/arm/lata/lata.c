@@ -234,11 +234,11 @@ static void global_register_init(void)
     scr3_ir2_opnd = INIT_RA(IR2_OPND_SCR, 3);
 }
 
-void lata_tr_data_init(void)
+void lata_tr_data_init(CPUArchState *env)
 {
     lsenv = &lsenv_real;
-    tr_data = &tr_data_real;
-    lsenv->tr_data = tr_data;
+    lsenv->cpu_state = env;
+    lsenv->tr_data = &tr_data_real;
 #ifdef CONFIG_LATA_TU
     tu_control_init();
 #endif
@@ -247,7 +247,7 @@ void lata_tr_data_init(void)
 
 void tr_init(void* tb)
 {
-    TRANSLATION_DATA *t = tr_data;
+    TRANSLATION_DATA *t = lsenv->tr_data;
     //int i = 0;
 
     t->curr_tb = tb;
@@ -275,7 +275,7 @@ void tr_init(void* tb)
 
 void tr_fini(void)
 {
-    TRANSLATION_DATA *t = tr_data;
+    TRANSLATION_DATA *t = lsenv->tr_data;
     /* set current tb and ir1 */
 
     /* reset ir2 array */

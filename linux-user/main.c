@@ -1022,7 +1022,7 @@ int main(int argc, char **argv, char **envp)
        the real value of GUEST_BASE into account.  */
 
 #ifdef CONFIG_LATA
-    lata_tr_data_init();
+    lata_tr_data_init(env);
     env->pstate = 0x40000000;
     env->jr_cnt = 0;
     env->jr_hit = 0;

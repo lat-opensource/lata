@@ -105,12 +105,12 @@ static int ra_alloc_##name##_num(void)                                  \
     int name##_num, cto_num;                                            \
     __asm("cto.w %0, %1\n\t"                                            \
     : "=r"(cto_num)                                                     \
-    : "r"(tr_data->name##_status));                                     \
+    : "r"(lsenv->tr_data->name##_status));                                     \
     lsassertm(cto_num < name##_status_num,                              \
               "\n%s:%d alloc " #name " failed, cto_num %d\n",           \
               __func__, __LINE__, cto_num);                             \
     name##_num = reg_##name##_map[cto_num];                             \
-    BITS_SET(tr_data->name##_status, 1 << cto_num);                     \
+    BITS_SET(lsenv->tr_data->name##_status, 1 << cto_num);                     \
     return name##_num;                                                  \
 }
 
@@ -118,12 +118,12 @@ static int ra_alloc_##name##_num(void)                                  \
     do {                                                                \
         int virt_id = reg_##name##_reverse_map[phy_id];                 \
         lsassertm(virt_id >= 0 &&                                       \
-                ((tr_data->name##_status) & (1 << virt_id)),            \
+                ((lsenv->tr_data->name##_status) & (1 << virt_id)),            \
                 "\n%s:%d free " #name " failed, phy_id %d virt_id %d "  \
-                "tr_data->"#name"_status 0x%x\n",                       \
+                "lsenv->tr_data->"#name"_status 0x%x\n",                       \
                  __func__, __LINE__, phy_id, virt_id,                   \
-                tr_data->name##_status);                                \
-        tr_data->name##_status &= ~(1 << virt_id);                      \
+                lsenv->tr_data->name##_status);                                \
+        lsenv->tr_data->name##_status &= ~(1 << virt_id);                      \
     } while (0)
 
 #define INIT_RA(type, phyno)                                            \

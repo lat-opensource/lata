@@ -299,7 +299,7 @@ inline __attribute__((__always_inline__)) void ra_free_num_4095(IR2_OPND opnd)
 
 inline __attribute__((__always_inline__)) void ra_free_all(void)
 {
-    tr_data->all_temp_status = 0;
+    lsenv->tr_data->all_temp_status = 0;
 }
 
 /*
