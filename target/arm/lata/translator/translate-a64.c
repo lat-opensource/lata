@@ -10723,7 +10723,7 @@ static void handle_3rd_widening(DisasContext *s, int is_q, int is_u, int size,
                                 int opcode, int rd, int rn, int rm)
 {
     /* 3-reg-different widening insns: 64 x 64 -> 128 */
-    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_d;
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vtemp = ra_alloc_ftemp();
@@ -10756,6 +10756,7 @@ static void handle_3rd_widening(DisasContext *s, int is_q, int is_u, int size,
         assert(0);
         break;
     case 0xc: /* SMULL, SMULL2 */
+        vreg_d = alloc_fpr_dst(rd);
         if (!is_q){
             /* 低位统一移至偶数位后做偶数位的相乘并拓2倍宽 */
             switch (size){
@@ -10822,6 +10823,7 @@ static void handle_3rd_widening(DisasContext *s, int is_q, int is_u, int size,
         break;
     case 0x10: /* UADDL, UADDL2 */
     case 0x12: /* USUBL, USUBL2 */
+        vreg_d = alloc_fpr_dst(rd);
         if (!is_q){ /* 统一移到高位处理 */
             la_vbsll_v(vtemp, vreg_n, 8);
             la_vbsll_v(vtemp1, vreg_m, 8);
@@ -10911,12 +10913,106 @@ static void handle_3rd_widening(DisasContext *s, int is_q, int is_u, int size,
         assert(0);
         break;
     case 0x18: /* UMLAL, UMLAL2 */
-        assert(0);
-        break;
     case 0x1a: /* UMLSL, UMLSL2 */
-        assert(0);
+        vreg_d = alloc_fpr_src(rd);
+        if (!is_q){
+            /* 低位统一移至偶数位后做偶数位的相乘并拓2倍宽 */
+            switch (size){
+            case 0:
+                la_vilvl_b(vtemp, vzero, vreg_n);
+                la_vilvl_b(vtemp1, vzero, vreg_m);
+                if (is_sub){
+                    la_vmulwev_h_bu(vtemp, vtemp, vtemp1);
+                    la_vsub_h(vreg_d, vreg_d, vtemp);
+                }
+                else
+                    la_vmaddwev_h_bu(vreg_d, vtemp, vtemp1);
+                break;
+            case 1:
+                la_vilvl_h(vtemp, vzero, vreg_n);
+                la_vilvl_h(vtemp1, vzero, vreg_m);
+                if (is_sub){ 
+                    la_vmulwev_w_hu(vtemp, vtemp, vtemp1);
+                    la_vsub_w(vreg_d, vreg_d, vtemp);
+                }
+                else
+                    la_vmaddwev_w_hu(vreg_d, vtemp, vtemp1);
+                break;
+            case 2:
+                la_vilvl_w(vtemp, vzero, vreg_n);
+                la_vilvl_w(vtemp1, vzero, vreg_m);
+                if (is_sub){
+                    la_vmulwev_d_wu(vtemp, vtemp, vtemp1);
+                    la_vsub_d(vreg_d, vreg_d, vtemp);
+                }
+                else
+                    la_vmaddwev_d_wu(vreg_d, vtemp, vtemp1);
+                break;
+            case 3:
+                la_vilvl_d(vtemp, vzero, vreg_n);
+                la_vilvl_d(vtemp1, vzero, vreg_m);
+                if (is_sub){
+                    la_vmulwev_h_bu(vtemp, vtemp, vtemp1);
+                    la_vsub_q(vreg_d, vreg_d, vtemp);
+                }
+                else
+                    la_vmaddwev_q_du(vreg_d, vtemp, vtemp1);
+                break;
+            default:
+                assert(0);
+            }
+        }
+        else{
+            /* 高位统一移至偶数位后做偶数位的相乘并拓2倍宽 */
+            switch (size){
+            case 0:
+                la_vilvh_b(vtemp, vzero, vreg_n);
+                la_vilvh_b(vtemp1, vzero, vreg_m);
+                if (is_sub){
+                    la_vmulwev_h_bu(vtemp, vtemp, vtemp1);
+                    la_vsub_h(vreg_d, vreg_d, vtemp);
+                }
+                else
+                    la_vmaddwev_h_bu(vreg_d, vtemp, vtemp1);
+                break;
+            case 1:
+                la_vilvh_h(vtemp, vzero, vreg_n);
+                la_vilvh_h(vtemp1, vzero, vreg_m);
+                if (is_sub){
+                    la_vmulwev_w_hu(vtemp, vtemp, vtemp1);
+                    la_vsub_w(vreg_d, vreg_d, vtemp);
+                }
+                else
+                    la_vmaddwev_w_hu(vreg_d, vtemp, vtemp1);
+                break;
+            case 2:
+                la_vilvh_w(vtemp, vzero, vreg_n);
+                la_vilvh_w(vtemp1, vzero, vreg_m);
+                if (is_sub){
+                    la_vmulwev_d_wu(vtemp, vtemp, vtemp1);
+                    la_vsub_d(vreg_d, vreg_d, vtemp);
+                }
+                else
+                    la_vmaddwev_d_wu(vreg_d, vtemp, vtemp1);
+                break;
+            case 3:
+                la_vilvh_d(vtemp, vzero, vreg_n);
+                la_vilvh_d(vtemp1, vzero, vreg_m);
+                if (is_sub){
+                    la_vmulwev_h_bu(vtemp, vtemp, vtemp1);
+                    la_vsub_q(vreg_d, vreg_d, vtemp);
+                }
+                else
+                    la_vmaddwev_q_du(vreg_d, vtemp, vtemp1);
+                break;
+            default:
+                assert(0);
+            }
+        }
+
         break;
     case 0x1c: /* UMULL, UMULL2 */
+        vreg_d = alloc_fpr_dst(rd);
         if (!is_q){
             /* 低位统一移至偶数位后做偶数位的相乘并拓2倍宽 */
             switch (size){
