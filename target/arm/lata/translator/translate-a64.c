@@ -6257,7 +6257,6 @@ static void disas_data_proc_2src(DisasContext *s, uint32_t insn)
         handle_shift_reg(s, A64_SHIFT_TYPE_ASR, sf, rm, rn, rd);
         break;
     case 11: /* RORV */
-        assert(0);
         handle_shift_reg(s, A64_SHIFT_TYPE_ROR, sf, rm, rn, rd);
         break;
     case 12: /* PACGA */
