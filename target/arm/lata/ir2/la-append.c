@@ -2461,6 +2461,7 @@ IR2_INST *la_armrrx_w(IR2_OPND rj, int imm_condh) {
 }
 
 IR2_INST *la_slli_w(IR2_OPND rd, IR2_OPND rj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_SLLI_W;
     pir2->op_count = 3;
@@ -2474,6 +2475,7 @@ IR2_INST *la_slli_w(IR2_OPND rd, IR2_OPND rj, int imm_ui5l) {
 }
 
 IR2_INST *la_slli_d(IR2_OPND rd, IR2_OPND rj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_SLLI_D;
     pir2->op_count = 3;
@@ -2487,6 +2489,7 @@ IR2_INST *la_slli_d(IR2_OPND rd, IR2_OPND rj, int imm_ui6) {
 }
 
 IR2_INST *la_srli_w(IR2_OPND rd, IR2_OPND rj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_SRLI_W;
     pir2->op_count = 3;
@@ -2500,6 +2503,7 @@ IR2_INST *la_srli_w(IR2_OPND rd, IR2_OPND rj, int imm_ui5l) {
 }
 
 IR2_INST *la_srli_d(IR2_OPND rd, IR2_OPND rj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_SRLI_D;
     pir2->op_count = 3;
@@ -2513,6 +2517,7 @@ IR2_INST *la_srli_d(IR2_OPND rd, IR2_OPND rj, int imm_ui6) {
 }
 
 IR2_INST *la_srai_w(IR2_OPND rd, IR2_OPND rj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_SRAI_W;
     pir2->op_count = 3;
@@ -2526,6 +2531,7 @@ IR2_INST *la_srai_w(IR2_OPND rd, IR2_OPND rj, int imm_ui5l) {
 }
 
 IR2_INST *la_srai_d(IR2_OPND rd, IR2_OPND rj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_SRAI_D;
     pir2->op_count = 3;
@@ -2539,6 +2545,7 @@ IR2_INST *la_srai_d(IR2_OPND rd, IR2_OPND rj, int imm_ui6) {
 }
 
 IR2_INST *la_rotri_b(IR2_OPND rd, IR2_OPND rj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ROTRI_B;
     pir2->op_count = 3;
@@ -2552,6 +2559,7 @@ IR2_INST *la_rotri_b(IR2_OPND rd, IR2_OPND rj, int imm_ui3) {
 }
 
 IR2_INST *la_rotri_h(IR2_OPND rd, IR2_OPND rj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ROTRI_H;
     pir2->op_count = 3;
@@ -2565,6 +2573,7 @@ IR2_INST *la_rotri_h(IR2_OPND rd, IR2_OPND rj, int imm_ui4) {
 }
 
 IR2_INST *la_rotri_w(IR2_OPND rd, IR2_OPND rj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ROTRI_W;
     pir2->op_count = 3;
@@ -2578,6 +2587,7 @@ IR2_INST *la_rotri_w(IR2_OPND rd, IR2_OPND rj, int imm_ui5l) {
 }
 
 IR2_INST *la_rotri_d(IR2_OPND rd, IR2_OPND rj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ROTRI_D;
     pir2->op_count = 3;
@@ -2591,6 +2601,7 @@ IR2_INST *la_rotri_d(IR2_OPND rd, IR2_OPND rj, int imm_ui6) {
 }
 
 IR2_INST *la_rcri_b(IR2_OPND rd, IR2_OPND rj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_RCRI_B;
     pir2->op_count = 3;
@@ -2604,6 +2615,7 @@ IR2_INST *la_rcri_b(IR2_OPND rd, IR2_OPND rj, int imm_ui3) {
 }
 
 IR2_INST *la_rcri_h(IR2_OPND rd, IR2_OPND rj, int imm_ui4) {
+    assert(imm_ui4 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_RCRI_H;
     pir2->op_count = 3;
@@ -2617,6 +2629,7 @@ IR2_INST *la_rcri_h(IR2_OPND rd, IR2_OPND rj, int imm_ui4) {
 }
 
 IR2_INST *la_rcri_w(IR2_OPND rd, IR2_OPND rj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_RCRI_W;
     pir2->op_count = 3;
@@ -2630,6 +2643,7 @@ IR2_INST *la_rcri_w(IR2_OPND rd, IR2_OPND rj, int imm_ui5l) {
 }
 
 IR2_INST *la_rcri_d(IR2_OPND rd, IR2_OPND rj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_RCRI_D;
     pir2->op_count = 3;
@@ -2643,6 +2657,7 @@ IR2_INST *la_rcri_d(IR2_OPND rd, IR2_OPND rj, int imm_ui6) {
 }
 
 IR2_INST *la_x86slli_b(IR2_OPND rj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SLLI_B;
     pir2->op_count = 2;
@@ -2655,6 +2670,7 @@ IR2_INST *la_x86slli_b(IR2_OPND rj, int imm_ui3) {
 }
 
 IR2_INST *la_x86slli_h(IR2_OPND rj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SLLI_H;
     pir2->op_count = 2;
@@ -2667,6 +2683,7 @@ IR2_INST *la_x86slli_h(IR2_OPND rj, int imm_ui4) {
 }
 
 IR2_INST *la_x86slli_w(IR2_OPND rj, int imm_ui5l) {
+    assert(imm_ui5l <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SLLI_W;
     pir2->op_count = 2;
@@ -2679,6 +2696,7 @@ IR2_INST *la_x86slli_w(IR2_OPND rj, int imm_ui5l) {
 }
 
 IR2_INST *la_x86slli_d(IR2_OPND rj, int imm_ui6) {
+    assert(imm_ui6 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SLLI_D;
     pir2->op_count = 2;
@@ -2691,6 +2709,7 @@ IR2_INST *la_x86slli_d(IR2_OPND rj, int imm_ui6) {
 }
 
 IR2_INST *la_x86srli_b(IR2_OPND rj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SRLI_B;
     pir2->op_count = 2;
@@ -2703,6 +2722,7 @@ IR2_INST *la_x86srli_b(IR2_OPND rj, int imm_ui3) {
 }
 
 IR2_INST *la_x86srli_h(IR2_OPND rj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SRLI_H;
     pir2->op_count = 2;
@@ -2715,6 +2735,7 @@ IR2_INST *la_x86srli_h(IR2_OPND rj, int imm_ui4) {
 }
 
 IR2_INST *la_x86srli_w(IR2_OPND rj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SRLI_W;
     pir2->op_count = 2;
@@ -2727,6 +2748,7 @@ IR2_INST *la_x86srli_w(IR2_OPND rj, int imm_ui5l) {
 }
 
 IR2_INST *la_x86srli_d(IR2_OPND rj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SRLI_D;
     pir2->op_count = 2;
@@ -2739,6 +2761,7 @@ IR2_INST *la_x86srli_d(IR2_OPND rj, int imm_ui6) {
 }
 
 IR2_INST *la_x86srai_b(IR2_OPND rj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SRAI_B;
     pir2->op_count = 2;
@@ -2751,6 +2774,7 @@ IR2_INST *la_x86srai_b(IR2_OPND rj, int imm_ui3) {
 }
 
 IR2_INST *la_x86srai_h(IR2_OPND rj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SRAI_H;
     pir2->op_count = 2;
@@ -2763,6 +2787,7 @@ IR2_INST *la_x86srai_h(IR2_OPND rj, int imm_ui4) {
 }
 
 IR2_INST *la_x86srai_w(IR2_OPND rj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SRAI_W;
     pir2->op_count = 2;
@@ -2775,6 +2800,7 @@ IR2_INST *la_x86srai_w(IR2_OPND rj, int imm_ui5l) {
 }
 
 IR2_INST *la_x86srai_d(IR2_OPND rj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SRAI_D;
     pir2->op_count = 2;
@@ -2787,6 +2813,7 @@ IR2_INST *la_x86srai_d(IR2_OPND rj, int imm_ui6) {
 }
 
 IR2_INST *la_x86rotri_b(IR2_OPND rj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86ROTRI_B;
     pir2->op_count = 2;
@@ -2799,6 +2826,7 @@ IR2_INST *la_x86rotri_b(IR2_OPND rj, int imm_ui3) {
 }
 
 IR2_INST *la_x86rotri_h(IR2_OPND rj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86ROTRI_H;
     pir2->op_count = 2;
@@ -2811,6 +2839,7 @@ IR2_INST *la_x86rotri_h(IR2_OPND rj, int imm_ui4) {
 }
 
 IR2_INST *la_x86rotri_w(IR2_OPND rj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86ROTRI_W;
     pir2->op_count = 2;
@@ -2823,6 +2852,7 @@ IR2_INST *la_x86rotri_w(IR2_OPND rj, int imm_ui5l) {
 }
 
 IR2_INST *la_x86rotri_d(IR2_OPND rj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86ROTRI_D;
     pir2->op_count = 2;
@@ -2835,6 +2865,7 @@ IR2_INST *la_x86rotri_d(IR2_OPND rj, int imm_ui6) {
 }
 
 IR2_INST *la_x86rcri_b(IR2_OPND rj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86RCRI_B;
     pir2->op_count = 2;
@@ -2847,6 +2878,7 @@ IR2_INST *la_x86rcri_b(IR2_OPND rj, int imm_ui3) {
 }
 
 IR2_INST *la_x86rcri_h(IR2_OPND rj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86RCRI_H;
     pir2->op_count = 2;
@@ -2859,6 +2891,7 @@ IR2_INST *la_x86rcri_h(IR2_OPND rj, int imm_ui4) {
 }
 
 IR2_INST *la_x86rcri_w(IR2_OPND rj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86RCRI_W;
     pir2->op_count = 2;
@@ -2871,6 +2904,7 @@ IR2_INST *la_x86rcri_w(IR2_OPND rj, int imm_ui5l) {
 }
 
 IR2_INST *la_x86rcri_d(IR2_OPND rj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86RCRI_D;
     pir2->op_count = 2;
@@ -2883,6 +2917,7 @@ IR2_INST *la_x86rcri_d(IR2_OPND rj, int imm_ui6) {
 }
 
 IR2_INST *la_x86rotli_b(IR2_OPND rj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86ROTLI_B;
     pir2->op_count = 2;
@@ -2895,6 +2930,7 @@ IR2_INST *la_x86rotli_b(IR2_OPND rj, int imm_ui3) {
 }
 
 IR2_INST *la_x86rotli_h(IR2_OPND rj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86ROTLI_H;
     pir2->op_count = 2;
@@ -2907,6 +2943,7 @@ IR2_INST *la_x86rotli_h(IR2_OPND rj, int imm_ui4) {
 }
 
 IR2_INST *la_x86rotli_w(IR2_OPND rj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86ROTLI_W;
     pir2->op_count = 2;
@@ -2919,6 +2956,7 @@ IR2_INST *la_x86rotli_w(IR2_OPND rj, int imm_ui5l) {
 }
 
 IR2_INST *la_x86rotli_d(IR2_OPND rj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86ROTLI_D;
     pir2->op_count = 2;
@@ -2931,6 +2969,7 @@ IR2_INST *la_x86rotli_d(IR2_OPND rj, int imm_ui6) {
 }
 
 IR2_INST *la_x86rcli_b(IR2_OPND rj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86RCLI_B;
     pir2->op_count = 2;
@@ -2943,6 +2982,7 @@ IR2_INST *la_x86rcli_b(IR2_OPND rj, int imm_ui3) {
 }
 
 IR2_INST *la_x86rcli_h(IR2_OPND rj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86RCLI_H;
     pir2->op_count = 2;
@@ -2955,6 +2995,7 @@ IR2_INST *la_x86rcli_h(IR2_OPND rj, int imm_ui4) {
 }
 
 IR2_INST *la_x86rcli_w(IR2_OPND rj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86RCLI_W;
     pir2->op_count = 2;
@@ -2967,6 +3008,7 @@ IR2_INST *la_x86rcli_w(IR2_OPND rj, int imm_ui5l) {
 }
 
 IR2_INST *la_x86rcli_d(IR2_OPND rj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86RCLI_D;
     pir2->op_count = 2;
@@ -2979,6 +3021,7 @@ IR2_INST *la_x86rcli_d(IR2_OPND rj, int imm_ui6) {
 }
 
 IR2_INST *la_x86settag(IR2_OPND rd, int imm_opx86, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86SETTAG;
     pir2->op_count = 3;
@@ -2993,6 +3036,7 @@ IR2_INST *la_x86settag(IR2_OPND rd, int imm_opx86, int imm_ui8) {
 }
 
 IR2_INST *la_x86mfflag(IR2_OPND rd, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86MFFLAG;
     pir2->op_count = 2;
@@ -3005,6 +3049,7 @@ IR2_INST *la_x86mfflag(IR2_OPND rd, int imm_ui8) {
 }
 
 IR2_INST *la_x86mtflag(IR2_OPND rd, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_X86MTFLAG;
     pir2->op_count = 2;
@@ -3017,6 +3062,7 @@ IR2_INST *la_x86mtflag(IR2_OPND rd, int imm_ui8) {
 }
 
 IR2_INST *la_armmfflag(IR2_OPND rd, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ARMMFFLAG;
     pir2->op_count = 2;
@@ -3029,6 +3075,7 @@ IR2_INST *la_armmfflag(IR2_OPND rd, int imm_ui8) {
 }
 
 IR2_INST *la_armmtflag(IR2_OPND rd, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ARMMTFLAG;
     pir2->op_count = 2;
@@ -3101,6 +3148,7 @@ IR2_INST *la_bstrpick_d(IR2_OPND rd, IR2_OPND rj, int imm_msbd, int imm_lsbd) {
 }
 
 IR2_INST *la_slti(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_SLTI;
     pir2->op_count = 3;
@@ -3114,6 +3162,7 @@ IR2_INST *la_slti(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_sltui(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_SLTUI;
     pir2->op_count = 3;
@@ -3127,6 +3176,7 @@ IR2_INST *la_sltui(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_addi_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ADDI_W;
     pir2->op_count = 3;
@@ -3140,6 +3190,7 @@ IR2_INST *la_addi_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_addi_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ADDI_D;
     pir2->op_count = 3;
@@ -3153,6 +3204,7 @@ IR2_INST *la_addi_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_lu52i_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LU52I_D;
     pir2->op_count = 3;
@@ -3166,6 +3218,7 @@ IR2_INST *la_lu52i_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_andi(IR2_OPND rd, IR2_OPND rj, int imm_ui12) {
+    assert(imm_ui12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ANDI;
     pir2->op_count = 3;
@@ -3179,6 +3232,7 @@ IR2_INST *la_andi(IR2_OPND rd, IR2_OPND rj, int imm_ui12) {
 }
 
 IR2_INST *la_ori(IR2_OPND rd, IR2_OPND rj, int imm_ui12) {
+    assert(imm_ui12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ORI;
     pir2->op_count = 3;
@@ -3192,6 +3246,7 @@ IR2_INST *la_ori(IR2_OPND rd, IR2_OPND rj, int imm_ui12) {
 }
 
 IR2_INST *la_xori(IR2_OPND rd, IR2_OPND rj, int imm_ui12) {
+    assert(imm_ui12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XORI;
     pir2->op_count = 3;
@@ -3205,6 +3260,7 @@ IR2_INST *la_xori(IR2_OPND rd, IR2_OPND rj, int imm_ui12) {
 }
 
 IR2_INST *la_addu16i_d(IR2_OPND rd, IR2_OPND rj, int imm_si16) {
+    assert(imm_si16 <= 0xffff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ADDU16I_D;
     pir2->op_count = 3;
@@ -3218,6 +3274,7 @@ IR2_INST *la_addu16i_d(IR2_OPND rd, IR2_OPND rj, int imm_si16) {
 }
 
 IR2_INST *la_lu12i_w(IR2_OPND rd, int imm_si20) {
+    assert(imm_si20 <= 0xfffff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LU12I_W;
     pir2->op_count = 2;
@@ -3230,6 +3287,7 @@ IR2_INST *la_lu12i_w(IR2_OPND rd, int imm_si20) {
 }
 
 IR2_INST *la_lu32i_d(IR2_OPND rd, int imm_si20) {
+    assert(imm_si20 <= 0xfffff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LU32I_D;
     pir2->op_count = 2;
@@ -3242,6 +3300,7 @@ IR2_INST *la_lu32i_d(IR2_OPND rd, int imm_si20) {
 }
 
 IR2_INST *la_pcaddi(IR2_OPND rd, int imm_si20) {
+    assert(imm_si20 <= 0xfffff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_PCADDI;
     pir2->op_count = 2;
@@ -3254,6 +3313,7 @@ IR2_INST *la_pcaddi(IR2_OPND rd, int imm_si20) {
 }
 
 IR2_INST *la_pcalau12i(IR2_OPND rd, int imm_si20) {
+    assert(imm_si20 <= 0xfffff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_PCALAU12I;
     pir2->op_count = 2;
@@ -3266,6 +3326,7 @@ IR2_INST *la_pcalau12i(IR2_OPND rd, int imm_si20) {
 }
 
 IR2_INST *la_pcaddu12i(IR2_OPND rd, int imm_si20) {
+    assert(imm_si20 <= 0xfffff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_PCADDU12I;
     pir2->op_count = 2;
@@ -3278,6 +3339,7 @@ IR2_INST *la_pcaddu12i(IR2_OPND rd, int imm_si20) {
 }
 
 IR2_INST *la_pcaddu18i(IR2_OPND rd, int imm_si20) {
+    assert(imm_si20 <= 0xfffff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_PCADDU18I;
     pir2->op_count = 2;
@@ -3290,6 +3352,7 @@ IR2_INST *la_pcaddu18i(IR2_OPND rd, int imm_si20) {
 }
 
 IR2_INST *la_ll_w(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
+    assert(imm_si14 <= 0x3fff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LL_W;
     pir2->op_count = 3;
@@ -3304,6 +3367,7 @@ IR2_INST *la_ll_w(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
 }
 
 IR2_INST *la_sc_w(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
+    assert(imm_si14 <= 0x3fff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_SC_W;
     pir2->op_count = 3;
@@ -3318,6 +3382,7 @@ IR2_INST *la_sc_w(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
 }
 
 IR2_INST *la_ll_d(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
+    assert(imm_si14 <= 0x3fff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LL_D;
     pir2->op_count = 3;
@@ -3332,6 +3397,7 @@ IR2_INST *la_ll_d(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
 }
 
 IR2_INST *la_sc_d(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
+    assert(imm_si14 <= 0x3fff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_SC_D;
     pir2->op_count = 3;
@@ -3346,6 +3412,7 @@ IR2_INST *la_sc_d(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
 }
 
 IR2_INST *la_ldptr_w(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
+    assert(imm_si14 <= 0x3fff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LDPTR_W;
     pir2->op_count = 3;
@@ -3360,6 +3427,7 @@ IR2_INST *la_ldptr_w(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
 }
 
 IR2_INST *la_stptr_w(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
+    assert(imm_si14 <= 0x3fff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_STPTR_W;
     pir2->op_count = 3;
@@ -3374,6 +3442,7 @@ IR2_INST *la_stptr_w(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
 }
 
 IR2_INST *la_ldptr_d(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
+    assert(imm_si14 <= 0x3fff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LDPTR_D;
     pir2->op_count = 3;
@@ -3388,6 +3457,7 @@ IR2_INST *la_ldptr_d(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
 }
 
 IR2_INST *la_stptr_d(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
+    assert(imm_si14 <= 0x3fff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_STPTR_D;
     pir2->op_count = 3;
@@ -3402,6 +3472,7 @@ IR2_INST *la_stptr_d(IR2_OPND rd, IR2_OPND rj, int imm_si14) {
 }
 
 IR2_INST *la_ld_b(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LD_B;
     pir2->op_count = 3;
@@ -3415,6 +3486,7 @@ IR2_INST *la_ld_b(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_ld_h(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LD_H;
     pir2->op_count = 3;
@@ -3428,6 +3500,7 @@ IR2_INST *la_ld_h(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_ld_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LD_W;
     pir2->op_count = 3;
@@ -3441,6 +3514,7 @@ IR2_INST *la_ld_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_ld_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LD_D;
     pir2->op_count = 3;
@@ -3454,6 +3528,7 @@ IR2_INST *la_ld_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_st_b(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ST_B;
     pir2->op_count = 3;
@@ -3467,6 +3542,7 @@ IR2_INST *la_st_b(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_st_h(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ST_H;
     pir2->op_count = 3;
@@ -3480,6 +3556,7 @@ IR2_INST *la_st_h(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_st_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ST_W;
     pir2->op_count = 3;
@@ -3493,6 +3570,7 @@ IR2_INST *la_st_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_st_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_ST_D;
     pir2->op_count = 3;
@@ -3506,6 +3584,7 @@ IR2_INST *la_st_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_ld_bu(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LD_BU;
     pir2->op_count = 3;
@@ -3519,6 +3598,7 @@ IR2_INST *la_ld_bu(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_ld_hu(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LD_HU;
     pir2->op_count = 3;
@@ -3532,6 +3612,7 @@ IR2_INST *la_ld_hu(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_ld_wu(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LD_WU;
     pir2->op_count = 3;
@@ -3545,6 +3626,7 @@ IR2_INST *la_ld_wu(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_preld(int imm_hints, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_PRELD;
     pir2->op_count = 3;
@@ -3559,6 +3641,7 @@ IR2_INST *la_preld(int imm_hints, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_fld_s(IR2_OPND fd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_FLD_S;
     pir2->op_count = 3;
@@ -3572,6 +3655,7 @@ IR2_INST *la_fld_s(IR2_OPND fd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_fst_s(IR2_OPND fd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_FST_S;
     pir2->op_count = 3;
@@ -3585,6 +3669,7 @@ IR2_INST *la_fst_s(IR2_OPND fd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_fld_d(IR2_OPND fd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_FLD_D;
     pir2->op_count = 3;
@@ -3598,6 +3683,7 @@ IR2_INST *la_fld_d(IR2_OPND fd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_fst_d(IR2_OPND fd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_FST_D;
     pir2->op_count = 3;
@@ -3611,6 +3697,7 @@ IR2_INST *la_fst_d(IR2_OPND fd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_vld(IR2_OPND vd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VLD;
     pir2->op_count = 3;
@@ -3624,6 +3711,7 @@ IR2_INST *la_vld(IR2_OPND vd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_vst(IR2_OPND vd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VST;
     pir2->op_count = 3;
@@ -3637,6 +3725,7 @@ IR2_INST *la_vst(IR2_OPND vd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_xvld(IR2_OPND xd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVLD;
     pir2->op_count = 3;
@@ -3650,6 +3739,7 @@ IR2_INST *la_xvld(IR2_OPND xd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_xvst(IR2_OPND xd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVST;
     pir2->op_count = 3;
@@ -3663,6 +3753,7 @@ IR2_INST *la_xvst(IR2_OPND xd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_ldl_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LDL_W;
     pir2->op_count = 3;
@@ -3676,6 +3767,7 @@ IR2_INST *la_ldl_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_ldr_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LDR_W;
     pir2->op_count = 3;
@@ -3689,6 +3781,7 @@ IR2_INST *la_ldr_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_ldl_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LDL_D;
     pir2->op_count = 3;
@@ -3702,6 +3795,7 @@ IR2_INST *la_ldl_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_ldr_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_LDR_D;
     pir2->op_count = 3;
@@ -3715,6 +3809,7 @@ IR2_INST *la_ldr_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_stl_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_STL_W;
     pir2->op_count = 3;
@@ -3728,6 +3823,7 @@ IR2_INST *la_stl_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_str_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_STR_W;
     pir2->op_count = 3;
@@ -3741,6 +3837,7 @@ IR2_INST *la_str_w(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_stl_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_STL_D;
     pir2->op_count = 3;
@@ -3754,6 +3851,7 @@ IR2_INST *la_stl_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_str_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_STR_D;
     pir2->op_count = 3;
@@ -3767,6 +3865,7 @@ IR2_INST *la_str_d(IR2_OPND rd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_vldrepl_d(IR2_OPND vd, IR2_OPND rj, int imm_si9) {
+    assert(imm_si9 <= 0x1ff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VLDREPL_D;
     pir2->op_count = 3;
@@ -3780,6 +3879,7 @@ IR2_INST *la_vldrepl_d(IR2_OPND vd, IR2_OPND rj, int imm_si9) {
 }
 
 IR2_INST *la_vldrepl_w(IR2_OPND vd, IR2_OPND rj, int imm_si10) {
+    assert(imm_si10 <= 0x3ff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VLDREPL_W;
     pir2->op_count = 3;
@@ -3793,6 +3893,7 @@ IR2_INST *la_vldrepl_w(IR2_OPND vd, IR2_OPND rj, int imm_si10) {
 }
 
 IR2_INST *la_vldrepl_h(IR2_OPND vd, IR2_OPND rj, int imm_si11) {
+    assert(imm_si11 <= 0x7ff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VLDREPL_H;
     pir2->op_count = 3;
@@ -3806,6 +3907,7 @@ IR2_INST *la_vldrepl_h(IR2_OPND vd, IR2_OPND rj, int imm_si11) {
 }
 
 IR2_INST *la_vldrepl_b(IR2_OPND vd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VLDREPL_B;
     pir2->op_count = 3;
@@ -3819,6 +3921,7 @@ IR2_INST *la_vldrepl_b(IR2_OPND vd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_vstelm_d(IR2_OPND vd, IR2_OPND rj, int imm_si8, int imm_idxs) {
+    assert(imm_si8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSTELM_D;
     pir2->op_count = 4;
@@ -3834,6 +3937,7 @@ IR2_INST *la_vstelm_d(IR2_OPND vd, IR2_OPND rj, int imm_si8, int imm_idxs) {
 }
 
 IR2_INST *la_vstelm_w(IR2_OPND vd, IR2_OPND rj, int imm_si8, int imm_idxm) {
+    assert(imm_si8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSTELM_W;
     pir2->op_count = 4;
@@ -3849,6 +3953,7 @@ IR2_INST *la_vstelm_w(IR2_OPND vd, IR2_OPND rj, int imm_si8, int imm_idxm) {
 }
 
 IR2_INST *la_vstelm_h(IR2_OPND vd, IR2_OPND rj, int imm_si8, int imm_idxl) {
+    assert(imm_si8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSTELM_H;
     pir2->op_count = 4;
@@ -3864,6 +3969,7 @@ IR2_INST *la_vstelm_h(IR2_OPND vd, IR2_OPND rj, int imm_si8, int imm_idxl) {
 }
 
 IR2_INST *la_vstelm_b(IR2_OPND vd, IR2_OPND rj, int imm_si8, int imm_idxll) {
+    assert(imm_si8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSTELM_B;
     pir2->op_count = 4;
@@ -3879,6 +3985,7 @@ IR2_INST *la_vstelm_b(IR2_OPND vd, IR2_OPND rj, int imm_si8, int imm_idxll) {
 }
 
 IR2_INST *la_xvldrepl_d(IR2_OPND xd, IR2_OPND rj, int imm_si9) {
+    assert(imm_si9 <= 0x1ff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVLDREPL_D;
     pir2->op_count = 3;
@@ -3892,6 +3999,7 @@ IR2_INST *la_xvldrepl_d(IR2_OPND xd, IR2_OPND rj, int imm_si9) {
 }
 
 IR2_INST *la_xvldrepl_w(IR2_OPND xd, IR2_OPND rj, int imm_si10) {
+    assert(imm_si10 <= 0x3ff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVLDREPL_W;
     pir2->op_count = 3;
@@ -3905,6 +4013,7 @@ IR2_INST *la_xvldrepl_w(IR2_OPND xd, IR2_OPND rj, int imm_si10) {
 }
 
 IR2_INST *la_xvldrepl_h(IR2_OPND xd, IR2_OPND rj, int imm_si11) {
+    assert(imm_si11 <= 0x7ff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVLDREPL_H;
     pir2->op_count = 3;
@@ -3918,6 +4027,7 @@ IR2_INST *la_xvldrepl_h(IR2_OPND xd, IR2_OPND rj, int imm_si11) {
 }
 
 IR2_INST *la_xvldrepl_b(IR2_OPND xd, IR2_OPND rj, int imm_si12) {
+    assert(imm_si12 <= 0xfff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVLDREPL_B;
     pir2->op_count = 3;
@@ -3931,6 +4041,7 @@ IR2_INST *la_xvldrepl_b(IR2_OPND xd, IR2_OPND rj, int imm_si12) {
 }
 
 IR2_INST *la_xvstelm_d(IR2_OPND xd, IR2_OPND rj, int imm_si8, int imm_idxs) {
+    assert(imm_si8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSTELM_D;
     pir2->op_count = 4;
@@ -3946,6 +4057,7 @@ IR2_INST *la_xvstelm_d(IR2_OPND xd, IR2_OPND rj, int imm_si8, int imm_idxs) {
 }
 
 IR2_INST *la_xvstelm_w(IR2_OPND xd, IR2_OPND rj, int imm_si8, int imm_idxm) {
+    assert(imm_si8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSTELM_W;
     pir2->op_count = 4;
@@ -3961,6 +4073,7 @@ IR2_INST *la_xvstelm_w(IR2_OPND xd, IR2_OPND rj, int imm_si8, int imm_idxm) {
 }
 
 IR2_INST *la_xvstelm_h(IR2_OPND xd, IR2_OPND rj, int imm_si8, int imm_idxl) {
+    assert(imm_si8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSTELM_H;
     pir2->op_count = 4;
@@ -3976,6 +4089,7 @@ IR2_INST *la_xvstelm_h(IR2_OPND xd, IR2_OPND rj, int imm_si8, int imm_idxl) {
 }
 
 IR2_INST *la_xvstelm_b(IR2_OPND xd, IR2_OPND rj, int imm_si8, int imm_idxll) {
+    assert(imm_si8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSTELM_B;
     pir2->op_count = 4;
@@ -6496,6 +6610,7 @@ IR2_INST *la_xvshuf_b(IR2_OPND xd, IR2_OPND xj, IR2_OPND xk, IR2_OPND xa) {
 }
 
 IR2_INST *la_vextr_v(IR2_OPND vd, IR2_OPND vj, IR2_OPND vk, int imm_ui5h) {
+    assert(imm_ui5h <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VEXTR_V;
     pir2->op_count = 4;
@@ -6510,6 +6625,7 @@ IR2_INST *la_vextr_v(IR2_OPND vd, IR2_OPND vj, IR2_OPND vk, int imm_ui5h) {
 }
 
 IR2_INST *la_xvextr_v(IR2_OPND xd, IR2_OPND xj, IR2_OPND xk, int imm_ui5h) {
+    assert(imm_ui5h <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVEXTR_V;
     pir2->op_count = 4;
@@ -14746,6 +14862,7 @@ IR2_INST *la_vshuf_d(IR2_OPND vd, IR2_OPND vj, IR2_OPND vk) {
 }
 
 IR2_INST *la_vseqi_b(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSEQI_B;
     pir2->op_count = 3;
@@ -14759,6 +14876,7 @@ IR2_INST *la_vseqi_b(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vseqi_h(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSEQI_H;
     pir2->op_count = 3;
@@ -14772,6 +14890,7 @@ IR2_INST *la_vseqi_h(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vseqi_w(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSEQI_W;
     pir2->op_count = 3;
@@ -14785,6 +14904,7 @@ IR2_INST *la_vseqi_w(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vseqi_d(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSEQI_D;
     pir2->op_count = 3;
@@ -14798,6 +14918,7 @@ IR2_INST *la_vseqi_d(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vslei_b(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLEI_B;
     pir2->op_count = 3;
@@ -14811,6 +14932,7 @@ IR2_INST *la_vslei_b(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vslei_h(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLEI_H;
     pir2->op_count = 3;
@@ -14824,6 +14946,7 @@ IR2_INST *la_vslei_h(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vslei_w(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLEI_W;
     pir2->op_count = 3;
@@ -14837,6 +14960,7 @@ IR2_INST *la_vslei_w(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vslei_d(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLEI_D;
     pir2->op_count = 3;
@@ -14850,6 +14974,7 @@ IR2_INST *la_vslei_d(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vslei_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLEI_BU;
     pir2->op_count = 3;
@@ -14863,6 +14988,7 @@ IR2_INST *la_vslei_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vslei_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLEI_HU;
     pir2->op_count = 3;
@@ -14876,6 +15002,7 @@ IR2_INST *la_vslei_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vslei_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLEI_WU;
     pir2->op_count = 3;
@@ -14889,6 +15016,7 @@ IR2_INST *la_vslei_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vslei_du(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLEI_DU;
     pir2->op_count = 3;
@@ -14902,6 +15030,7 @@ IR2_INST *la_vslei_du(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vslti_b(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLTI_B;
     pir2->op_count = 3;
@@ -14915,6 +15044,7 @@ IR2_INST *la_vslti_b(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vslti_h(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLTI_H;
     pir2->op_count = 3;
@@ -14928,6 +15058,7 @@ IR2_INST *la_vslti_h(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vslti_w(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLTI_W;
     pir2->op_count = 3;
@@ -14941,6 +15072,7 @@ IR2_INST *la_vslti_w(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vslti_d(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLTI_D;
     pir2->op_count = 3;
@@ -14954,6 +15086,7 @@ IR2_INST *la_vslti_d(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vslti_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLTI_BU;
     pir2->op_count = 3;
@@ -14967,6 +15100,7 @@ IR2_INST *la_vslti_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vslti_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLTI_HU;
     pir2->op_count = 3;
@@ -14980,6 +15114,7 @@ IR2_INST *la_vslti_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vslti_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLTI_WU;
     pir2->op_count = 3;
@@ -14993,6 +15128,7 @@ IR2_INST *la_vslti_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vslti_du(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLTI_DU;
     pir2->op_count = 3;
@@ -15006,6 +15142,7 @@ IR2_INST *la_vslti_du(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vaddi_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VADDI_BU;
     pir2->op_count = 3;
@@ -15019,6 +15156,7 @@ IR2_INST *la_vaddi_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vaddi_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VADDI_HU;
     pir2->op_count = 3;
@@ -15032,6 +15170,7 @@ IR2_INST *la_vaddi_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vaddi_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VADDI_WU;
     pir2->op_count = 3;
@@ -15045,6 +15184,7 @@ IR2_INST *la_vaddi_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vaddi_du(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VADDI_DU;
     pir2->op_count = 3;
@@ -15058,6 +15198,7 @@ IR2_INST *la_vaddi_du(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsubi_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSUBI_BU;
     pir2->op_count = 3;
@@ -15071,6 +15212,7 @@ IR2_INST *la_vsubi_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsubi_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSUBI_HU;
     pir2->op_count = 3;
@@ -15084,6 +15226,7 @@ IR2_INST *la_vsubi_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsubi_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSUBI_WU;
     pir2->op_count = 3;
@@ -15097,6 +15240,7 @@ IR2_INST *la_vsubi_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsubi_du(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSUBI_DU;
     pir2->op_count = 3;
@@ -15110,6 +15254,7 @@ IR2_INST *la_vsubi_du(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vbsll_v(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBSLL_V;
     pir2->op_count = 3;
@@ -15123,6 +15268,7 @@ IR2_INST *la_vbsll_v(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vbsrl_v(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBSRL_V;
     pir2->op_count = 3;
@@ -15136,6 +15282,7 @@ IR2_INST *la_vbsrl_v(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vmaxi_b(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMAXI_B;
     pir2->op_count = 3;
@@ -15149,6 +15296,7 @@ IR2_INST *la_vmaxi_b(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vmaxi_h(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMAXI_H;
     pir2->op_count = 3;
@@ -15162,6 +15310,7 @@ IR2_INST *la_vmaxi_h(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vmaxi_w(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMAXI_W;
     pir2->op_count = 3;
@@ -15175,6 +15324,7 @@ IR2_INST *la_vmaxi_w(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vmaxi_d(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMAXI_D;
     pir2->op_count = 3;
@@ -15188,6 +15338,7 @@ IR2_INST *la_vmaxi_d(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vmini_b(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMINI_B;
     pir2->op_count = 3;
@@ -15201,6 +15352,7 @@ IR2_INST *la_vmini_b(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vmini_h(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMINI_H;
     pir2->op_count = 3;
@@ -15214,6 +15366,7 @@ IR2_INST *la_vmini_h(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vmini_w(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMINI_W;
     pir2->op_count = 3;
@@ -15227,6 +15380,7 @@ IR2_INST *la_vmini_w(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vmini_d(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMINI_D;
     pir2->op_count = 3;
@@ -15240,6 +15394,7 @@ IR2_INST *la_vmini_d(IR2_OPND vd, IR2_OPND vj, int imm_si5) {
 }
 
 IR2_INST *la_vmaxi_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMAXI_BU;
     pir2->op_count = 3;
@@ -15253,6 +15408,7 @@ IR2_INST *la_vmaxi_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vmaxi_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMAXI_HU;
     pir2->op_count = 3;
@@ -15266,6 +15422,7 @@ IR2_INST *la_vmaxi_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vmaxi_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMAXI_WU;
     pir2->op_count = 3;
@@ -15279,6 +15436,7 @@ IR2_INST *la_vmaxi_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vmaxi_du(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMAXI_DU;
     pir2->op_count = 3;
@@ -15292,6 +15450,7 @@ IR2_INST *la_vmaxi_du(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vmini_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMINI_BU;
     pir2->op_count = 3;
@@ -15305,6 +15464,7 @@ IR2_INST *la_vmini_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vmini_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMINI_HU;
     pir2->op_count = 3;
@@ -15318,6 +15478,7 @@ IR2_INST *la_vmini_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vmini_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMINI_WU;
     pir2->op_count = 3;
@@ -15331,6 +15492,7 @@ IR2_INST *la_vmini_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vmini_du(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMINI_DU;
     pir2->op_count = 3;
@@ -15344,6 +15506,7 @@ IR2_INST *la_vmini_du(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vrandsigni_b(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VRANDSIGNI_B;
     pir2->op_count = 3;
@@ -15357,6 +15520,7 @@ IR2_INST *la_vrandsigni_b(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vrandsigni_h(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VRANDSIGNI_H;
     pir2->op_count = 3;
@@ -15370,6 +15534,7 @@ IR2_INST *la_vrandsigni_h(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vrorsigni_b(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VRORSIGNI_B;
     pir2->op_count = 3;
@@ -15383,6 +15548,7 @@ IR2_INST *la_vrorsigni_b(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vrorsigni_h(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VRORSIGNI_H;
     pir2->op_count = 3;
@@ -15396,6 +15562,7 @@ IR2_INST *la_vrorsigni_h(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vfrstpi_b(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VFRSTPI_B;
     pir2->op_count = 3;
@@ -15409,6 +15576,7 @@ IR2_INST *la_vfrstpi_b(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vfrstpi_h(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VFRSTPI_H;
     pir2->op_count = 3;
@@ -15422,6 +15590,7 @@ IR2_INST *la_vfrstpi_h(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vclrstri_v(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VCLRSTRI_V;
     pir2->op_count = 3;
@@ -15435,6 +15604,7 @@ IR2_INST *la_vclrstri_v(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vmepatmsk_v(IR2_OPND vd, int imm_mode, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VMEPATMSK_V;
     pir2->op_count = 3;
@@ -16703,6 +16873,7 @@ IR2_INST *la_vreplgr2vr_d(IR2_OPND vd, IR2_OPND rj) {
 }
 
 IR2_INST *la_vrotri_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VROTRI_B;
     pir2->op_count = 3;
@@ -16716,6 +16887,7 @@ IR2_INST *la_vrotri_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vrotri_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VROTRI_H;
     pir2->op_count = 3;
@@ -16729,6 +16901,7 @@ IR2_INST *la_vrotri_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vrotri_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VROTRI_W;
     pir2->op_count = 3;
@@ -16742,6 +16915,7 @@ IR2_INST *la_vrotri_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vrotri_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VROTRI_D;
     pir2->op_count = 3;
@@ -16755,6 +16929,7 @@ IR2_INST *la_vrotri_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsrlri_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLRI_B;
     pir2->op_count = 3;
@@ -16768,6 +16943,7 @@ IR2_INST *la_vsrlri_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vsrlri_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLRI_H;
     pir2->op_count = 3;
@@ -16781,6 +16957,7 @@ IR2_INST *la_vsrlri_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsrlri_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLRI_W;
     pir2->op_count = 3;
@@ -16794,6 +16971,7 @@ IR2_INST *la_vsrlri_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsrlri_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLRI_D;
     pir2->op_count = 3;
@@ -16807,6 +16985,7 @@ IR2_INST *la_vsrlri_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsrari_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRARI_B;
     pir2->op_count = 3;
@@ -16820,6 +16999,7 @@ IR2_INST *la_vsrari_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vsrari_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRARI_H;
     pir2->op_count = 3;
@@ -16833,6 +17013,7 @@ IR2_INST *la_vsrari_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsrari_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRARI_W;
     pir2->op_count = 3;
@@ -16846,6 +17027,7 @@ IR2_INST *la_vsrari_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsrari_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRARI_D;
     pir2->op_count = 3;
@@ -16859,6 +17041,7 @@ IR2_INST *la_vsrari_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vinsgr2vr_b(IR2_OPND vd, IR2_OPND rj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VINSGR2VR_B;
     pir2->op_count = 3;
@@ -16872,6 +17055,7 @@ IR2_INST *la_vinsgr2vr_b(IR2_OPND vd, IR2_OPND rj, int imm_ui4) {
 }
 
 IR2_INST *la_vinsgr2vr_h(IR2_OPND vd, IR2_OPND rj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VINSGR2VR_H;
     pir2->op_count = 3;
@@ -16885,6 +17069,7 @@ IR2_INST *la_vinsgr2vr_h(IR2_OPND vd, IR2_OPND rj, int imm_ui3) {
 }
 
 IR2_INST *la_vinsgr2vr_w(IR2_OPND vd, IR2_OPND rj, int imm_ui2) {
+    assert(imm_ui2 <= 0x3);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VINSGR2VR_W;
     pir2->op_count = 3;
@@ -16898,6 +17083,7 @@ IR2_INST *la_vinsgr2vr_w(IR2_OPND vd, IR2_OPND rj, int imm_ui2) {
 }
 
 IR2_INST *la_vinsgr2vr_d(IR2_OPND vd, IR2_OPND rj, int imm_ui1) {
+    assert(imm_ui1 <= 0x1);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VINSGR2VR_D;
     pir2->op_count = 3;
@@ -16911,6 +17097,7 @@ IR2_INST *la_vinsgr2vr_d(IR2_OPND vd, IR2_OPND rj, int imm_ui1) {
 }
 
 IR2_INST *la_vpickve2gr_b(IR2_OPND rd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VPICKVE2GR_B;
     pir2->op_count = 3;
@@ -16924,6 +17111,7 @@ IR2_INST *la_vpickve2gr_b(IR2_OPND rd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vpickve2gr_h(IR2_OPND rd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VPICKVE2GR_H;
     pir2->op_count = 3;
@@ -16937,6 +17125,7 @@ IR2_INST *la_vpickve2gr_h(IR2_OPND rd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vpickve2gr_w(IR2_OPND rd, IR2_OPND vj, int imm_ui2) {
+    assert(imm_ui2 <= 0x3);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VPICKVE2GR_W;
     pir2->op_count = 3;
@@ -16950,6 +17139,7 @@ IR2_INST *la_vpickve2gr_w(IR2_OPND rd, IR2_OPND vj, int imm_ui2) {
 }
 
 IR2_INST *la_vpickve2gr_d(IR2_OPND rd, IR2_OPND vj, int imm_ui1) {
+    assert(imm_ui1 <= 0x1);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VPICKVE2GR_D;
     pir2->op_count = 3;
@@ -16963,6 +17153,7 @@ IR2_INST *la_vpickve2gr_d(IR2_OPND rd, IR2_OPND vj, int imm_ui1) {
 }
 
 IR2_INST *la_vpickve2gr_bu(IR2_OPND rd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VPICKVE2GR_BU;
     pir2->op_count = 3;
@@ -16976,6 +17167,7 @@ IR2_INST *la_vpickve2gr_bu(IR2_OPND rd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vpickve2gr_hu(IR2_OPND rd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VPICKVE2GR_HU;
     pir2->op_count = 3;
@@ -16989,6 +17181,7 @@ IR2_INST *la_vpickve2gr_hu(IR2_OPND rd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vpickve2gr_wu(IR2_OPND rd, IR2_OPND vj, int imm_ui2) {
+    assert(imm_ui2 <= 0x3);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VPICKVE2GR_WU;
     pir2->op_count = 3;
@@ -17002,6 +17195,7 @@ IR2_INST *la_vpickve2gr_wu(IR2_OPND rd, IR2_OPND vj, int imm_ui2) {
 }
 
 IR2_INST *la_vpickve2gr_du(IR2_OPND rd, IR2_OPND vj, int imm_ui1) {
+    assert(imm_ui1 <= 0x1);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VPICKVE2GR_DU;
     pir2->op_count = 3;
@@ -17015,6 +17209,7 @@ IR2_INST *la_vpickve2gr_du(IR2_OPND rd, IR2_OPND vj, int imm_ui1) {
 }
 
 IR2_INST *la_vreplvei_b(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VREPLVEI_B;
     pir2->op_count = 3;
@@ -17028,6 +17223,7 @@ IR2_INST *la_vreplvei_b(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vreplvei_h(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VREPLVEI_H;
     pir2->op_count = 3;
@@ -17041,6 +17237,7 @@ IR2_INST *la_vreplvei_h(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vreplvei_w(IR2_OPND vd, IR2_OPND vj, int imm_ui2) {
+    assert(imm_ui2 <= 0x3);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VREPLVEI_W;
     pir2->op_count = 3;
@@ -17054,6 +17251,7 @@ IR2_INST *la_vreplvei_w(IR2_OPND vd, IR2_OPND vj, int imm_ui2) {
 }
 
 IR2_INST *la_vreplvei_d(IR2_OPND vd, IR2_OPND vj, int imm_ui1) {
+    assert(imm_ui1 <= 0x1);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VREPLVEI_D;
     pir2->op_count = 3;
@@ -17067,6 +17265,7 @@ IR2_INST *la_vreplvei_d(IR2_OPND vd, IR2_OPND vj, int imm_ui1) {
 }
 
 IR2_INST *la_vextrcoli_b(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VEXTRCOLI_B;
     pir2->op_count = 3;
@@ -17080,6 +17279,7 @@ IR2_INST *la_vextrcoli_b(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vextrcoli_h(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VEXTRCOLI_H;
     pir2->op_count = 3;
@@ -17093,6 +17293,7 @@ IR2_INST *la_vextrcoli_h(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vextrcoli_w(IR2_OPND vd, IR2_OPND vj, int imm_ui2) {
+    assert(imm_ui2 <= 0x3);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VEXTRCOLI_W;
     pir2->op_count = 3;
@@ -17106,6 +17307,7 @@ IR2_INST *la_vextrcoli_w(IR2_OPND vd, IR2_OPND vj, int imm_ui2) {
 }
 
 IR2_INST *la_vextrcoli_d(IR2_OPND vd, IR2_OPND vj, int imm_ui1) {
+    assert(imm_ui1 <= 0x1);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VEXTRCOLI_D;
     pir2->op_count = 3;
@@ -17119,6 +17321,7 @@ IR2_INST *la_vextrcoli_d(IR2_OPND vd, IR2_OPND vj, int imm_ui1) {
 }
 
 IR2_INST *la_vsllwil_h_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLLWIL_H_B;
     pir2->op_count = 3;
@@ -17132,6 +17335,7 @@ IR2_INST *la_vsllwil_h_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vsllwil_w_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLLWIL_W_H;
     pir2->op_count = 3;
@@ -17145,6 +17349,7 @@ IR2_INST *la_vsllwil_w_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsllwil_d_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLLWIL_D_W;
     pir2->op_count = 3;
@@ -17169,6 +17374,7 @@ IR2_INST *la_vextl_q_d(IR2_OPND vd, IR2_OPND vj) {
 }
 
 IR2_INST *la_vsllwil_hu_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLLWIL_HU_BU;
     pir2->op_count = 3;
@@ -17182,6 +17388,7 @@ IR2_INST *la_vsllwil_hu_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vsllwil_wu_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLLWIL_WU_HU;
     pir2->op_count = 3;
@@ -17195,6 +17402,7 @@ IR2_INST *la_vsllwil_wu_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsllwil_du_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLLWIL_DU_WU;
     pir2->op_count = 3;
@@ -17219,6 +17427,7 @@ IR2_INST *la_vextl_qu_du(IR2_OPND vd, IR2_OPND vj) {
 }
 
 IR2_INST *la_vbitclri_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITCLRI_B;
     pir2->op_count = 3;
@@ -17232,6 +17441,7 @@ IR2_INST *la_vbitclri_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vbitclri_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITCLRI_H;
     pir2->op_count = 3;
@@ -17245,6 +17455,7 @@ IR2_INST *la_vbitclri_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vbitclri_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITCLRI_W;
     pir2->op_count = 3;
@@ -17258,6 +17469,7 @@ IR2_INST *la_vbitclri_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vbitclri_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITCLRI_D;
     pir2->op_count = 3;
@@ -17271,6 +17483,7 @@ IR2_INST *la_vbitclri_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vbitseti_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITSETI_B;
     pir2->op_count = 3;
@@ -17284,6 +17497,7 @@ IR2_INST *la_vbitseti_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vbitseti_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITSETI_H;
     pir2->op_count = 3;
@@ -17297,6 +17511,7 @@ IR2_INST *la_vbitseti_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vbitseti_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITSETI_W;
     pir2->op_count = 3;
@@ -17310,6 +17525,7 @@ IR2_INST *la_vbitseti_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vbitseti_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITSETI_D;
     pir2->op_count = 3;
@@ -17323,6 +17539,7 @@ IR2_INST *la_vbitseti_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vbitrevi_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITREVI_B;
     pir2->op_count = 3;
@@ -17336,6 +17553,7 @@ IR2_INST *la_vbitrevi_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vbitrevi_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITREVI_H;
     pir2->op_count = 3;
@@ -17349,6 +17567,7 @@ IR2_INST *la_vbitrevi_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vbitrevi_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITREVI_W;
     pir2->op_count = 3;
@@ -17362,6 +17581,7 @@ IR2_INST *la_vbitrevi_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vbitrevi_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITREVI_D;
     pir2->op_count = 3;
@@ -17375,6 +17595,7 @@ IR2_INST *la_vbitrevi_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vbstrc12i_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBSTRC12I_B;
     pir2->op_count = 3;
@@ -17388,6 +17609,7 @@ IR2_INST *la_vbstrc12i_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vbstrc12i_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBSTRC12I_H;
     pir2->op_count = 3;
@@ -17401,6 +17623,7 @@ IR2_INST *la_vbstrc12i_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vbstrc12i_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBSTRC12I_W;
     pir2->op_count = 3;
@@ -17414,6 +17637,7 @@ IR2_INST *la_vbstrc12i_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vbstrc12i_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBSTRC12I_D;
     pir2->op_count = 3;
@@ -17427,6 +17651,7 @@ IR2_INST *la_vbstrc12i_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vbstrc21i_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBSTRC21I_B;
     pir2->op_count = 3;
@@ -17440,6 +17665,7 @@ IR2_INST *la_vbstrc21i_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vbstrc21i_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBSTRC21I_H;
     pir2->op_count = 3;
@@ -17453,6 +17679,7 @@ IR2_INST *la_vbstrc21i_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vbstrc21i_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBSTRC21I_W;
     pir2->op_count = 3;
@@ -17466,6 +17693,7 @@ IR2_INST *la_vbstrc21i_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vbstrc21i_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBSTRC21I_D;
     pir2->op_count = 3;
@@ -17479,6 +17707,7 @@ IR2_INST *la_vbstrc21i_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsat_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSAT_B;
     pir2->op_count = 3;
@@ -17492,6 +17721,7 @@ IR2_INST *la_vsat_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vsat_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSAT_H;
     pir2->op_count = 3;
@@ -17505,6 +17735,7 @@ IR2_INST *la_vsat_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsat_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSAT_W;
     pir2->op_count = 3;
@@ -17518,6 +17749,7 @@ IR2_INST *la_vsat_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsat_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSAT_D;
     pir2->op_count = 3;
@@ -17531,6 +17763,7 @@ IR2_INST *la_vsat_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsat_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSAT_BU;
     pir2->op_count = 3;
@@ -17544,6 +17777,7 @@ IR2_INST *la_vsat_bu(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vsat_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSAT_HU;
     pir2->op_count = 3;
@@ -17557,6 +17791,7 @@ IR2_INST *la_vsat_hu(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsat_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSAT_WU;
     pir2->op_count = 3;
@@ -17570,6 +17805,7 @@ IR2_INST *la_vsat_wu(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsat_du(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSAT_DU;
     pir2->op_count = 3;
@@ -17583,6 +17819,7 @@ IR2_INST *la_vsat_du(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vslli_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLLI_B;
     pir2->op_count = 3;
@@ -17596,6 +17833,7 @@ IR2_INST *la_vslli_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vslli_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLLI_H;
     pir2->op_count = 3;
@@ -17609,6 +17847,7 @@ IR2_INST *la_vslli_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vslli_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLLI_W;
     pir2->op_count = 3;
@@ -17622,6 +17861,7 @@ IR2_INST *la_vslli_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vslli_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSLLI_D;
     pir2->op_count = 3;
@@ -17635,6 +17875,7 @@ IR2_INST *la_vslli_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsrli_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLI_B;
     pir2->op_count = 3;
@@ -17648,6 +17889,7 @@ IR2_INST *la_vsrli_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vsrli_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLI_H;
     pir2->op_count = 3;
@@ -17661,6 +17903,7 @@ IR2_INST *la_vsrli_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsrli_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLI_W;
     pir2->op_count = 3;
@@ -17674,6 +17917,7 @@ IR2_INST *la_vsrli_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsrli_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLI_D;
     pir2->op_count = 3;
@@ -17687,6 +17931,7 @@ IR2_INST *la_vsrli_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsrai_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRAI_B;
     pir2->op_count = 3;
@@ -17700,6 +17945,7 @@ IR2_INST *la_vsrai_b(IR2_OPND vd, IR2_OPND vj, int imm_ui3) {
 }
 
 IR2_INST *la_vsrai_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRAI_H;
     pir2->op_count = 3;
@@ -17713,6 +17959,7 @@ IR2_INST *la_vsrai_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsrai_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRAI_W;
     pir2->op_count = 3;
@@ -17726,6 +17973,7 @@ IR2_INST *la_vsrai_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsrai_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRAI_D;
     pir2->op_count = 3;
@@ -17739,6 +17987,7 @@ IR2_INST *la_vsrai_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsrlrneni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLRNENI_B_H;
     pir2->op_count = 3;
@@ -17752,6 +18001,7 @@ IR2_INST *la_vsrlrneni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsrlrneni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLRNENI_H_W;
     pir2->op_count = 3;
@@ -17765,6 +18015,7 @@ IR2_INST *la_vsrlrneni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsrlrneni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLRNENI_W_D;
     pir2->op_count = 3;
@@ -17778,6 +18029,7 @@ IR2_INST *la_vsrlrneni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsrlrneni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLRNENI_D_Q;
     pir2->op_count = 3;
@@ -17791,6 +18043,7 @@ IR2_INST *la_vsrlrneni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vsrarneni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRARNENI_B_H;
     pir2->op_count = 3;
@@ -17804,6 +18057,7 @@ IR2_INST *la_vsrarneni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsrarneni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRARNENI_H_W;
     pir2->op_count = 3;
@@ -17817,6 +18071,7 @@ IR2_INST *la_vsrarneni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsrarneni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRARNENI_W_D;
     pir2->op_count = 3;
@@ -17830,6 +18085,7 @@ IR2_INST *la_vsrarneni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsrarneni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRARNENI_D_Q;
     pir2->op_count = 3;
@@ -17843,6 +18099,7 @@ IR2_INST *la_vsrarneni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vsrlni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLNI_B_H;
     pir2->op_count = 3;
@@ -17856,6 +18113,7 @@ IR2_INST *la_vsrlni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsrlni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLNI_H_W;
     pir2->op_count = 3;
@@ -17869,6 +18127,7 @@ IR2_INST *la_vsrlni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsrlni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLNI_W_D;
     pir2->op_count = 3;
@@ -17882,6 +18141,7 @@ IR2_INST *la_vsrlni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsrlni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLNI_D_Q;
     pir2->op_count = 3;
@@ -17895,6 +18155,7 @@ IR2_INST *la_vsrlni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vsrlrni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLRNI_B_H;
     pir2->op_count = 3;
@@ -17908,6 +18169,7 @@ IR2_INST *la_vsrlrni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsrlrni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLRNI_H_W;
     pir2->op_count = 3;
@@ -17921,6 +18183,7 @@ IR2_INST *la_vsrlrni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsrlrni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLRNI_W_D;
     pir2->op_count = 3;
@@ -17934,6 +18197,7 @@ IR2_INST *la_vsrlrni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsrlrni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRLRNI_D_Q;
     pir2->op_count = 3;
@@ -17947,6 +18211,7 @@ IR2_INST *la_vsrlrni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vssrlni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLNI_B_H;
     pir2->op_count = 3;
@@ -17960,6 +18225,7 @@ IR2_INST *la_vssrlni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vssrlni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLNI_H_W;
     pir2->op_count = 3;
@@ -17973,6 +18239,7 @@ IR2_INST *la_vssrlni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vssrlni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLNI_W_D;
     pir2->op_count = 3;
@@ -17986,6 +18253,7 @@ IR2_INST *la_vssrlni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vssrlni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLNI_D_Q;
     pir2->op_count = 3;
@@ -17999,6 +18267,7 @@ IR2_INST *la_vssrlni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vssrlni_bu_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLNI_BU_H;
     pir2->op_count = 3;
@@ -18012,6 +18281,7 @@ IR2_INST *la_vssrlni_bu_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vssrlni_hu_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLNI_HU_W;
     pir2->op_count = 3;
@@ -18025,6 +18295,7 @@ IR2_INST *la_vssrlni_hu_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vssrlni_wu_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLNI_WU_D;
     pir2->op_count = 3;
@@ -18038,6 +18309,7 @@ IR2_INST *la_vssrlni_wu_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vssrlni_du_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLNI_DU_Q;
     pir2->op_count = 3;
@@ -18051,6 +18323,7 @@ IR2_INST *la_vssrlni_du_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vssrlrni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNI_B_H;
     pir2->op_count = 3;
@@ -18064,6 +18337,7 @@ IR2_INST *la_vssrlrni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vssrlrni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNI_H_W;
     pir2->op_count = 3;
@@ -18077,6 +18351,7 @@ IR2_INST *la_vssrlrni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vssrlrni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNI_W_D;
     pir2->op_count = 3;
@@ -18090,6 +18365,7 @@ IR2_INST *la_vssrlrni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vssrlrni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNI_D_Q;
     pir2->op_count = 3;
@@ -18103,6 +18379,7 @@ IR2_INST *la_vssrlrni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vssrlrni_bu_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNI_BU_H;
     pir2->op_count = 3;
@@ -18116,6 +18393,7 @@ IR2_INST *la_vssrlrni_bu_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vssrlrni_hu_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNI_HU_W;
     pir2->op_count = 3;
@@ -18129,6 +18407,7 @@ IR2_INST *la_vssrlrni_hu_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vssrlrni_wu_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNI_WU_D;
     pir2->op_count = 3;
@@ -18142,6 +18421,7 @@ IR2_INST *la_vssrlrni_wu_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vssrlrni_du_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNI_DU_Q;
     pir2->op_count = 3;
@@ -18155,6 +18435,7 @@ IR2_INST *la_vssrlrni_du_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vsrani_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRANI_B_H;
     pir2->op_count = 3;
@@ -18168,6 +18449,7 @@ IR2_INST *la_vsrani_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsrani_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRANI_H_W;
     pir2->op_count = 3;
@@ -18181,6 +18463,7 @@ IR2_INST *la_vsrani_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsrani_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRANI_W_D;
     pir2->op_count = 3;
@@ -18194,6 +18477,7 @@ IR2_INST *la_vsrani_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsrani_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRANI_D_Q;
     pir2->op_count = 3;
@@ -18207,6 +18491,7 @@ IR2_INST *la_vsrani_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vsrarni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRARNI_B_H;
     pir2->op_count = 3;
@@ -18220,6 +18505,7 @@ IR2_INST *la_vsrarni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vsrarni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRARNI_H_W;
     pir2->op_count = 3;
@@ -18233,6 +18519,7 @@ IR2_INST *la_vsrarni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vsrarni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRARNI_W_D;
     pir2->op_count = 3;
@@ -18246,6 +18533,7 @@ IR2_INST *la_vsrarni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vsrarni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSRARNI_D_Q;
     pir2->op_count = 3;
@@ -18259,6 +18547,7 @@ IR2_INST *la_vsrarni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vssrani_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRANI_B_H;
     pir2->op_count = 3;
@@ -18272,6 +18561,7 @@ IR2_INST *la_vssrani_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vssrani_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRANI_H_W;
     pir2->op_count = 3;
@@ -18285,6 +18575,7 @@ IR2_INST *la_vssrani_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vssrani_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRANI_W_D;
     pir2->op_count = 3;
@@ -18298,6 +18589,7 @@ IR2_INST *la_vssrani_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vssrani_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRANI_D_Q;
     pir2->op_count = 3;
@@ -18311,6 +18603,7 @@ IR2_INST *la_vssrani_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vssrani_bu_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRANI_BU_H;
     pir2->op_count = 3;
@@ -18324,6 +18617,7 @@ IR2_INST *la_vssrani_bu_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vssrani_hu_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRANI_HU_W;
     pir2->op_count = 3;
@@ -18337,6 +18631,7 @@ IR2_INST *la_vssrani_hu_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vssrani_wu_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRANI_WU_D;
     pir2->op_count = 3;
@@ -18350,6 +18645,7 @@ IR2_INST *la_vssrani_wu_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vssrani_du_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRANI_DU_Q;
     pir2->op_count = 3;
@@ -18363,6 +18659,7 @@ IR2_INST *la_vssrani_du_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vssrarni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNI_B_H;
     pir2->op_count = 3;
@@ -18376,6 +18673,7 @@ IR2_INST *la_vssrarni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vssrarni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNI_H_W;
     pir2->op_count = 3;
@@ -18389,6 +18687,7 @@ IR2_INST *la_vssrarni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vssrarni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNI_W_D;
     pir2->op_count = 3;
@@ -18402,6 +18701,7 @@ IR2_INST *la_vssrarni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vssrarni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNI_D_Q;
     pir2->op_count = 3;
@@ -18415,6 +18715,7 @@ IR2_INST *la_vssrarni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vssrarni_bu_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNI_BU_H;
     pir2->op_count = 3;
@@ -18428,6 +18729,7 @@ IR2_INST *la_vssrarni_bu_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vssrarni_hu_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNI_HU_W;
     pir2->op_count = 3;
@@ -18441,6 +18743,7 @@ IR2_INST *la_vssrarni_hu_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vssrarni_wu_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNI_WU_D;
     pir2->op_count = 3;
@@ -18454,6 +18757,7 @@ IR2_INST *la_vssrarni_wu_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vssrarni_du_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNI_DU_Q;
     pir2->op_count = 3;
@@ -18467,6 +18771,7 @@ IR2_INST *la_vssrarni_du_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vssrlrneni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNENI_B_H;
     pir2->op_count = 3;
@@ -18480,6 +18785,7 @@ IR2_INST *la_vssrlrneni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vssrlrneni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNENI_H_W;
     pir2->op_count = 3;
@@ -18493,6 +18799,7 @@ IR2_INST *la_vssrlrneni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vssrlrneni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNENI_W_D;
     pir2->op_count = 3;
@@ -18506,6 +18813,7 @@ IR2_INST *la_vssrlrneni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vssrlrneni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNENI_D_Q;
     pir2->op_count = 3;
@@ -18519,6 +18827,7 @@ IR2_INST *la_vssrlrneni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vssrlrneni_bu_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNENI_BU_H;
     pir2->op_count = 3;
@@ -18532,6 +18841,7 @@ IR2_INST *la_vssrlrneni_bu_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vssrlrneni_hu_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNENI_HU_W;
     pir2->op_count = 3;
@@ -18545,6 +18855,7 @@ IR2_INST *la_vssrlrneni_hu_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vssrlrneni_wu_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNENI_WU_D;
     pir2->op_count = 3;
@@ -18558,6 +18869,7 @@ IR2_INST *la_vssrlrneni_wu_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vssrlrneni_du_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRLRNENI_DU_Q;
     pir2->op_count = 3;
@@ -18571,6 +18883,7 @@ IR2_INST *la_vssrlrneni_du_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vssrarneni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNENI_B_H;
     pir2->op_count = 3;
@@ -18584,6 +18897,7 @@ IR2_INST *la_vssrarneni_b_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vssrarneni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNENI_H_W;
     pir2->op_count = 3;
@@ -18597,6 +18911,7 @@ IR2_INST *la_vssrarneni_h_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vssrarneni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNENI_W_D;
     pir2->op_count = 3;
@@ -18610,6 +18925,7 @@ IR2_INST *la_vssrarneni_w_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vssrarneni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNENI_D_Q;
     pir2->op_count = 3;
@@ -18623,6 +18939,7 @@ IR2_INST *la_vssrarneni_d_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vssrarneni_bu_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNENI_BU_H;
     pir2->op_count = 3;
@@ -18636,6 +18953,7 @@ IR2_INST *la_vssrarneni_bu_h(IR2_OPND vd, IR2_OPND vj, int imm_ui4) {
 }
 
 IR2_INST *la_vssrarneni_hu_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNENI_HU_W;
     pir2->op_count = 3;
@@ -18649,6 +18967,7 @@ IR2_INST *la_vssrarneni_hu_w(IR2_OPND vd, IR2_OPND vj, int imm_ui5l) {
 }
 
 IR2_INST *la_vssrarneni_wu_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNENI_WU_D;
     pir2->op_count = 3;
@@ -18662,6 +18981,7 @@ IR2_INST *la_vssrarneni_wu_d(IR2_OPND vd, IR2_OPND vj, int imm_ui6) {
 }
 
 IR2_INST *la_vssrarneni_du_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
+    assert(imm_ui7 <= 0x7f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSSRARNENI_DU_Q;
     pir2->op_count = 3;
@@ -18675,6 +18995,7 @@ IR2_INST *la_vssrarneni_du_q(IR2_OPND vd, IR2_OPND vj, int imm_ui7) {
 }
 
 IR2_INST *la_vextrins_d(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VEXTRINS_D;
     pir2->op_count = 3;
@@ -18688,6 +19009,7 @@ IR2_INST *la_vextrins_d(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vextrins_w(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VEXTRINS_W;
     pir2->op_count = 3;
@@ -18701,6 +19023,7 @@ IR2_INST *la_vextrins_w(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vextrins_h(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VEXTRINS_H;
     pir2->op_count = 3;
@@ -18714,6 +19037,7 @@ IR2_INST *la_vextrins_h(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vextrins_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VEXTRINS_B;
     pir2->op_count = 3;
@@ -18727,6 +19051,7 @@ IR2_INST *la_vextrins_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vshuf4i_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSHUF4I_B;
     pir2->op_count = 3;
@@ -18740,6 +19065,7 @@ IR2_INST *la_vshuf4i_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vshuf4i_h(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSHUF4I_H;
     pir2->op_count = 3;
@@ -18753,6 +19079,7 @@ IR2_INST *la_vshuf4i_h(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vshuf4i_w(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSHUF4I_W;
     pir2->op_count = 3;
@@ -18766,6 +19093,7 @@ IR2_INST *la_vshuf4i_w(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vshuf4i_d(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSHUF4I_D;
     pir2->op_count = 3;
@@ -18779,6 +19107,7 @@ IR2_INST *la_vshuf4i_d(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vshufi1_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSHUFI1_B;
     pir2->op_count = 3;
@@ -18792,6 +19121,7 @@ IR2_INST *la_vshufi1_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vshufi2_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSHUFI2_B;
     pir2->op_count = 3;
@@ -18805,6 +19135,7 @@ IR2_INST *la_vshufi2_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vshufi3_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSHUFI3_B;
     pir2->op_count = 3;
@@ -18818,6 +19149,7 @@ IR2_INST *la_vshufi3_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vshufi4_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSHUFI4_B;
     pir2->op_count = 3;
@@ -18831,6 +19163,7 @@ IR2_INST *la_vshufi4_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vshufi1_h(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSHUFI1_H;
     pir2->op_count = 3;
@@ -18844,6 +19177,7 @@ IR2_INST *la_vshufi1_h(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vshufi2_h(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSHUFI2_H;
     pir2->op_count = 3;
@@ -18857,6 +19191,7 @@ IR2_INST *la_vshufi2_h(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vseli_h(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSELI_H;
     pir2->op_count = 3;
@@ -18870,6 +19205,7 @@ IR2_INST *la_vseli_h(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vseli_w(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSELI_W;
     pir2->op_count = 3;
@@ -18883,6 +19219,7 @@ IR2_INST *la_vseli_w(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vseli_d(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VSELI_D;
     pir2->op_count = 3;
@@ -18896,6 +19233,7 @@ IR2_INST *la_vseli_d(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vbitseli_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITSELI_B;
     pir2->op_count = 3;
@@ -18909,6 +19247,7 @@ IR2_INST *la_vbitseli_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vbitmvzi_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITMVZI_B;
     pir2->op_count = 3;
@@ -18922,6 +19261,7 @@ IR2_INST *la_vbitmvzi_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vbitmvnzi_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VBITMVNZI_B;
     pir2->op_count = 3;
@@ -18935,6 +19275,7 @@ IR2_INST *la_vbitmvnzi_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vandi_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VANDI_B;
     pir2->op_count = 3;
@@ -18948,6 +19289,7 @@ IR2_INST *la_vandi_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vori_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VORI_B;
     pir2->op_count = 3;
@@ -18961,6 +19303,7 @@ IR2_INST *la_vori_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vxori_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VXORI_B;
     pir2->op_count = 3;
@@ -18974,6 +19317,7 @@ IR2_INST *la_vxori_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vnori_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VNORI_B;
     pir2->op_count = 3;
@@ -18987,6 +19331,7 @@ IR2_INST *la_vnori_b(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
 }
 
 IR2_INST *la_vldi(IR2_OPND vd, int imm_i13) {
+    assert(imm_i13 <= 0x1fff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VLDI;
     pir2->op_count = 2;
@@ -18999,6 +19344,7 @@ IR2_INST *la_vldi(IR2_OPND vd, int imm_i13) {
 }
 
 IR2_INST *la_vpermi_w(IR2_OPND vd, IR2_OPND vj, int imm_ui8) {
+    assert(imm_ui8 <= 0xff);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_VPERMI_W;
     pir2->op_count = 3;
@@ -26800,6 +27146,7 @@ IR2_INST *la_xvperm_w(IR2_OPND xd, IR2_OPND xj, IR2_OPND xk) {
 }
 
 IR2_INST *la_xvseqi_b(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSEQI_B;
     pir2->op_count = 3;
@@ -26813,6 +27160,7 @@ IR2_INST *la_xvseqi_b(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvseqi_h(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSEQI_H;
     pir2->op_count = 3;
@@ -26826,6 +27174,7 @@ IR2_INST *la_xvseqi_h(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvseqi_w(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSEQI_W;
     pir2->op_count = 3;
@@ -26839,6 +27188,7 @@ IR2_INST *la_xvseqi_w(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvseqi_d(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSEQI_D;
     pir2->op_count = 3;
@@ -26852,6 +27202,7 @@ IR2_INST *la_xvseqi_d(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvslei_b(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLEI_B;
     pir2->op_count = 3;
@@ -26865,6 +27216,7 @@ IR2_INST *la_xvslei_b(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvslei_h(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLEI_H;
     pir2->op_count = 3;
@@ -26878,6 +27230,7 @@ IR2_INST *la_xvslei_h(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvslei_w(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLEI_W;
     pir2->op_count = 3;
@@ -26891,6 +27244,7 @@ IR2_INST *la_xvslei_w(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvslei_d(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLEI_D;
     pir2->op_count = 3;
@@ -26904,6 +27258,7 @@ IR2_INST *la_xvslei_d(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvslei_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLEI_BU;
     pir2->op_count = 3;
@@ -26917,6 +27272,7 @@ IR2_INST *la_xvslei_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvslei_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLEI_HU;
     pir2->op_count = 3;
@@ -26930,6 +27286,7 @@ IR2_INST *la_xvslei_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvslei_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLEI_WU;
     pir2->op_count = 3;
@@ -26943,6 +27300,7 @@ IR2_INST *la_xvslei_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvslei_du(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLEI_DU;
     pir2->op_count = 3;
@@ -26956,6 +27314,7 @@ IR2_INST *la_xvslei_du(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvslti_b(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLTI_B;
     pir2->op_count = 3;
@@ -26969,6 +27328,7 @@ IR2_INST *la_xvslti_b(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvslti_h(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLTI_H;
     pir2->op_count = 3;
@@ -26982,6 +27342,7 @@ IR2_INST *la_xvslti_h(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvslti_w(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLTI_W;
     pir2->op_count = 3;
@@ -26995,6 +27356,7 @@ IR2_INST *la_xvslti_w(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvslti_d(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLTI_D;
     pir2->op_count = 3;
@@ -27008,6 +27370,7 @@ IR2_INST *la_xvslti_d(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvslti_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLTI_BU;
     pir2->op_count = 3;
@@ -27021,6 +27384,7 @@ IR2_INST *la_xvslti_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvslti_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLTI_HU;
     pir2->op_count = 3;
@@ -27034,6 +27398,7 @@ IR2_INST *la_xvslti_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvslti_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLTI_WU;
     pir2->op_count = 3;
@@ -27047,6 +27412,7 @@ IR2_INST *la_xvslti_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvslti_du(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLTI_DU;
     pir2->op_count = 3;
@@ -27060,6 +27426,7 @@ IR2_INST *la_xvslti_du(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvaddi_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVADDI_BU;
     pir2->op_count = 3;
@@ -27073,6 +27440,7 @@ IR2_INST *la_xvaddi_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvaddi_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVADDI_HU;
     pir2->op_count = 3;
@@ -27086,6 +27454,7 @@ IR2_INST *la_xvaddi_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvaddi_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVADDI_WU;
     pir2->op_count = 3;
@@ -27099,6 +27468,7 @@ IR2_INST *la_xvaddi_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvaddi_du(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVADDI_DU;
     pir2->op_count = 3;
@@ -27112,6 +27482,7 @@ IR2_INST *la_xvaddi_du(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvsubi_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSUBI_BU;
     pir2->op_count = 3;
@@ -27125,6 +27496,7 @@ IR2_INST *la_xvsubi_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvsubi_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSUBI_HU;
     pir2->op_count = 3;
@@ -27138,6 +27510,7 @@ IR2_INST *la_xvsubi_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvsubi_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSUBI_WU;
     pir2->op_count = 3;
@@ -27151,6 +27524,7 @@ IR2_INST *la_xvsubi_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvsubi_du(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSUBI_DU;
     pir2->op_count = 3;
@@ -27164,6 +27538,7 @@ IR2_INST *la_xvsubi_du(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvbsll_v(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBSLL_V;
     pir2->op_count = 3;
@@ -27177,6 +27552,7 @@ IR2_INST *la_xvbsll_v(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvbsrl_v(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBSRL_V;
     pir2->op_count = 3;
@@ -27190,6 +27566,7 @@ IR2_INST *la_xvbsrl_v(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvmaxi_b(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMAXI_B;
     pir2->op_count = 3;
@@ -27203,6 +27580,7 @@ IR2_INST *la_xvmaxi_b(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvmaxi_h(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMAXI_H;
     pir2->op_count = 3;
@@ -27216,6 +27594,7 @@ IR2_INST *la_xvmaxi_h(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvmaxi_w(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMAXI_W;
     pir2->op_count = 3;
@@ -27229,6 +27608,7 @@ IR2_INST *la_xvmaxi_w(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvmaxi_d(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMAXI_D;
     pir2->op_count = 3;
@@ -27242,6 +27622,7 @@ IR2_INST *la_xvmaxi_d(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvmini_b(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMINI_B;
     pir2->op_count = 3;
@@ -27255,6 +27636,7 @@ IR2_INST *la_xvmini_b(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvmini_h(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMINI_H;
     pir2->op_count = 3;
@@ -27268,6 +27650,7 @@ IR2_INST *la_xvmini_h(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvmini_w(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMINI_W;
     pir2->op_count = 3;
@@ -27281,6 +27664,7 @@ IR2_INST *la_xvmini_w(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvmini_d(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
+    assert(imm_si5 <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMINI_D;
     pir2->op_count = 3;
@@ -27294,6 +27678,7 @@ IR2_INST *la_xvmini_d(IR2_OPND xd, IR2_OPND xj, int imm_si5) {
 }
 
 IR2_INST *la_xvmaxi_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMAXI_BU;
     pir2->op_count = 3;
@@ -27307,6 +27692,7 @@ IR2_INST *la_xvmaxi_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvmaxi_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMAXI_HU;
     pir2->op_count = 3;
@@ -27320,6 +27706,7 @@ IR2_INST *la_xvmaxi_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvmaxi_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMAXI_WU;
     pir2->op_count = 3;
@@ -27333,6 +27720,7 @@ IR2_INST *la_xvmaxi_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvmaxi_du(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMAXI_DU;
     pir2->op_count = 3;
@@ -27346,6 +27734,7 @@ IR2_INST *la_xvmaxi_du(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvmini_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMINI_BU;
     pir2->op_count = 3;
@@ -27359,6 +27748,7 @@ IR2_INST *la_xvmini_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvmini_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMINI_HU;
     pir2->op_count = 3;
@@ -27372,6 +27762,7 @@ IR2_INST *la_xvmini_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvmini_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMINI_WU;
     pir2->op_count = 3;
@@ -27385,6 +27776,7 @@ IR2_INST *la_xvmini_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvmini_du(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMINI_DU;
     pir2->op_count = 3;
@@ -27398,6 +27790,7 @@ IR2_INST *la_xvmini_du(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvrandsigni_b(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVRANDSIGNI_B;
     pir2->op_count = 3;
@@ -27411,6 +27804,7 @@ IR2_INST *la_xvrandsigni_b(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvrandsigni_h(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVRANDSIGNI_H;
     pir2->op_count = 3;
@@ -27424,6 +27818,7 @@ IR2_INST *la_xvrandsigni_h(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvrorsigni_b(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVRORSIGNI_B;
     pir2->op_count = 3;
@@ -27437,6 +27832,7 @@ IR2_INST *la_xvrorsigni_b(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvrorsigni_h(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVRORSIGNI_H;
     pir2->op_count = 3;
@@ -27450,6 +27846,7 @@ IR2_INST *la_xvrorsigni_h(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvfrstpi_b(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVFRSTPI_B;
     pir2->op_count = 3;
@@ -27463,6 +27860,7 @@ IR2_INST *la_xvfrstpi_b(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvfrstpi_h(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVFRSTPI_H;
     pir2->op_count = 3;
@@ -27476,6 +27874,7 @@ IR2_INST *la_xvfrstpi_h(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvclrstri_v(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVCLRSTRI_V;
     pir2->op_count = 3;
@@ -27489,6 +27888,7 @@ IR2_INST *la_xvclrstri_v(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvmepatmsk_v(IR2_OPND xd, int imm_mode, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVMEPATMSK_V;
     pir2->op_count = 3;
@@ -28889,6 +29289,7 @@ IR2_INST *la_vext2xv_du_wu(IR2_OPND xd, IR2_OPND xj) {
 }
 
 IR2_INST *la_xvhseli_d(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVHSELI_D;
     pir2->op_count = 3;
@@ -28902,6 +29303,7 @@ IR2_INST *la_xvhseli_d(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvrotri_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVROTRI_B;
     pir2->op_count = 3;
@@ -28915,6 +29317,7 @@ IR2_INST *la_xvrotri_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvrotri_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVROTRI_H;
     pir2->op_count = 3;
@@ -28928,6 +29331,7 @@ IR2_INST *la_xvrotri_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvrotri_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVROTRI_W;
     pir2->op_count = 3;
@@ -28941,6 +29345,7 @@ IR2_INST *la_xvrotri_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvrotri_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVROTRI_D;
     pir2->op_count = 3;
@@ -28954,6 +29359,7 @@ IR2_INST *la_xvrotri_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
 }
 
 IR2_INST *la_xvsrlri_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSRLRI_B;
     pir2->op_count = 3;
@@ -28967,6 +29373,7 @@ IR2_INST *la_xvsrlri_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvsrlri_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSRLRI_H;
     pir2->op_count = 3;
@@ -28980,6 +29387,7 @@ IR2_INST *la_xvsrlri_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvsrlri_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSRLRI_W;
     pir2->op_count = 3;
@@ -28993,6 +29401,7 @@ IR2_INST *la_xvsrlri_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvsrlri_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSRLRI_D;
     pir2->op_count = 3;
@@ -29006,6 +29415,7 @@ IR2_INST *la_xvsrlri_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
 }
 
 IR2_INST *la_xvsrari_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSRARI_B;
     pir2->op_count = 3;
@@ -29019,6 +29429,7 @@ IR2_INST *la_xvsrari_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvsrari_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSRARI_H;
     pir2->op_count = 3;
@@ -29032,6 +29443,7 @@ IR2_INST *la_xvsrari_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvsrari_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSRARI_W;
     pir2->op_count = 3;
@@ -29045,6 +29457,7 @@ IR2_INST *la_xvsrari_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvsrari_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSRARI_D;
     pir2->op_count = 3;
@@ -29058,6 +29471,7 @@ IR2_INST *la_xvsrari_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
 }
 
 IR2_INST *la_xvinsgr2vr_w(IR2_OPND xd, IR2_OPND rj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVINSGR2VR_W;
     pir2->op_count = 3;
@@ -29071,6 +29485,7 @@ IR2_INST *la_xvinsgr2vr_w(IR2_OPND xd, IR2_OPND rj, int imm_ui3) {
 }
 
 IR2_INST *la_xvinsgr2vr_d(IR2_OPND xd, IR2_OPND rj, int imm_ui2) {
+    assert(imm_ui2 <= 0x3);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVINSGR2VR_D;
     pir2->op_count = 3;
@@ -29084,6 +29499,7 @@ IR2_INST *la_xvinsgr2vr_d(IR2_OPND xd, IR2_OPND rj, int imm_ui2) {
 }
 
 IR2_INST *la_xvpickve2gr_w(IR2_OPND rd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVPICKVE2GR_W;
     pir2->op_count = 3;
@@ -29097,6 +29513,7 @@ IR2_INST *la_xvpickve2gr_w(IR2_OPND rd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvpickve2gr_d(IR2_OPND rd, IR2_OPND xj, int imm_ui2) {
+    assert(imm_ui2 <= 0x3);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVPICKVE2GR_D;
     pir2->op_count = 3;
@@ -29110,6 +29527,7 @@ IR2_INST *la_xvpickve2gr_d(IR2_OPND rd, IR2_OPND xj, int imm_ui2) {
 }
 
 IR2_INST *la_xvpickve2gr_wu(IR2_OPND rd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVPICKVE2GR_WU;
     pir2->op_count = 3;
@@ -29123,6 +29541,7 @@ IR2_INST *la_xvpickve2gr_wu(IR2_OPND rd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvpickve2gr_du(IR2_OPND rd, IR2_OPND xj, int imm_ui2) {
+    assert(imm_ui2 <= 0x3);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVPICKVE2GR_DU;
     pir2->op_count = 3;
@@ -29136,6 +29555,7 @@ IR2_INST *la_xvpickve2gr_du(IR2_OPND rd, IR2_OPND xj, int imm_ui2) {
 }
 
 IR2_INST *la_xvrepl128vei_b(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVREPL128VEI_B;
     pir2->op_count = 3;
@@ -29149,6 +29569,7 @@ IR2_INST *la_xvrepl128vei_b(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvrepl128vei_h(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVREPL128VEI_H;
     pir2->op_count = 3;
@@ -29162,6 +29583,7 @@ IR2_INST *la_xvrepl128vei_h(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvrepl128vei_w(IR2_OPND xd, IR2_OPND xj, int imm_ui2) {
+    assert(imm_ui2 <= 0x3);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVREPL128VEI_W;
     pir2->op_count = 3;
@@ -29175,6 +29597,7 @@ IR2_INST *la_xvrepl128vei_w(IR2_OPND xd, IR2_OPND xj, int imm_ui2) {
 }
 
 IR2_INST *la_xvrepl128vei_d(IR2_OPND xd, IR2_OPND xj, int imm_ui1) {
+    assert(imm_ui1 <= 0x1);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVREPL128VEI_D;
     pir2->op_count = 3;
@@ -29188,6 +29611,7 @@ IR2_INST *la_xvrepl128vei_d(IR2_OPND xd, IR2_OPND xj, int imm_ui1) {
 }
 
 IR2_INST *la_xvextrcoli_b(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVEXTRCOLI_B;
     pir2->op_count = 3;
@@ -29201,6 +29625,7 @@ IR2_INST *la_xvextrcoli_b(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvextrcoli_h(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVEXTRCOLI_H;
     pir2->op_count = 3;
@@ -29214,6 +29639,7 @@ IR2_INST *la_xvextrcoli_h(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvextrcoli_w(IR2_OPND xd, IR2_OPND xj, int imm_ui2) {
+    assert(imm_ui2 <= 0x3);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVEXTRCOLI_W;
     pir2->op_count = 3;
@@ -29227,6 +29653,7 @@ IR2_INST *la_xvextrcoli_w(IR2_OPND xd, IR2_OPND xj, int imm_ui2) {
 }
 
 IR2_INST *la_xvextrcoli_d(IR2_OPND xd, IR2_OPND xj, int imm_ui1) {
+    assert(imm_ui1 <= 0x1);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVEXTRCOLI_D;
     pir2->op_count = 3;
@@ -29240,6 +29667,7 @@ IR2_INST *la_xvextrcoli_d(IR2_OPND xd, IR2_OPND xj, int imm_ui1) {
 }
 
 IR2_INST *la_xvinsve0_w(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVINSVE0_W;
     pir2->op_count = 3;
@@ -29253,6 +29681,7 @@ IR2_INST *la_xvinsve0_w(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvinsve0_d(IR2_OPND xd, IR2_OPND xj, int imm_ui2) {
+    assert(imm_ui2 <= 0x3);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVINSVE0_D;
     pir2->op_count = 3;
@@ -29266,6 +29695,7 @@ IR2_INST *la_xvinsve0_d(IR2_OPND xd, IR2_OPND xj, int imm_ui2) {
 }
 
 IR2_INST *la_xvpickve_w(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVPICKVE_W;
     pir2->op_count = 3;
@@ -29279,6 +29709,7 @@ IR2_INST *la_xvpickve_w(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvpickve_d(IR2_OPND xd, IR2_OPND xj, int imm_ui2) {
+    assert(imm_ui2 <= 0x3);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVPICKVE_D;
     pir2->op_count = 3;
@@ -29347,6 +29778,7 @@ IR2_INST *la_xvreplve0_q(IR2_OPND xd, IR2_OPND xj) {
 }
 
 IR2_INST *la_xvsllwil_h_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLLWIL_H_B;
     pir2->op_count = 3;
@@ -29360,6 +29792,7 @@ IR2_INST *la_xvsllwil_h_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvsllwil_w_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLLWIL_W_H;
     pir2->op_count = 3;
@@ -29373,6 +29806,7 @@ IR2_INST *la_xvsllwil_w_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvsllwil_d_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLLWIL_D_W;
     pir2->op_count = 3;
@@ -29397,6 +29831,7 @@ IR2_INST *la_xvextl_q_d(IR2_OPND xd, IR2_OPND xj) {
 }
 
 IR2_INST *la_xvsllwil_hu_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLLWIL_HU_BU;
     pir2->op_count = 3;
@@ -29410,6 +29845,7 @@ IR2_INST *la_xvsllwil_hu_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvsllwil_wu_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLLWIL_WU_HU;
     pir2->op_count = 3;
@@ -29423,6 +29859,7 @@ IR2_INST *la_xvsllwil_wu_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvsllwil_du_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLLWIL_DU_WU;
     pir2->op_count = 3;
@@ -29447,6 +29884,7 @@ IR2_INST *la_xvextl_qu_du(IR2_OPND xd, IR2_OPND xj) {
 }
 
 IR2_INST *la_xvbitclri_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBITCLRI_B;
     pir2->op_count = 3;
@@ -29460,6 +29898,7 @@ IR2_INST *la_xvbitclri_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvbitclri_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBITCLRI_H;
     pir2->op_count = 3;
@@ -29473,6 +29912,7 @@ IR2_INST *la_xvbitclri_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvbitclri_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBITCLRI_W;
     pir2->op_count = 3;
@@ -29486,6 +29926,7 @@ IR2_INST *la_xvbitclri_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvbitclri_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBITCLRI_D;
     pir2->op_count = 3;
@@ -29499,6 +29940,7 @@ IR2_INST *la_xvbitclri_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
 }
 
 IR2_INST *la_xvbitseti_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBITSETI_B;
     pir2->op_count = 3;
@@ -29512,6 +29954,7 @@ IR2_INST *la_xvbitseti_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvbitseti_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBITSETI_H;
     pir2->op_count = 3;
@@ -29525,6 +29968,7 @@ IR2_INST *la_xvbitseti_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvbitseti_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBITSETI_W;
     pir2->op_count = 3;
@@ -29538,6 +29982,7 @@ IR2_INST *la_xvbitseti_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvbitseti_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBITSETI_D;
     pir2->op_count = 3;
@@ -29551,6 +29996,7 @@ IR2_INST *la_xvbitseti_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
 }
 
 IR2_INST *la_xvbitrevi_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBITREVI_B;
     pir2->op_count = 3;
@@ -29564,6 +30010,7 @@ IR2_INST *la_xvbitrevi_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvbitrevi_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBITREVI_H;
     pir2->op_count = 3;
@@ -29577,6 +30024,7 @@ IR2_INST *la_xvbitrevi_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvbitrevi_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBITREVI_W;
     pir2->op_count = 3;
@@ -29590,6 +30038,7 @@ IR2_INST *la_xvbitrevi_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvbitrevi_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBITREVI_D;
     pir2->op_count = 3;
@@ -29603,6 +30052,7 @@ IR2_INST *la_xvbitrevi_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
 }
 
 IR2_INST *la_xvbstrc12i_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBSTRC12I_B;
     pir2->op_count = 3;
@@ -29616,6 +30066,7 @@ IR2_INST *la_xvbstrc12i_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvbstrc12i_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBSTRC12I_H;
     pir2->op_count = 3;
@@ -29629,6 +30080,7 @@ IR2_INST *la_xvbstrc12i_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvbstrc12i_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBSTRC12I_W;
     pir2->op_count = 3;
@@ -29642,6 +30094,7 @@ IR2_INST *la_xvbstrc12i_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvbstrc12i_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBSTRC12I_D;
     pir2->op_count = 3;
@@ -29655,6 +30108,7 @@ IR2_INST *la_xvbstrc12i_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
 }
 
 IR2_INST *la_xvbstrc21i_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBSTRC21I_B;
     pir2->op_count = 3;
@@ -29668,6 +30122,7 @@ IR2_INST *la_xvbstrc21i_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvbstrc21i_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBSTRC21I_H;
     pir2->op_count = 3;
@@ -29681,6 +30136,7 @@ IR2_INST *la_xvbstrc21i_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvbstrc21i_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBSTRC21I_W;
     pir2->op_count = 3;
@@ -29694,6 +30150,7 @@ IR2_INST *la_xvbstrc21i_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvbstrc21i_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVBSTRC21I_D;
     pir2->op_count = 3;
@@ -29707,6 +30164,7 @@ IR2_INST *la_xvbstrc21i_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
 }
 
 IR2_INST *la_xvsat_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSAT_B;
     pir2->op_count = 3;
@@ -29720,6 +30178,7 @@ IR2_INST *la_xvsat_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvsat_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSAT_H;
     pir2->op_count = 3;
@@ -29733,6 +30192,7 @@ IR2_INST *la_xvsat_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvsat_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSAT_W;
     pir2->op_count = 3;
@@ -29746,6 +30206,7 @@ IR2_INST *la_xvsat_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvsat_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSAT_D;
     pir2->op_count = 3;
@@ -29759,6 +30220,7 @@ IR2_INST *la_xvsat_d(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
 }
 
 IR2_INST *la_xvsat_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSAT_BU;
     pir2->op_count = 3;
@@ -29772,6 +30234,7 @@ IR2_INST *la_xvsat_bu(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvsat_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSAT_HU;
     pir2->op_count = 3;
@@ -29785,6 +30248,7 @@ IR2_INST *la_xvsat_hu(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvsat_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSAT_WU;
     pir2->op_count = 3;
@@ -29798,6 +30262,7 @@ IR2_INST *la_xvsat_wu(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
 }
 
 IR2_INST *la_xvsat_du(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
+    assert(imm_ui6 <= 0x3f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSAT_DU;
     pir2->op_count = 3;
@@ -29811,6 +30276,7 @@ IR2_INST *la_xvsat_du(IR2_OPND xd, IR2_OPND xj, int imm_ui6) {
 }
 
 IR2_INST *la_xvslli_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
+    assert(imm_ui3 <= 0x7);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLLI_B;
     pir2->op_count = 3;
@@ -29824,6 +30290,7 @@ IR2_INST *la_xvslli_b(IR2_OPND xd, IR2_OPND xj, int imm_ui3) {
 }
 
 IR2_INST *la_xvslli_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
+    assert(imm_ui4 <= 0xf);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLLI_H;
     pir2->op_count = 3;
@@ -29837,6 +30304,7 @@ IR2_INST *la_xvslli_h(IR2_OPND xd, IR2_OPND xj, int imm_ui4) {
 }
 
 IR2_INST *la_xvslli_w(IR2_OPND xd, IR2_OPND xj, int imm_ui5l) {
+    assert(imm_ui5l <= 0x1f);
     IR2_INST *pir2 = ir2_allocate();
     pir2->_opcode = LISA_XVSLLI_W;
     pir2->op_count = 3;
