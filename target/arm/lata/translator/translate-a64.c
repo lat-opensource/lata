@@ -3780,9 +3780,17 @@ static bool trans_SWP(DisasContext *s)
     }
 
     if(a->sz == 3) {
-        la_amswap_d(reg_t, reg_s, reg_n);
+        la_ll_d(src, reg_n, 0);
+        la_or(dest, reg_s, zero_ir2_opnd);
+        la_or(reg_t, src, zero_ir2_opnd);
+        la_or(reg_s, src, zero_ir2_opnd);        
+        la_sc_d(dest, reg_n, 0);
     } else if(a->sz == 2) {
-        la_amswap_w(reg_t, reg_s, reg_n);
+        la_ll_w(src, reg_n, 0);
+        la_bstrpick_d(dest, reg_s, 31, 0);
+        la_bstrpick_d(reg_t, src, 31, 0);
+        la_or(reg_s, src, zero_ir2_opnd);        
+        la_sc_w(dest, reg_n, 0);
     } else if(a->sz == 1) {
         IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
         IR2_OPND offset = ra_alloc_itemp();
