@@ -1667,7 +1667,7 @@ static void lata_store_exclusive(DisasContext *s, int rs, int rt, int rt2,
                 la_ld_d(mem_data, env_ir2_opnd, env_offset(exclusive_memdata));
                 la_andn(mem_data, mem_data, offset);
 
-                la_or(mem_data, reg_s, mem_data);              
+                la_or(reg_s, reg_s, mem_data);              
 
                 la_sc_d(reg_s, aligned_mem, 0);
                 la_xori(reg_s, reg_s, 1);
@@ -1688,7 +1688,7 @@ static void lata_store_exclusive(DisasContext *s, int rs, int rt, int rt2,
                 la_ld_d(mem_data, env_ir2_opnd, env_offset(exclusive_memdata));
                 la_andn(mem_data, mem_data, offset);
 
-                la_or(mem_data, reg_s, mem_data);              
+                la_or(reg_s, reg_s, mem_data);              
 
                 la_sc_d(reg_s, aligned_mem, 0);
                 la_xori(reg_s, reg_s, 1);
@@ -1888,126 +1888,127 @@ static bool trans_CAS(DisasContext *s)
     }
 
     arg_CAS *a = &(s->arg.f_decode_insn3221);
-
     IR2_OPND reg_s = alloc_gpr_src(a->rs);
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
     IR2_OPND src = ra_alloc_itemp();
     IR2_OPND dest = ra_alloc_itemp();
-    IR2_OPND label_unequal = ir2_opnd_new_type(IR2_OPND_LABEL);
     IR2_OPND label_exit = ir2_opnd_new_type(IR2_OPND_LABEL);
+    IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
 
     if (a->rn == 31) {
         gen_check_sp_alignment(s);
     }
 
-    if(acquire){
+    if(release){
         la_dbar(0);
     }
 
     if(a->sz == 3) {
+        la_or(src, reg_s, zero_ir2_opnd);
+        la_label(label_ll);
+        la_ll_d(reg_s, reg_n, 0);
+        la_bne(src, reg_s, label_exit);
         la_or(dest, reg_t, zero_ir2_opnd);
-        la_ll_d(src, reg_n, 0);
-        la_bne(src, reg_s, label_unequal);
         la_sc_d(dest, reg_n, 0);
-        la_b(label_exit);
-
-        la_label(label_unequal);
-        la_or(reg_s, zero_ir2_opnd, src);
+        la_beqz(dest, label_ll);
     } else if(a->sz == 2) {
+        la_bstrpick_d(src, reg_s, 31, 0);
+        la_label(label_ll);
+        la_ll_w(reg_s, reg_n, 0);
+        la_bstrpick_d(reg_s, reg_s, 31, 0);
+        la_bne(src, reg_s, label_exit);
         la_or(dest, reg_t, zero_ir2_opnd);
-        la_ll_w(src, reg_n, 0);
-        la_bstrpick_d(src, src, 31, 0);
-        la_bstrpick_d(dest, reg_s, 31, 0);
-        la_bne(src, dest, label_unequal);
         la_sc_w(dest, reg_n, 0);
-        la_b(label_exit);
-
-        la_label(label_unequal);
-        la_or(reg_s, zero_ir2_opnd, src);
+        la_beqz(dest, label_ll);
     } else if(a->sz == 1) {
         IR2_OPND offset = ra_alloc_itemp();
         IR2_OPND aligned_mem = ra_alloc_itemp();
-        /* deal with the situation when memory is not aligned */
+        /*  mov tmp1, ws
+            1:
+            ldxr ws, [xn]
+            cmp  ws, tmp1
+            b.ne 2
+            stxr tmp2, wt, [xn]
+            cbnz tmp2,1
+            2:
+            ret
+        */
+        // mov
+        la_bstrpick_d(src, reg_s, 15, 0);
+        
+        // ldxr ws, [xn]
+        la_label(label_ll);
         la_bstrpick_d(offset, reg_n, 2, 0);
         la_or(aligned_mem, reg_n, zero_ir2_opnd);
         la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
-        la_ll_d(src, aligned_mem, 0);
-        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_ll_d(dest, aligned_mem, 0);
         la_slli_d(offset, offset, 3);
-        la_srl_d(src, src, offset);
-        la_bstrpick_d(src, src, 15, 0);
+        la_srl_d(reg_s, dest, offset);
+        la_bstrpick_d(reg_s, reg_s, 15, 0);
 
-        /* compare */
-        la_bstrpick_d(dest, reg_s, 15, 0);
-        la_bne(src, dest, label_unequal);
+        // cmp  ws, tmp1 + b.ne 2
+        la_bne(reg_s, src, label_exit);
 
-        /* get new value */
-        la_bstrpick_d(dest, reg_t, 15, 0);
-        la_sll_d(dest, dest, offset);
-
-        /* merge data */
+        // stxr tmp2, wt, [xn]
         li_d(src, 0xffff);
-        la_sll_d(offset, src, offset);
-        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
-        la_andn(src, src, offset);
+        la_sll_d(src, src, offset);
+        la_andn(src, dest, src);
+        la_bstrpick_d(dest, reg_t, 15, 0); // Being able to run here means [xn] == ws,even wt == ws,it won't be changed. 
+        la_sll_d(dest, dest, offset);
+        la_or(dest, src, dest);              
 
-        /* store new value */
-        la_or(dest, dest, src);              
+        // src recover
+        la_or(src, reg_s, zero_ir2_opnd);
         la_sc_d(dest, aligned_mem, 0);
 
-        la_b(label_exit);
-
-        la_label(label_unequal);
-        la_or(reg_s, zero_ir2_opnd, src);
-
+        // cbnz tmp2,1
+        la_beqz(dest, label_ll);
         free_alloc_gpr(offset);
         free_alloc_gpr(aligned_mem);
     } else {
         IR2_OPND offset = ra_alloc_itemp();
         IR2_OPND aligned_mem = ra_alloc_itemp();
-        /* deal with the situation when memory is not aligned */
+        // mov
+        la_bstrpick_d(src, reg_s, 7, 0);
+        
+        // ldxr ws, [xn]
+        la_label(label_ll);
         la_bstrpick_d(offset, reg_n, 2, 0);
         la_or(aligned_mem, reg_n, zero_ir2_opnd);
         la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
-        la_ll_d(src, aligned_mem, 0);
-        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_ll_d(dest, aligned_mem, 0);
         la_slli_d(offset, offset, 3);
-        la_srl_d(src, src, offset);
-        la_bstrpick_d(src, src, 7, 0);
+        la_srl_d(reg_s, dest, offset);
+        la_bstrpick_d(reg_s, reg_s, 7, 0);
 
-        /* compare */
-        la_bstrpick_d(dest, reg_s, 7, 0);
-        la_bne(src, dest, label_unequal);
+        // cmp  ws, tmp1 + b.ne 2
+        la_bne(reg_s, src, label_exit);
 
-        /* get new value */
-        la_bstrpick_d(dest, reg_t, 7, 0);
-        la_sll_d(dest, dest, offset);
-
-        /* merge data */
+        // stxr tmp2, wt, [xn]
         li_d(src, 0xff);
-        la_sll_d(offset, src, offset);
-        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
-        la_andn(src, src, offset);
+        la_sll_d(src, src, offset);
+        la_andn(src, dest, src);
+        la_bstrpick_d(dest, reg_t, 7, 0); // Being able to run here means [xn] == ws,even wt == ws,it won't be changed. 
+        la_sll_d(dest, dest, offset);
+        la_or(dest, src, dest);              
 
-        /* store new value */
-        la_or(dest, dest, src);              
+        // src recover
+        la_or(src, reg_s, zero_ir2_opnd);
         la_sc_d(dest, aligned_mem, 0);
 
-        la_b(label_exit);
-
-        la_label(label_unequal);
-        la_or(reg_s, zero_ir2_opnd, src);
-
+        // cbnz tmp2,1
+        la_beqz(dest, label_ll);
         free_alloc_gpr(offset);
         free_alloc_gpr(aligned_mem);
     }
 
     la_label(label_exit);
-    if(release){
+    if(acquire){
         la_dbar(0);
     }
     
+    store_gpr_dst(a->rs, reg_s);
     free_alloc_gpr(reg_s);
     free_alloc_gpr(reg_t);
     free_alloc_gpr(reg_n);
@@ -3382,15 +3383,10 @@ static bool trans_LDADD(DisasContext *s)
 {
     int acquire = extract32(s->insn, 23, 1);
     int release = extract32(s->insn, 22, 1);
-    
-    if (!dc_isar_feature(aa64_atomics, s)) {
-        return false;
-    }
 
     arg_atomic *a = &(s->arg.f_atomic);
-
     IR2_OPND reg_s = alloc_gpr_src(a->rs);
-    IR2_OPND reg_t = alloc_gpr_src(a->rt);
+    IR2_OPND reg_t = alloc_gpr_dst(a->rt);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
     IR2_OPND src = ra_alloc_itemp();
     IR2_OPND dest = ra_alloc_itemp();
@@ -3399,47 +3395,76 @@ static bool trans_LDADD(DisasContext *s)
         gen_check_sp_alignment(s);
     }
 
-    if(acquire){
+    if(release){
         la_dbar(0);
     }
 
     if(a->sz == 3) {
-        la_or(src, zero_ir2_opnd, reg_s);
-        la_amadd_d(reg_t, src, reg_n);
+        if(a->rt == a->rs || a->rt == a->rn){
+            IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
+            la_or(src, reg_s, zero_ir2_opnd);
+            la_label(label_ll);
+            la_ll_w(reg_t, reg_n, 0);
+            la_add_d(dest, src, reg_t);
+            la_sc_w(dest, reg_n, 0);
+            la_beqz(dest, label_ll);
+        }else{
+            la_amadd_d(reg_t, reg_s, reg_n);  
+        }
     } else if(a->sz == 2) {
-        la_or(src, zero_ir2_opnd, reg_s);
-        la_amadd_w(reg_t, src, reg_n);
+        if(a->rt == a->rs || a->rt == a->rn){
+            IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
+            la_bstrpick_d(src, reg_s, 31, 0);
+            la_label(label_ll);
+            la_ll_w(reg_t, reg_n, 0);
+            la_bstrpick_d(reg_t, reg_t, 31, 0);
+            la_add_w(dest, src, reg_t);
+            la_sc_w(dest, reg_n, 0);
+            la_beqz(dest, label_ll);
+        }else{
+            la_amadd_w(reg_t, reg_s, reg_n);  
+            la_bstrpick_d(reg_t, reg_t, 31, 0);
+        }
     } else if(a->sz == 1) {
         IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
         IR2_OPND offset = ra_alloc_itemp();
         IR2_OPND aligned_mem = ra_alloc_itemp();
-        /* deal with the situation when memory is not aligned */
+        /*  mov tmp1, ws
+            1:
+            ldxr wt, [xn]
+            add  tmp2, wt, tmp1
+            stxr tmp3, tmp2, [xn]
+            cbnz tmp3,1
+        */
+        // mov, dest can't be changed
+        la_bstrpick_d(dest, reg_s, 15, 0);
+        
+        // ldxr wt, [xn]
+        la_label(label_ll);
         la_bstrpick_d(offset, reg_n, 2, 0);
         la_or(aligned_mem, reg_n, zero_ir2_opnd);
         la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
-        la_label(label_ll);
-        la_ll_d(src, aligned_mem, 0);
-        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_ll_d(reg_t, aligned_mem, 0);
         la_slli_d(offset, offset, 3);
-        la_srl_d(src, src, offset);
 
-        /* store back to rt*/
-        la_bstrpick_d(dest, reg_s, 15, 0);
-        la_bstrpick_d(reg_t, src, 15, 0);
+        // add  tmp2, wt, tmp1
+        li_d(src, 0xffff);
+        la_sll_d(src, src, offset);
+        la_andn(src, reg_t, src);
 
-        /* add */
+        la_srl_d(reg_t, reg_t, offset);
+        la_bstrpick_d(reg_t, reg_t, 15, 0);  
         la_add_d(dest, dest, reg_t);
 
-        /* merge data */
-        li_d(src, 0xffff);
-        la_sll_d(offset, src, offset);
-        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
-        la_andn(src, src, offset);
+        la_sll_d(offset, dest, offset);
+        la_or(src, src, offset);
+        // dest recover
+        la_sub_d(dest, dest, reg_t);      
+        // stxr tmp3, tmp2, [xn]         
+        la_sc_d(src, aligned_mem, 0);
 
-        /* store new value */
-        la_or(dest, dest, src);              
-        la_sc_d(dest, aligned_mem, 0);
-        la_beq(dest, zero_ir2_opnd, label_ll);
+        // cbnz tmp3,1
+        la_beqz(src, label_ll);
 
         free_alloc_gpr(offset);
         free_alloc_gpr(aligned_mem);
@@ -3447,42 +3472,45 @@ static bool trans_LDADD(DisasContext *s)
         IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
         IR2_OPND offset = ra_alloc_itemp();
         IR2_OPND aligned_mem = ra_alloc_itemp();
-        /* deal with the situation when memory is not aligned */
+        // mov, dest can't be changed
+        la_bstrpick_d(dest, reg_s, 7, 0);
+        
+        // ldxr wt, [xn]
+        la_label(label_ll);
         la_bstrpick_d(offset, reg_n, 2, 0);
         la_or(aligned_mem, reg_n, zero_ir2_opnd);
         la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
-        la_label(label_ll);
-        la_ll_d(src, aligned_mem, 0);
-        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_ll_d(reg_t, aligned_mem, 0);
         la_slli_d(offset, offset, 3);
-        la_srl_d(src, src, offset);
 
-        /* store back to rt*/
-        la_bstrpick_d(dest, reg_s, 7, 0);
-        la_bstrpick_d(reg_t, src, 7, 0);
+        // add  tmp2, wt, tmp1
+        li_d(src, 0xff);
+        la_sll_d(src, src, offset);
+        la_andn(src, reg_t, src);
 
-        /* add */
+        la_srl_d(reg_t, reg_t, offset);
+        la_bstrpick_d(reg_t, reg_t, 7, 0);  
         la_add_d(dest, dest, reg_t);
 
-        /* merge data */
-        li_d(src, 0xff);
-        la_sll_d(offset, src, offset);
-        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
-        la_andn(src, src, offset);
+        la_sll_d(offset, dest, offset);
+        la_or(src, src, offset);
+        // dest recover
+        la_sub_d(dest, dest, reg_t);      
+        // stxr tmp3, tmp2, [xn]         
+        la_sc_d(src, aligned_mem, 0);
 
-        /* store new value */
-        la_or(dest, dest, src);              
-        la_sc_d(dest, aligned_mem, 0);
-        la_beq(dest, zero_ir2_opnd, label_ll);
+        // cbnz tmp3,1
+        la_beqz(src, label_ll);
 
         free_alloc_gpr(offset);
         free_alloc_gpr(aligned_mem);
     }
 
-    if(release){
+    if(acquire){
         la_dbar(0);
     }
     
+    store_gpr_dst(a->rt, reg_t);
     free_alloc_gpr(reg_s);
     free_alloc_gpr(reg_t);
     free_alloc_gpr(reg_n);
@@ -3496,12 +3524,7 @@ static bool trans_LDCLR(DisasContext *s)
     int acquire = extract32(s->insn, 23, 1);
     int release = extract32(s->insn, 22, 1);
     
-    if (!dc_isar_feature(aa64_atomics, s)) {
-        return false;
-    }
-
     arg_atomic *a = &(s->arg.f_atomic);
-
     IR2_OPND reg_s = alloc_gpr_src(a->rs);
     IR2_OPND reg_t = alloc_gpr_src(a->rt);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
@@ -3512,50 +3535,78 @@ static bool trans_LDCLR(DisasContext *s)
         gen_check_sp_alignment(s);
     }
 
-    if(acquire){
+    if(release){
         la_dbar(0);
     }
 
     if(a->sz == 3) {
-        la_orn(src, zero_ir2_opnd, reg_s);
-        la_amand_d(reg_t, src, reg_n);
+        if(a->rt == a->rs || a->rt == a->rn){
+            IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
+            la_or(src, reg_s, zero_ir2_opnd);
+            la_label(label_ll);
+            la_ll_d(reg_t, reg_n, 0);
+            la_andn(dest, src, reg_t);
+            la_sc_d(dest, reg_n, 0);
+            la_beqz(dest, label_ll);
+        }else{
+            la_orn(src, zero_ir2_opnd, reg_s);
+            la_amand_d(reg_t, src, reg_n);          
+        }
     } else if(a->sz == 2) {
-        la_orn(src, zero_ir2_opnd, reg_s);
-        la_amand_w(reg_t, src, reg_n);
+        if(a->rt == a->rs || a->rt == a->rn){
+            IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
+            la_bstrpick_d(src, reg_s, 31, 0);
+            la_label(label_ll);
+            la_ll_w(reg_t, reg_n, 0);
+            la_bstrpick_d(reg_t, reg_t, 31, 0);
+            la_andn(dest, src, reg_t);
+            la_sc_w(dest, reg_n, 0);
+            la_beqz(dest, label_ll);
+        }else{
+            la_orn(src, zero_ir2_opnd, reg_s);
+            la_amand_w(reg_t, src, reg_n);        
+            la_bstrpick_d(reg_t, reg_t, 31, 0);  
+        }
     } else if(a->sz == 1) {
         IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
         IR2_OPND offset = ra_alloc_itemp();
         IR2_OPND aligned_mem = ra_alloc_itemp();
-        /* deal with the situation when memory is not aligned */
+        /*  mov tmp1, ws
+            1:
+            ldxr wt, [xn]
+            bic  tmp2, wt, tmp1
+            stxr tmp3, tmp2, [xn]
+            cbnz tmp3,1
+        */
+        // mov, dest can't be changed
+        la_bstrpick_d(dest, reg_s, 15, 0);
+        
+        // ldxr wt, [xn]
+        la_label(label_ll);
         la_bstrpick_d(offset, reg_n, 2, 0);
         la_or(aligned_mem, reg_n, zero_ir2_opnd);
         la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
-        la_label(label_ll);
-        la_ll_d(src, aligned_mem, 0);
-
-        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_ll_d(reg_t, aligned_mem, 0);
         la_slli_d(offset, offset, 3);
-        la_srl_d(src, src, offset);
 
-        /* store back to rt
-            ps: mov reg_s to dest first, avoid src covers rs when rs == rt.*/
-        la_bstrpick_d(dest, reg_s, 15, 0);
-        la_bstrpick_d(reg_t, src, 15, 0);
-
-        /* and */
-        la_orn(dest, zero_ir2_opnd, dest);
-        la_and(dest, dest, reg_t);
-
-        /* merge data */
+        // bic  tmp2, wt, tmp1
         li_d(src, 0xffff);
-        la_sll_d(offset, src, offset);
-        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
-        la_andn(src, src, offset);
+        la_sll_d(src, src, offset);
+        la_andn(src, reg_t, src);
 
-        /* store new value */
-        la_or(dest, dest, src);              
-        la_sc_d(dest, aligned_mem, 0);
-        la_beq(dest, zero_ir2_opnd, label_ll);
+        la_srl_d(reg_t, reg_t, offset);
+        la_bstrpick_d(reg_t, reg_t, 15, 0);  
+        la_andn(dest, reg_t, dest);
+
+        la_sll_d(offset, dest, offset);
+        la_or(src, src, offset);
+        // dest recover
+        la_sub_d(dest, dest, reg_t);      
+        // stxr tmp3, tmp2, [xn]         
+        la_sc_d(src, aligned_mem, 0);
+
+        // cbnz tmp3,1
+        la_beqz(src, label_ll);
 
         free_alloc_gpr(offset);
         free_alloc_gpr(aligned_mem);
@@ -3563,46 +3614,45 @@ static bool trans_LDCLR(DisasContext *s)
         IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
         IR2_OPND offset = ra_alloc_itemp();
         IR2_OPND aligned_mem = ra_alloc_itemp();
-        /* deal with the situation when memory is not aligned */
+        // mov, dest can't be changed
+        la_bstrpick_d(dest, reg_s, 7, 0);
+        
+        // ldxr wt, [xn]
+        la_label(label_ll);
         la_bstrpick_d(offset, reg_n, 2, 0);
         la_or(aligned_mem, reg_n, zero_ir2_opnd);
         la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
-        la_label(label_ll);
-        la_ll_d(src, aligned_mem, 0);
-
-        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_ll_d(reg_t, aligned_mem, 0);
         la_slli_d(offset, offset, 3);
-        la_srl_d(src, src, offset);
 
-        /* store back to rt
-            ps: mov reg_s to dest first, avoid src covers rs when rs == rt.*/
-        la_bstrpick_d(dest, reg_s, 7, 0);
-        la_bstrpick_d(reg_t, src, 7, 0);
-
-        /* and */
-        la_orn(dest, zero_ir2_opnd, dest);
-        la_and(dest, dest, reg_t);
-        // la_xor(dest, dest, reg_t);
-
-        /* merge data */
+        // bic  tmp2, wt, tmp1
         li_d(src, 0xff);
-        la_sll_d(offset, src, offset);
-        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
-        la_andn(src, src, offset);
+        la_sll_d(src, src, offset);
+        la_andn(src, reg_t, src);
 
-        /* store new value */
-        la_or(dest, dest, src);              
-        la_sc_d(dest, aligned_mem, 0);
-        la_beq(dest, zero_ir2_opnd, label_ll);
+        la_srl_d(reg_t, reg_t, offset);
+        la_bstrpick_d(reg_t, reg_t, 7, 0);  
+        la_andn(dest, reg_t, dest);
+
+        la_sll_d(offset, dest, offset);
+        la_or(src, src, offset);
+        // dest recover
+        la_sub_d(dest, dest, reg_t);      
+        // stxr tmp3, tmp2, [xn]         
+        la_sc_d(src, aligned_mem, 0);
+
+        // cbnz tmp3,1
+        la_beqz(src, label_ll);
 
         free_alloc_gpr(offset);
         free_alloc_gpr(aligned_mem);
     }
 
-    if(release){
+    if(acquire){
         la_dbar(0);
     }
     
+    store_gpr_dst(a->rt, reg_t);
     free_alloc_gpr(reg_s);
     free_alloc_gpr(reg_t);
     free_alloc_gpr(reg_n);
@@ -3621,15 +3671,10 @@ static bool trans_LDSET(DisasContext *s)
 {
     int acquire = extract32(s->insn, 23, 1);
     int release = extract32(s->insn, 22, 1);
-    
-    if (!dc_isar_feature(aa64_atomics, s)) {
-        return false;
-    }
 
     arg_atomic *a = &(s->arg.f_atomic);
-
     IR2_OPND reg_s = alloc_gpr_src(a->rs);
-    IR2_OPND reg_t = alloc_gpr_src(a->rt);
+    IR2_OPND reg_t = alloc_gpr_dst(a->rt);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
     IR2_OPND src = ra_alloc_itemp();
     IR2_OPND dest = ra_alloc_itemp();
@@ -3638,49 +3683,77 @@ static bool trans_LDSET(DisasContext *s)
         gen_check_sp_alignment(s);
     }
 
-    if(acquire){
+    if(release){
         la_dbar(0);
     }
 
     if(a->sz == 3) {
-        la_or(src, zero_ir2_opnd, reg_s);
-        la_amor_d(reg_t, src, reg_n);
+        if(a->rt == a->rs || a->rt == a->rn){
+            IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
+            la_or(src, reg_s, zero_ir2_opnd);
+            la_label(label_ll);
+            la_ll_d(reg_t, reg_n, 0);
+            la_or(dest, src, reg_t);
+            la_sc_d(dest, reg_n, 0);
+            la_beqz(dest, label_ll);
+        }else{
+            la_amor_d(reg_t, reg_s, reg_n);        
+        }
     } else if(a->sz == 2) {
-        la_or(src, zero_ir2_opnd, reg_s);
-        la_amor_w(reg_t, src, reg_n);
+        if(a->rt == a->rs || a->rt == a->rn){
+            IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
+            la_bstrpick_d(src, reg_s, 31, 0);
+            la_label(label_ll);
+            la_ll_w(reg_t, reg_n, 0);
+            la_bstrpick_d(reg_t, reg_t, 31, 0);
+            la_or(dest, src, reg_t);
+            la_sc_w(dest, reg_n, 0);
+            la_beqz(dest, label_ll);
+        }else{
+            la_amor_w(reg_t, reg_s, reg_n);  
+            la_bstrpick_d(reg_t, reg_t, 31, 0);
+        }
+        
     } else if(a->sz == 1) {
         IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
         IR2_OPND offset = ra_alloc_itemp();
         IR2_OPND aligned_mem = ra_alloc_itemp();
-        /* deal with the situation when memory is not aligned */
+        /*  mov tmp1, ws
+            1:
+            ldxr wt, [xn]
+            or  tmp2, wt, tmp1
+            stxr tmp3, tmp2, [xn]
+            cbnz tmp3,1
+        */
+        // mov, dest can't be changed
+        la_bstrpick_d(dest, reg_s, 15, 0);
+        
+        // ldxr wt, [xn]
+        la_label(label_ll);
         la_bstrpick_d(offset, reg_n, 2, 0);
         la_or(aligned_mem, reg_n, zero_ir2_opnd);
         la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
-        la_label(label_ll);
-        la_ll_d(src, aligned_mem, 0);
-
-        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_ll_d(reg_t, aligned_mem, 0);
         la_slli_d(offset, offset, 3);
-        la_srl_d(src, src, offset);
 
-        /* store back to rt
-            ps: mov reg_s to dest first, avoid src covers rs when rs == rt.*/
-        la_bstrpick_d(dest, reg_s, 15, 0);
-        la_bstrpick_d(reg_t, src, 15, 0);
-
-        /* and */
-        la_or(dest, dest, reg_t);
-
-        /* merge data */
+        // or  tmp2, wt, tmp1
         li_d(src, 0xffff);
-        la_sll_d(offset, src, offset);
-        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
-        la_andn(src, src, offset);
+        la_sll_d(src, src, offset);
+        la_or(src, reg_t, src);
 
-        /* store new value */
-        la_or(dest, dest, src);              
-        la_sc_d(dest, aligned_mem, 0);
-        la_beq(dest, zero_ir2_opnd, label_ll);
+        la_srl_d(reg_t, reg_t, offset);
+        la_bstrpick_d(reg_t, reg_t, 15, 0);  
+        la_add_d(dest, dest, reg_t);
+
+        la_sll_d(offset, dest, offset);
+        la_or(src, src, offset);
+        // dest recover
+        la_sub_d(dest, dest, reg_t);      
+        // stxr tmp3, tmp2, [xn]         
+        la_sc_d(src, aligned_mem, 0);
+
+        // cbnz tmp3,1
+        la_beqz(src, label_ll);
 
         free_alloc_gpr(offset);
         free_alloc_gpr(aligned_mem);
@@ -3688,44 +3761,45 @@ static bool trans_LDSET(DisasContext *s)
         IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
         IR2_OPND offset = ra_alloc_itemp();
         IR2_OPND aligned_mem = ra_alloc_itemp();
-        /* deal with the situation when memory is not aligned */
+        // mov, dest can't be changed
+        la_bstrpick_d(dest, reg_s, 7, 0);
+        
+        // ldxr wt, [xn]
+        la_label(label_ll);
         la_bstrpick_d(offset, reg_n, 2, 0);
         la_or(aligned_mem, reg_n, zero_ir2_opnd);
         la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
-        la_label(label_ll);
-        la_ll_d(src, aligned_mem, 0);
-
-        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_ll_d(reg_t, aligned_mem, 0);
         la_slli_d(offset, offset, 3);
-        la_srl_d(src, src, offset);
 
-        /* store back to rt
-            ps: mov reg_s to dest first, avoid src covers rs when rs == rt.*/
-        la_bstrpick_d(dest, reg_s, 7, 0);
-        la_bstrpick_d(reg_t, src, 7, 0);
-
-        /* and */
-        la_or(dest, dest, reg_t);
-
-        /* merge data */
+        // or  tmp2, wt, tmp1
         li_d(src, 0xff);
-        la_sll_d(offset, src, offset);
-        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
-        la_andn(src, src, offset);
+        la_sll_d(src, src, offset);
+        la_or(src, reg_t, src);
 
-        /* store new value */
-        la_or(dest, dest, src);              
-        la_sc_d(dest, aligned_mem, 0);
-        la_beq(dest, zero_ir2_opnd, label_ll);
+        la_srl_d(reg_t, reg_t, offset);
+        la_bstrpick_d(reg_t, reg_t, 7, 0);  
+        la_add_d(dest, dest, reg_t);
+
+        la_sll_d(offset, dest, offset);
+        la_or(src, src, offset);
+        // dest recover
+        la_sub_d(dest, dest, reg_t);      
+        // stxr tmp3, tmp2, [xn]         
+        la_sc_d(src, aligned_mem, 0);
+
+        // cbnz tmp3,1
+        la_beqz(src, label_ll);
 
         free_alloc_gpr(offset);
         free_alloc_gpr(aligned_mem);
     }
 
-    if(release){
+    if(acquire){
         la_dbar(0);
     }
     
+    store_gpr_dst(a->rt, reg_t);
     free_alloc_gpr(reg_s);
     free_alloc_gpr(reg_t);
     free_alloc_gpr(reg_n);
@@ -3758,15 +3832,11 @@ static bool trans_SWP(DisasContext *s)
 {
     int acquire = extract32(s->insn, 23, 1);
     int release = extract32(s->insn, 22, 1);
-    
-    if (!dc_isar_feature(aa64_atomics, s)) {
-        return false;
-    }
 
     arg_atomic *a = &(s->arg.f_atomic);
 
     IR2_OPND reg_s = alloc_gpr_src(a->rs);
-    IR2_OPND reg_t = alloc_gpr_src(a->rt);
+    IR2_OPND reg_t = alloc_gpr_dst(a->rt);
     IR2_OPND reg_n = alloc_gpr_src(a->rn);
     IR2_OPND src = ra_alloc_itemp();
     IR2_OPND dest = ra_alloc_itemp();
@@ -3775,50 +3845,71 @@ static bool trans_SWP(DisasContext *s)
         gen_check_sp_alignment(s);
     }
 
-    if(acquire){
+    if(release){
         la_dbar(0);
     }
 
     if(a->sz == 3) {
-        la_ll_d(src, reg_n, 0);
-        la_or(dest, reg_s, zero_ir2_opnd);
-        la_or(reg_t, src, zero_ir2_opnd);
-        la_or(reg_s, src, zero_ir2_opnd);        
-        la_sc_d(dest, reg_n, 0);
+        if(a->rt == a->rs || a->rt == a->rn){
+            IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
+            la_or(src, reg_s, zero_ir2_opnd);
+            la_label(label_ll);
+            la_ll_d(reg_t, reg_n, 0);
+            la_or(dest, src, zero_ir2_opnd);
+            la_sc_d(dest, reg_n, 0);
+            la_beqz(dest, label_ll);
+        }else{
+            la_amswap_d(reg_t, reg_s, reg_n);  
+        }
     } else if(a->sz == 2) {
-        la_ll_w(src, reg_n, 0);
-        la_bstrpick_d(dest, reg_s, 31, 0);
-        la_bstrpick_d(reg_t, src, 31, 0);
-        la_or(reg_s, src, zero_ir2_opnd);        
-        la_sc_w(dest, reg_n, 0);
+        if(a->rt == a->rs || a->rt == a->rn){
+            IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
+            la_bstrpick_d(src, reg_s, 31, 0);
+            la_label(label_ll);
+            la_ll_w(reg_t, reg_n, 0);
+            la_bstrpick_d(reg_t, reg_t, 31, 0);
+            la_or(dest, src, zero_ir2_opnd);
+            la_sc_w(dest, reg_n, 0);
+            la_beqz(dest, label_ll);
+        }else{
+            la_amswap_w(reg_t, reg_s, reg_n);  
+            la_bstrpick_d(reg_t, reg_t, 31, 0);
+        }
     } else if(a->sz == 1) {
         IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
         IR2_OPND offset = ra_alloc_itemp();
         IR2_OPND aligned_mem = ra_alloc_itemp();
-        /* deal with the situation when memory is not aligned */
+        /*  mov tmp1, ws
+            1:
+            ldxr wt, [xn]
+            stxr tmp2, tmp1, [xn]
+            cbnz tmp2,1
+        */
+        // mov, dest can't be changed
+        la_bstrpick_d(dest, reg_s, 15, 0);
+        
+        // ldxr wt, [xn]
+        la_label(label_ll);
         la_bstrpick_d(offset, reg_n, 2, 0);
         la_or(aligned_mem, reg_n, zero_ir2_opnd);
         la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
-        la_label(label_ll);
-        la_ll_d(src, aligned_mem, 0);
-        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_ll_d(reg_t, aligned_mem, 0);
         la_slli_d(offset, offset, 3);
-        la_srl_d(src, src, offset);
 
-        /* store back to rt*/
-        la_bstrpick_d(dest, reg_s, 15, 0);
-        la_bstrpick_d(reg_t, src, 15, 0);
-
-        /* merge data */
+        // stxr tmp2, tmp1, [xn]
         li_d(src, 0xffff);
-        la_sll_d(offset, src, offset);
-        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
-        la_andn(src, src, offset);
+        la_sll_d(src, src, offset);
+        la_andn(src, reg_t, src);
 
-        /* store new value */
-        la_or(dest, dest, src);              
-        la_sc_d(dest, aligned_mem, 0);
-        la_beq(dest, zero_ir2_opnd, label_ll);
+        la_srl_d(reg_t, reg_t, offset);
+        la_bstrpick_d(reg_t, reg_t, 15, 0);  
+
+        la_sll_d(offset, dest, offset);
+        la_or(src, src, offset);              
+        la_sc_d(src, aligned_mem, 0);
+
+        // cbnz tmp2,1
+        la_beqz(src, label_ll);
 
         free_alloc_gpr(offset);
         free_alloc_gpr(aligned_mem);
@@ -3826,39 +3917,41 @@ static bool trans_SWP(DisasContext *s)
         IR2_OPND label_ll = ir2_opnd_new_type(IR2_OPND_LABEL);
         IR2_OPND offset = ra_alloc_itemp();
         IR2_OPND aligned_mem = ra_alloc_itemp();
-        /* deal with the situation when memory is not aligned */
+        // mov, dest can't be changed
+        la_bstrpick_d(dest, reg_s, 7, 0);
+        
+        // ldxr ws, [xn]
+        la_label(label_ll);
         la_bstrpick_d(offset, reg_n, 2, 0);
         la_or(aligned_mem, reg_n, zero_ir2_opnd);
         la_bstrins_d(aligned_mem, zero_ir2_opnd, 2, 0);
-        la_label(label_ll);
-        la_ll_d(src, aligned_mem, 0);
-        la_st_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
+        la_ll_d(reg_t, aligned_mem, 0);
         la_slli_d(offset, offset, 3);
-        la_srl_d(src, src, offset);
 
-        /* store back to rt*/
-        la_bstrpick_d(dest, reg_s, 7, 0);
-        la_bstrpick_d(reg_t, src, 7, 0);
-
-        /* merge data */
+        // stxr tmp2, tmp1, [xn]
         li_d(src, 0xff);
-        la_sll_d(offset, src, offset);
-        la_ld_d(src, env_ir2_opnd, env_offset(exclusive_memdata));
-        la_andn(src, src, offset);
+        la_sll_d(src, src, offset);
+        la_andn(src, reg_t, src);
 
-        /* store new value */
-        la_or(dest, dest, src);              
-        la_sc_d(dest, aligned_mem, 0);
-        la_beq(dest, zero_ir2_opnd, label_ll);
+        la_srl_d(reg_t, reg_t, offset);
+        la_bstrpick_d(reg_t, reg_t, 7, 0);  
+
+        la_sll_d(offset, dest, offset);
+        la_or(src, src, offset);              
+        la_sc_d(src, aligned_mem, 0);
+
+        // cbnz tmp2,1
+        la_beqz(src, label_ll);
 
         free_alloc_gpr(offset);
         free_alloc_gpr(aligned_mem);
     }
 
-    if(release){
+    if(acquire){
         la_dbar(0);
     }
     
+    store_gpr_dst(a->rt, reg_t);
     free_alloc_gpr(reg_s);
     free_alloc_gpr(reg_t);
     free_alloc_gpr(reg_n);
