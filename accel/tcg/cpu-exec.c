@@ -652,7 +652,7 @@ void tb_nzcv_jmp(TranslationBlock *tb, int n, bool isjmp){
     }
 
     qatomic_set((tcg_insn_unit *)jmp_rw, insn);
-    flush_idcache_range(jmp_rx, jmp_rw, 4);
+    // flush_idcache_range(jmp_rx, jmp_rw, 4);
 }
 #endif
 

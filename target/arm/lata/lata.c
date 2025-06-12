@@ -306,7 +306,7 @@ void tr_fini(void)
 #define FCSR_EXTRA_SPACE        (RA_EXTRA_SPACE + REG_LEN)
 
 
-static void generate_context_switch_bt_to_native()
+static void generate_context_switch_bt_to_native(void)
 {
     la_addi_d(sp_ir2_opnd, sp_ir2_opnd, -256);
 
@@ -347,10 +347,6 @@ static void generate_context_switch_bt_to_native()
 
     /* load gpr and fpr */
     for(int i = 0; i <= 31; ++i) {
-        // if(arm_la_fmap[i] >= 0) {
-        //     li_d(a7_ir2_opnd, env_offset_fpr(i));
-        //     la_vldx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, a7_ir2_opnd);
-        // }
         if (arm_la_fmap[i] >= 0) {
             la_vld(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, env_offset_fpr(i));
         }
@@ -369,7 +365,7 @@ static void generate_context_switch_bt_to_native()
 
 }
 
-static void generate_context_switch_native_to_bt()
+static void generate_context_switch_native_to_bt(void)
 {
     la_mov64(a0_ir2_opnd, zero_ir2_opnd);
     for(int i = 0; i <= 31; ++i) {
@@ -378,10 +374,6 @@ static void generate_context_switch_native_to_bt()
         }
     }
     for(int i = 0; i <= 31; ++i) {
-        // if(arm_la_fmap[i] >= 0) {
-        //     li_d(t0_ir2_opnd, env_offset_fpr(i));
-        //     la_vstx(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, t0_ir2_opnd);
-        // }
         if (arm_la_fmap[i] >= 0) {
             la_vst(ir2_opnd_new(IR2_OPND_FPR, arm_la_fmap[i]), env_ir2_opnd, env_offset_fpr(i));
         }

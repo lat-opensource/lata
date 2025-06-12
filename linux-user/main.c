@@ -1026,7 +1026,7 @@ int main(int argc, char **argv, char **envp)
     env->pstate = 0x40000000;
     env->jr_cnt = 0;
     env->jr_hit = 0;
-    lata_prologue_init(tcg_ctx,cpu);
+    lata_prologue_init(tcg_ctx);
 #else
     tcg_prologue_init(tcg_ctx);
 #endif
