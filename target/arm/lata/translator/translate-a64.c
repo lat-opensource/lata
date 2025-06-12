@@ -15824,23 +15824,6 @@ static void aarch64_tr_init_disas_context(DisasContext *dc,
     dc->base->max_insns = MIN(dc->base->max_insns, bound);
 }
 
-static void aarch64_tr_tb_start(DisasContextBase *db, CPUState *cpu)
-{
-}
-
-static void aarch64_tr_insn_start(DisasContextBase *dcbase, CPUState *cpu)
-{
-    // DisasContext *dc = container_of(dcbase, DisasContext, base);
-    target_ulong pc_arg = dcbase->pc_next;
-
-    if (tb_cflags(dcbase->tb) & CF_PCREL)
-    {
-        pc_arg &= ~TARGET_PAGE_MASK;
-    }
-    tcg_gen_insn_start(pc_arg, 0, 0);
-    // dc->insn_start = tcg_last_op();
-}
-
 static void disas_a64_legacy(DisasContext *s, uint32_t insn)
 {
     switch (extract32(insn, 25, 4))
@@ -16188,23 +16171,6 @@ bool tr_ir2_generate(struct TranslationBlock *tb)
     return true;
 }
 
-static void aarch64_tr_disas_log(const DisasContextBase *dcbase,
-                                 CPUState *cpu, FILE *logfile)
-{
-    fprintf(logfile, "IN: %s\n", lookup_symbol(dcbase->pc_first));
-    target_disas(logfile, cpu, dcbase->pc_first, dcbase->tb->size);
-}
-
-/* initialize TCG globals.  */
 void arm_translate_init(void)
 {
 }
-
-const TranslatorOps aarch64_translator_ops = {
-    .init_disas_context = NULL,
-    .tb_start = aarch64_tr_tb_start,
-    .insn_start = aarch64_tr_insn_start,
-    .translate_insn = NULL,
-    .tb_stop = NULL,
-    .disas_log = aarch64_tr_disas_log,
-};

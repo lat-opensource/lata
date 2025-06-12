@@ -133,9 +133,6 @@ void translator_loop(CPUState *cpu, TranslationBlock *tb, int *max_insns,
                      DisasContextBase *db)
 {
     uint32_t cflags = tb_cflags(tb);
-#ifndef CONFIG_LATA
-    TCGOp *icount_start_insn;
-#endif
     bool plugin_enabled;
 
     /* Initialize DisasContext */
@@ -153,9 +150,6 @@ void translator_loop(CPUState *cpu, TranslationBlock *tb, int *max_insns,
     tcg_debug_assert(db->is_jmp == DISAS_NEXT);  /* no early exit */
 
     /* Start translating.  */
-#ifndef CONFIG_LATA
-    icount_start_insn = gen_tb_start(cflags);
-#endif
     ops->tb_start(db, cpu);
     tcg_debug_assert(db->is_jmp == DISAS_NEXT);  /* no early exit */
 
@@ -206,33 +200,18 @@ void translator_loop(CPUState *cpu, TranslationBlock *tb, int *max_insns,
            or we have executed all of the allowed instructions.  */
         if (tcg_op_buf_full() || db->num_insns >= db->max_insns) {
             db->is_jmp = DISAS_TOO_MANY;
-#ifdef CONFIG_LATA
-            if (clearGprHigh) {
-                for (int i = 0; i < 32; ++i) {
-                    if (arm_la_map[i] >= 0) {
-                        clear_gpr_high(i);
-                    }
-                }
-            }  
-#endif
             break;
         }
     }
 
     /* Emit code to exit the TB, as indicated by db->is_jmp.  */
     ops->tb_stop(db, cpu);
-#ifndef CONFIG_LATA
-    gen_tb_end(tb, cflags, icount_start_insn, db->num_insns);
-#endif
 
     if (plugin_enabled) {
         plugin_gen_tb_end(cpu);
     }
 
     /* The disas_log hook may use these values rather than recompute.  */
-#ifdef CONFIG_LATA_INSTS_PATTERN
-    tb->nzcv_use = db->tb->nzcv_use ; 
-#endif
     tb->size = db->pc_next - db->pc_first;
     tb->icount = db->num_insns;
 
@@ -246,15 +225,6 @@ void translator_loop(CPUState *cpu, TranslationBlock *tb, int *max_insns,
             qemu_log_unlock(logfile);
         }
     }
-#ifdef CONFIG_LATA
-    if(clearGprHigh){
-        uint32_t old = lsenv->tr_data->w_write_flag;
-        if(old != 0){
-            printf("0x%lx :old:%x\n", db->pc_first, old);
-            assert(old == 0);
-        }
-    }
-#endif
 }
 
 static void *translator_access(CPUArchState *env, DisasContextBase *db,
