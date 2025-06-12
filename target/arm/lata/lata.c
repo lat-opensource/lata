@@ -358,7 +358,8 @@ static void generate_context_switch_bt_to_native(void)
     }
 
     /* Initialize scalar mask register */
-    la_vori_b(fsmask_ir2_opnd, fsmask_ir2_opnd,0xff);
+    la_vldi(fsmask_ir2_opnd, 0x190f);
+    la_vextl_qu_du(fsmask_ir2_opnd, fsmask_ir2_opnd);
 
     /* jmp to tb */
     la_jirl(zero_ir2_opnd, a0_ir2_opnd, 0);
