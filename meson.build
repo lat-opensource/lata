@@ -3812,12 +3812,21 @@ foreach target : target_dirs
       }]
     endif
   else
-    execs = [{
-      'name': 'qemu-' + target_name,
-      'win_subsystem': 'console',
-      'sources': [],
-      'dependencies': []
-    }]
+    if 'CONFIG_LATA' in config_host
+      execs = [{
+        'name': 'lata-' + target_name,
+        'win_subsystem': 'console',
+        'sources': [],
+        'dependencies': []
+      }]
+    else
+      execs = [{
+        'name': 'qemu-' + target_name,
+        'win_subsystem': 'console',
+        'sources': [],
+        'dependencies': []
+      }]
+    endif
   endif
   foreach exe: execs
     exe_name = exe['name']
