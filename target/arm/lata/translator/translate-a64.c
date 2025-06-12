@@ -18,15 +18,9 @@
  */
 #include "qemu/osdep.h"
 
-#include "target/arm/tcg/translate.h"
-#include "qemu/log.h"
-#include "disas/disas.h"
-#include "target/arm/tcg/arm_ldst.h"
-#include "semihosting/semihost.h"
-#include "cpregs.h"
-
 #ifdef CONFIG_LATA
 #include "target/arm/lata/include/translate.h"
+#include "target/arm/lata/include/arm_ldst.h"
 #include "target/arm/lata/include/insts-pattern.h"
 #include "ir1.h"
 #include "ir1-arg.h"
@@ -34,17 +28,10 @@
 #include "tu.h"
 #endif
 
-static TCGv_i64 cpu_X[32];
-static TCGv_i64 cpu_pc;
-
-/* Load/store exclusive handling */
-static TCGv_i64 cpu_exclusive_high;
-
-static const char *regnames[] = {
-    "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7",
-    "x8", "x9", "x10", "x11", "x12", "x13", "x14", "x15",
-    "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23",
-    "x24", "x25", "x26", "x27", "x28", "x29", "lr", "sp"};
+#include "qemu/log.h"
+#include "disas/disas.h"
+#include "semihosting/semihost.h"
+#include "cpregs.h"
 
 enum a64_shift_type
 {
@@ -95,25 +82,6 @@ typedef struct AArch64DecodeTable
     uint32_t mask;
     AArch64DecodeFn *disas_fn;
 } AArch64DecodeTable;
-
-/* initialize TCG globals.  */
-void a64_translate_init(void)
-{
-    int i;
-
-    cpu_pc = tcg_global_mem_new_i64(cpu_env,
-                                    offsetof(CPUARMState, pc),
-                                    "pc");
-    for (i = 0; i < 32; i++)
-    {
-        cpu_X[i] = tcg_global_mem_new_i64(cpu_env,
-                                          offsetof(CPUARMState, xregs[i]),
-                                          regnames[i]);
-    }
-
-    cpu_exclusive_high = tcg_global_mem_new_i64(cpu_env,
-                                                offsetof(CPUARMState, exclusive_high), "exclusive_high");
-}
 
 uint64_t asimd_imm_const(uint32_t imm, int cmode, int op)
 {
@@ -234,20 +202,6 @@ uint64_t vfp_expand_imm(int size, uint8_t imm8)
     return imm;
 }
 
-static void gen_pc_plus_diff(DisasContext *s, TCGv_i64 dest, target_long diff)
-{
-    assert(s->pc_save != -1);
-    if (tb_cflags(s->base->tb) & CF_PCREL)
-    {
-        tcg_gen_addi_i64(dest, cpu_pc, (s->pc_curr - s->pc_save) + diff);
-    }
-    else
-    {
-        tcg_gen_movi_i64(dest, s->pc_curr + diff);
-    }
-}
-
-void lata_gen_exit_tb_ret_0(DisasContext *s);
 void lata_gen_exit_tb_ret_0(DisasContext *s)
 {
     IR2_OPND ir2_opnd_addr;
@@ -260,19 +214,12 @@ void lata_gen_exit_tb_ret_0(DisasContext *s)
     la_b(ir2_opnd_addr);
 }
 
-void lata_gen_a64_update_pc(DisasContext *s, target_long diff);
 void lata_gen_a64_update_pc(DisasContext *s, target_long diff)
 {
     target_ulong dest = s->pc_curr + diff;
 
     li_d(a0_ir2_opnd, dest);
     la_st_d(a0_ir2_opnd, env_ir2_opnd, env_offset_pc());
-}
-
-void gen_a64_update_pc(DisasContext *s, target_long diff)
-{
-    gen_pc_plus_diff(s, cpu_pc, diff);
-    s->pc_save = s->pc_curr + diff;
 }
 
 static void lata_unallocated_encoding(DisasContext *s)
@@ -344,21 +291,6 @@ static void lata_clean_data_tbi(DisasContext *s, IR2_OPND *dst, IR2_OPND *src, i
             g_assert_not_reached();
         }
     }
-}
-
-typedef struct DisasCompare64
-{
-    TCGCond cond;
-    TCGv_i64 value;
-} DisasCompare64;
-
-static inline bool use_goto_tb(DisasContext *s, uint64_t dest)
-{
-    if (s->ss_active)
-    {
-        return false;
-    }
-    return translator_use_goto_tb(s->base, dest);
 }
 
 static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
@@ -1075,20 +1007,6 @@ static void lata_gen_mb(void)
 
 static bool trans_DSB_DMB(DisasContext *s)
 {
-    // /* We handle DSB and DMB the same way */
-    // TCGBar bar;
-
-    // switch (a->types) {
-    // case 1: /* MBReqTypes_Reads */
-    //     bar = TCG_BAR_SC | TCG_MO_LD_LD | TCG_MO_LD_ST;
-    //     break;
-    // case 2: /* MBReqTypes_Writes */
-    //     bar = TCG_BAR_SC | TCG_MO_ST_ST;
-    //     break;
-    // default: /* MBReqTypes_All */
-    //     bar = TCG_BAR_SC | TCG_MO_ALL;
-    //     break;
-    // }
     lata_gen_mb();
     return true;
 }
@@ -4516,7 +4434,6 @@ static bool trans_LD_mult(DisasContext *s)
     {
         if (a->rm == 31)
         {
-            // tcg_gen_addi_i64(tcg_rn, tcg_rn, total);
             assert(total <= 2047 && total >= -2048); /* addi的立即数是imm12 */
             la_addi_d(reg_n, reg_n, total);
         }
@@ -4639,7 +4556,6 @@ static bool trans_ST_mult(DisasContext *s)
     {
         if (a->rm == 31)
         {
-            // tcg_gen_addi_i64(tcg_rn, tcg_rn, total);
             assert(total <= 2047 && total >= -2048); /* addi的立即数是imm12 */
             la_addi_d(reg_n, reg_n, total);
         }
@@ -4719,7 +4635,6 @@ static bool trans_ST_single(DisasContext *s)
     {
         if (a->rm == 31)
         {
-            // tcg_gen_addi_i64(tcg_rn, tcg_rn, total);
             assert(total <= 2047 && total >= -2048); /* addi的立即数是imm12 */
             la_addi_d(reg_n, reg_n, total);
         }
@@ -4774,8 +4689,6 @@ static bool trans_LD_single(DisasContext *s)
     vtemp = ra_alloc_ftemp();
     for (xs = 0, rt = a->rt; xs < a->selem; xs++, rt = (rt + 1) % 32)
     {
-        // do_vec_ld(s, rt, a->index, clean_addr, mop);
-        // tcg_gen_add_i64(clean_addr, clean_addr, tcg_ebytes);
         vreg_d = alloc_fpr_src(rt);
         int offset = xs * esize;
         la_vld(vtemp, reg_n, offset);
@@ -4803,7 +4716,6 @@ static bool trans_LD_single(DisasContext *s)
     {
         if (a->rm == 31)
         {
-            // tcg_gen_addi_i64(tcg_rn, tcg_rn, total);
             assert(total <= 2047 && total >= -2048); /* addi的立即数是imm12 */
             la_addi_d(reg_n, reg_n, total);
         }
@@ -4886,7 +4798,6 @@ static bool trans_LD_single_repl(DisasContext *s)
     {
         if (a->rm == 31)
         {
-            // tcg_gen_addi_i64(tcg_rn, tcg_rn, total);
             assert(total <= 2047 && total >= -2048); /* addi的立即数是imm12 */
             la_addi_d(reg_n, reg_n, total);
         }
@@ -4937,8 +4848,6 @@ TRANS_FEAT_LDST_TAG(STG, aa64_mte_insn_reg, do_STG, false, false)
 TRANS_FEAT_LDST_TAG(STZG, aa64_mte_insn_reg, do_STG, true, false)
 TRANS_FEAT_LDST_TAG(ST2G, aa64_mte_insn_reg, do_STG, false, true)
 TRANS_FEAT_LDST_TAG(STZ2G, aa64_mte_insn_reg, do_STG, true, true)
-
-typedef void ArithTwoOp(TCGv_i64, TCGv_i64, TCGv_i64);
 
 /*
  * PC-rel. addressing
@@ -5927,10 +5836,6 @@ static bool trans_EXTR(DisasContext *s)
 
     if (unlikely(a->imm == 0))
     {
-        /*
-         * tcg shl_i32/shl_i64 is undefined for 32/64 bit shifts,
-         * so an extract from bit 0 is a special case.
-         */
         la_or(reg_d, reg_m, zero_ir2_opnd);
     }
     else
@@ -5968,10 +5873,6 @@ static bool trans_EXTR(DisasContext *s)
     return true;
 }
 
-/* Shift a TCGv src by immediate, put result in dst.
- * The shift amount must be in range (this should always be true as the
- * relevant instructions will UNDEF on bad shift immediates).
- */
 static void shift_reg_imm(IR2_OPND *dst, IR2_OPND *src, int sf,
                           enum a64_shift_type shift_type, unsigned int shift_i)
 {
@@ -6897,7 +6798,6 @@ static void disas_cond_select(DisasContext *s, uint32_t insn)
         la_armmove(reg_d, zero_ir2_opnd, cond); // CSET: reg_d = cond ? 0 : 1
         if (else_inv)
         { // CSETM
-            // tcg_gen_neg_i64(tcg_rd, tcg_rd); 取负
             la_orn(reg_d, zero_ir2_opnd, reg_d);
             la_addi_d(reg_d, reg_d, 1);
         }
@@ -7748,7 +7648,6 @@ static void handle_fp_compare(DisasContext *s, int size,
     free_alloc_fpr(vreg_m);
     free_alloc_fpr(vreg_n);
     free_alloc_gpr(temp);
-    // gen_set_nzcv(tcg_flags);
 }
 
 /* Floating point compare
@@ -9207,7 +9106,6 @@ static void handle_fmov(DisasContext *s, int rd, int rn, int type, bool itof)
             break;
         case 2:
             /* 64 bits from top half */
-            // tcg_gen_ld_i64(tcg_rd, cpu_env, fp_reg_hi_offset(s, rn));
             la_vpickve2gr_du(reg_d, vreg_n, 1);
             break;
         case 3:
@@ -10112,7 +10010,6 @@ static void handle_simd_dupes(DisasContext *s, int rd, int rn,
 {
     int size = ctz32(imm5);
     int index;
-    // TCGv_i64 tmp;
 
     if (size > 3)
     {
@@ -10717,28 +10614,22 @@ static void disas_simd_scalar_pairwise(DisasContext *s, uint32_t insn)
         switch (opcode)
         {
         case 0x3b: /* ADDP */
-            // tcg_gen_add_i64(tcg_res, tcg_op1, tcg_op2);
             la_vadd_d(vreg_d, vtemp, vreg_n);
             break;
         case 0xc: /* FMAXNMP */
-            // gen_helper_vfp_maxnumd(tcg_res, tcg_op1, tcg_op2, fpst);
             la_vfmax_d(vreg_d, vreg_n, vtemp);
             break;
         case 0xd: /* FADDP */
-            // gen_helper_vfp_addd(tcg_res, tcg_op1, tcg_op2, fpst);
             la_vfadd_d(vreg_d, vtemp, vreg_n);
             break;
         case 0xf: /* FMAXP */
             assert(0);
-            // gen_helper_vfp_maxd(tcg_res, tcg_op1, tcg_op2, fpst);
             break;
         case 0x2c: /* FMINNMP */
-            // gen_helper_vfp_minnumd(tcg_res, tcg_op1, tcg_op2, fpst);
             la_vfmin_d(vreg_d, vreg_n, vtemp);
             break;
         case 0x2f: /* FMINP */
             assert(0);
-            // gen_helper_vfp_mind(tcg_res, tcg_op1, tcg_op2, fpst);
             break;
         default:
             g_assert_not_reached();
@@ -10879,8 +10770,6 @@ static void handle_scalar_simd_shli(DisasContext *s, bool insert,
     int size = 32 - clz32(immh) - 1;
     int immhb = immh << 3 | immb;
     int shift = immhb - (8 << size);
-    // TCGv_i64 tcg_rn;
-    // TCGv_i64 tcg_rd;
 
     if (!extract32(immh, 3, 1))
     {
@@ -11591,13 +11480,6 @@ static void disas_simd_scalar_three_reg_same_extra(DisasContext *s,
 static void handle_2misc_64(DisasContext *s, int opcode, bool u,
                             IR2_OPND *vreg_d, IR2_OPND *vreg_n)
 {
-    /* Handle 64->64 opcodes which are shared between the scalar and
-     * vector 2-reg-misc groups. We cover every integer opcode where size == 3
-     * is valid in either group and also the double-precision fp ops.
-     * The caller only need provide tcg_rmode and tcg_fpstatus if the op
-     * requires them.
-     */
-    // TCGCond cond;
     IR2_OPND vtemp = ra_alloc_ftemp();
 
     switch (opcode)
@@ -13906,7 +13788,6 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
     case 0x13: /* MUL, PMUL */
         if (!u)
         { /* MUL */
-            // gen_gvec_fn3(s, is_q, rd, rn, rm, tcg_gen_gvec_mul, size);
             switch (size)
             {
             case 0:
@@ -14957,7 +14838,7 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
         /* Coverity claims (size == 3 && !is_q) has been eliminated
          * from all paths leading to here.
          */
-        tcg_debug_assert(is_q);
+        assert(is_q);
 
         handle_2misc_64(s, opcode, u, &vreg_d, &vreg_n);
     }
@@ -14992,7 +14873,6 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
                 break;
             case 0x7f: /* FSQRT */
                 la_vfsqrt_s(vreg_d, vreg_n);
-                // gen_helper_vfp_sqrts(tcg_res, tcg_op, cpu_env);
                 break;
             case 0x1a: /* FCVTNS */
                 la_vftintrne_w_s(vreg_d, vreg_n);
@@ -15031,21 +14911,16 @@ static void disas_simd_two_reg_misc(DisasContext *s, uint32_t insn)
             case 0x58: /* FRINTA */
                 break;
             case 0x79: /* FRINTI */
-                // gen_helper_rints(tcg_res, tcg_op, tcg_fpstatus);
                 break;
             case 0x59: /* FRINTX */
-                // gen_helper_rints_exact(tcg_res, tcg_op, tcg_fpstatus);
                 break;
             case 0x7c: /* URSQRTE */
-                // gen_helper_rsqrte_u32(tcg_res, tcg_op);
                 break;
             case 0x1e: /* FRINT32Z */
             case 0x5e: /* FRINT32X */
-                // gen_helper_frint32_s(tcg_res, tcg_op, tcg_fpstatus);
                 break;
             case 0x1f: /* FRINT64Z */
             case 0x5f: /* FRINT64X */
-                // gen_helper_frint64_s(tcg_res, tcg_op, tcg_fpstatus);
                 break;
             default:
                 g_assert_not_reached();
@@ -15473,7 +15348,7 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
              * the index into both halves of the 32 bit tcg_idx and then use
              * the usual Neon helpers.
              */
-            // tcg_gen_deposit_i32(tcg_idx, tcg_idx, tcg_idx, 16, 16);
+            assert(0);
         }
 
         switch (16 * u + opcode)
@@ -15914,7 +15789,7 @@ static void aarch64_tr_init_disas_context(DisasContext *dc,
 
 #ifdef CONFIG_USER_ONLY
     /* In sve_probe_page, we assume TBI is enabled. */
-    tcg_debug_assert(dc->tbid & 1);
+    assert(dc->tbid & 1);
 #endif
 
     dc->lse2 = dc_isar_feature(aa64_lse2, dc);
@@ -16109,7 +15984,7 @@ DisasContext *get_ir1_list(CPUState *cpu, TranslationBlock *tb, vaddr pc, int ma
 
         /* Stop translation if the output buffer is full,
            or we have executed all of the allowed instructions.  */
-        if (tcg_op_buf_full() || db->num_insns >= db->max_insns)
+        if (db->num_insns >= db->max_insns)
         {
             db->is_jmp = DISAS_TOO_MANY;
             break;

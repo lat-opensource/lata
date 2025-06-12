@@ -973,7 +973,7 @@ int main(int argc, char **argv, char **envp)
         printf("Error while loading %s: %s\n", exec_path, strerror(-ret));
         _exit(EXIT_FAILURE);
     }
-#ifdef CONFIG_LATA
+#ifdef CONFIG_LATA_INDIRECT_JMP
     lata_fast_jmp_cache_init(env,(uint64_t)info->start_code,(uint64_t)info->end_code);
 #endif
     for (wrk = target_environ; *wrk; wrk++) {

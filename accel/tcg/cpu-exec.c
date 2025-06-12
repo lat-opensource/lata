@@ -1034,7 +1034,9 @@ cpu_exec_loop(CPUState *cpu, SyncClocks *sc)
                 tb = tu_gen_code(cpu, pc, cs_base, flags, cflags);
 #else
                 tb = tb_gen_code(cpu, pc, cs_base, flags, cflags);
+#ifdef CONFIG_LATA_INDIRECT_JMP
                 lata_fast_jmp_cache_add(cpu->env_ptr, pc, (uint64_t)(tb->tc.ptr));
+#endif
 #endif
                 mmap_unlock();
 

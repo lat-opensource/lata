@@ -281,7 +281,7 @@ int tr_translate_tb(struct TranslationBlock *tb)
 
     return gen_code_size;
 #else
-    return tcg_gen_code(tcg_ctx, tb, pc);
+    return tcg_gen_code(tcg_ctx, tb, tb->pc);
 #endif
 }
 

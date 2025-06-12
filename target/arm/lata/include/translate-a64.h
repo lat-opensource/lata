@@ -4,7 +4,8 @@
 bool logic_imm_decode_wmask(uint64_t *result, unsigned int immn,
                             unsigned int imms, unsigned int immr);
 bool sve_access_check(DisasContext *s);
-
+void lata_gen_exit_tb_ret_0(DisasContext *s);
+void lata_gen_a64_update_pc(DisasContext *s, target_long diff);
 DisasContext *get_ir1_list(CPUState *cpu, TranslationBlock *tb, vaddr pc, int max_insns);
 void target_disasm(struct TranslationBlock *tb, int *max_insns, CPUState *cpu);
 bool tr_ir2_generate(struct TranslationBlock *tb);
