@@ -25,6 +25,10 @@ LATA（Loongson Architecture Translator for ARM）即龙芯ARM架构转译器
    ├── target/
    │   └── arm/
    │       └── lata/
+   │           └── include/                 # 头文件汇总
+   │               └── ir1.h  
+   │               └── ir2.h
+   │               └── ...
    │           └── ir1/
    │               └── decode_ir1_a64.c.inc # arm 指令解码 IR1
    │               └── ir1.c                # IR1 指令类型处理    
@@ -32,7 +36,7 @@ LATA（Loongson Architecture Translator for ARM）即龙芯ARM架构转译器
    │           └── ir2/
    │               └── ir2.c                # IR2：LA 指令 IR 表示
    │               └── la-append.c          # 由脚本生成的 IR 处理函数
-   │               └── ir2-assemble.c
+   │               └── ir2-assemble.c       # IR2 辅助函数
    │               └── ...                    
    │           └── optimization/
    │               └── insts-pattern.c      # 语义级指令组合优化翻译
@@ -43,7 +47,8 @@ LATA（Loongson Architecture Translator for ARM）即龙芯ARM架构转译器
    │               └── macro-helper.c       # 指令翻译操作辅助函数
    │               └── ...
    │           └── mem.c                    # 内存操作辅助函数
-   │           └── lata.c                   
+   │           └── lata.c        
+   │           └── ...
    ├── ...
    └── README.rst                           # 本文档
 
@@ -70,8 +75,8 @@ LATA（Loongson Architecture Translator for ARM）即龙芯ARM架构转译器
 
    # 克隆源码并编译
    git clone --depth=1 --recursive https://github.com/lata-opensource/lata
-   cd lata/latabuild
-   ./build-release.sh
+   cd lata
+   .latabuild/build-release.sh
 
 
 未来规划（TODO）
