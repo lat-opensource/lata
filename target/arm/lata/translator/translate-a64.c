@@ -26,6 +26,7 @@
 #include "ir1-arg.h"
 #include "translate-a64.h"
 #include "tu.h"
+#include "clear-high.h"
 #endif
 
 #include "qemu/log.h"

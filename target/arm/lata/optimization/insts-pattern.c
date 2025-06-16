@@ -6,6 +6,7 @@
 #include "insts-pattern.h"
 #include "ir2.h"
 #include "env.h"
+#include "clear-high.h"
 
 #ifdef CONFIG_LATA_INSTS_PATTERN
 

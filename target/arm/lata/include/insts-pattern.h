@@ -1,7 +1,7 @@
 #ifndef _INSTS_PATTERN_H_
 #define _INSTS_PATTERN_H_
 
-// typedef void AArch64Pattern(DisasContext *s, uint32_t insn);
+#include "common.h"
 
 typedef enum dt_aarch64_insn
 {

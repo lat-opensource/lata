@@ -72,7 +72,6 @@ extern const int arm_la_map[];
 extern __thread TRANSLATION_DATA *tr_data;
 extern __thread ENV *lsenv;
 extern bool lata_dump;
-extern bool clearGprHigh;
 
 extern uint64_t context_switch_bt_to_native;
 extern uint64_t context_switch_native_to_bt_ret_0;
@@ -102,6 +101,4 @@ IR2_OPND alloc_fpr_dst(int i);
 void store_fpr_dst(int i, IR2_OPND opnd);
 void free_alloc_fpr(IR2_OPND opnd);
 
-void set_w_write_flag(int i, int is_w);
-void clear_gpr_high(int i);
 #endif
