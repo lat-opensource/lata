@@ -41,6 +41,7 @@ LATA（Loongson Architecture Translator for ARM）即龙芯ARM架构转译器
    │           └── optimization/
    │               └── insts-pattern.c      # 语义级指令组合优化翻译
    │               └── tu.c                 # TU 翻译单元优化
+   │               └── clear-high.c         # 高位清除优化
    │               └── ...
    │           └── translator/              # 翻译函数
    │               └── translate-a64.c      # 逻辑运算指令翻译函数
@@ -73,10 +74,13 @@ LATA（Loongson Architecture Translator for ARM）即龙芯ARM架构转译器
        python3-setuptools \
        capstone-tool
 
-   # 克隆源码并编译
+   # 克隆源码
    git clone --depth=1 --recursive https://github.com/lata-opensource/lata
    cd lata
-   .latabuild/build-release.sh
+   # 脚本构建(开优化性能测试)
+   ./latabuild/lata-opt.sh
+   # or(优化调试)
+   ./latabuild/lata-debug.sh
 
 
 未来规划（TODO）
@@ -85,6 +89,7 @@ LATA（Loongson Architecture Translator for ARM）即龙芯ARM架构转译器
 项目未来的优化与完善方向包括但不限于：
 
 - [ ] 优化翻译器性能，以提高翻译器的可用性。
+- [ ] 动态链接调试，glibc测试完备。
 - [ ] 支持更复杂的ARM指令集扩展。
 - [ ] 支持bionic库， 实现在安卓平台上运行应用程序。
 - [ ] 维护更详细的文档与使用指南。
