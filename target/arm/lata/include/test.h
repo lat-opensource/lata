@@ -2,9 +2,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define CONFIG_LATA_DEBUG 1
 
-#ifdef CONFIG_LATA_DEBUG
+#ifdef CONFIG_LATA
 #define lsassert(cond)                                                  \
     do {                                                                \
         if (!(cond)) {                                                  \

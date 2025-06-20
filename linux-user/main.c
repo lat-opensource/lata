@@ -1033,14 +1033,6 @@ int main(int argc, char **argv, char **envp)
 
 #ifdef CONFIG_LATA_DEBUG
     fprintf(stderr,"config_lata_debug is open.\n");
-    //long unsigned int result = 0;
-    //lata_tr_data_init();
-    //tr_init();
-    //IR2_OPND test_opnd = ra_alloc_itemp();
-    //result = ir2_assemble(la_xori(test_opnd, test_opnd, 1));
-    //tr_fini();
-    //printf("hello %lx \n", result);
-    //fprintf(stderr,"hello %lx\n", result);
 #endif
 
     target_cpu_copy_regs(env, regs);

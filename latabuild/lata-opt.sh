@@ -21,13 +21,11 @@ build() {
 	export CFLAGS="-Wno-error=unused-but-set-variable -Wno-error=unused-function -Wformat -Werror=format-y2k"
 
 	local _configure64_flags=(
-	--target-list=aarch64-linux-user
-	--disable-debug-info
-	--disable-docs
-	--disable-werror
-	--enable-capstone
-	--enable-lata
-	--insts-pattern-opt
+        --target-list=aarch64-linux-user
+        --disable-docs
+        --disable-werror
+        --enable-lata
+        --insts-pattern-opt
         --indirect-jmp-opt
         --split-tb-opt
         --lata-tu-opt

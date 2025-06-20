@@ -13,7 +13,7 @@ extern void qemu_log(const char *fmt, ...);
 
 static const char *ir2_name(int value)
 {
-#ifdef CONFIG_LATA_DEBUG
+#ifdef CONFIG_LATA
     /*
      * Todo: Add below defination:
      */

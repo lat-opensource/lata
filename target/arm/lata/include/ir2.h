@@ -67,9 +67,7 @@ void ir2_insert_after(IR2_INST *ir2, IR2_INST *prev);
 IR2_INST *ir2_allocate(void);
 
 uint32 ir2_assemble(IR2_INST *);
-#ifdef CONFIG_LATA_DEBUG
 bool ir2_op_check(IR2_INST *);
-#endif
 
 bool ir2_opcode_is_branch(IR2_OPCODE);
 bool ir2_opcode_is_branch_with_3opnds(IR2_OPCODE);
