@@ -12874,10 +12874,114 @@ static void handle_3rd_wide(DisasContext *s, int is_q, int is_u, int size,
     free_alloc_fpr(vtemp);
 }
 
+/* ADDHN, ADDHN2, RADDHN, RADDHN2  SUBHN, SUBHN2, RSUBHN, RSUBHN2 */
 static void handle_3rd_narrowing(DisasContext *s, int is_q, int is_u, int size,
                                  int opcode, int rd, int rn, int rm)
 {
-    assert(0);
+    IR2_OPND vreg_d = alloc_fpr_src(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    int is_sub = extract32(opcode, 1, 1);
+
+    switch (size)
+    {
+    case 0:
+        if (is_sub)
+            la_vsub_h(vtemp, vreg_n, vreg_m);
+        else
+            la_vadd_h(vtemp, vreg_n, vreg_m);
+        break;
+    case 1:
+        if (is_sub)
+            la_vsub_w(vtemp, vreg_n, vreg_m);
+        else
+            la_vadd_w(vtemp, vreg_n, vreg_m);
+        break;
+    case 2:
+        if (is_sub)
+            la_vsub_d(vtemp, vreg_n, vreg_m);
+        else
+            la_vadd_d(vtemp, vreg_n, vreg_m);
+        break;
+    default:
+        assert(0);
+    }
+
+    if(is_u) {/* RADDHN, RADDHN2, RSUBHN, RSUBHN2 */
+        switch (size)
+        {
+        case 0:
+            la_vsrlri_h(vtemp, vtemp, 8);
+            break;
+        case 1:
+            la_vsrlri_w(vtemp, vtemp, 16);
+            break;
+        case 2:
+            la_vsrlri_d(vtemp, vtemp, 32);
+            break;
+        default:
+            break;
+        }
+    } else {/* ADDHN, ADDHN2, SUBHN, SUBHN2 */
+        switch (size)
+        {
+        case 0:
+            la_vsrli_h(vtemp, vtemp, 8);
+            break;
+        case 1:
+            la_vsrli_w(vtemp, vtemp, 16);
+            break;
+        case 2:
+            la_vsrli_d(vtemp, vtemp, 32);
+            break;
+        default:
+            break;
+        }
+    }
+
+    if(is_q) { /* store in uppper*/
+        switch (size)
+        {
+        case 0:
+            la_vpickev_b(vtemp, vtemp, vtemp);
+            break;
+        case 1:
+            la_vpickev_h(vtemp, vtemp, vtemp);
+            break;
+        case 2:
+            la_vpickev_w(vtemp, vtemp, vtemp);
+            break;
+        default:
+            assert(0);
+        }
+        la_vpickev_d(vreg_d, vtemp, vreg_d);
+    } else {
+        switch (size)
+        {
+        case 0:
+            la_vpickev_b(vreg_d, vtemp, vtemp);
+            break;
+        case 1:
+            la_vpickev_h(vreg_d, vtemp, vtemp);
+            break;
+        case 2:
+            la_vpickev_w(vreg_d, vtemp, vtemp);
+            break;
+        default:
+            assert(0);
+        }        
+    }
+
+    if(!is_q) {
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    }
+
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_m);
+    free_alloc_fpr(vtemp);
 }
 
 /* AdvSIMD three different
