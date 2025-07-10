@@ -1218,6 +1218,24 @@ static void lata_helper_dc_zva(DisasContext *s, int rt)
     return;
 }
 
+static G_NORETURN void never_reach(const char *msg)
+{
+    lsassertm(0, "%s\n", msg);
+}
+
+static void gen_never_reach(DisasContext *ctx, const char* msg)
+{
+    IR2_OPND temp = ra_alloc_itemp();
+
+    li_d(a0_ir2_opnd, (uint64_t)msg);
+    li_d(temp, (uint64_t)never_reach);
+    la_jirl(ra_ir2_opnd, temp, 0);
+
+    free_alloc_gpr(temp);
+
+    return;
+}
+
 /* MRS - move from system register
  * MSR (register) - move to system register
  * SYS
@@ -1240,7 +1258,8 @@ static void handle_sys(DisasContext *s, bool isread,
         /* Unknown register; this might be a guest error or a QEMU
          * unimplemented feature.
          */
-        assert(0);
+        gen_never_reach(s, "Unknown register");
+        return;
     }
 
     /* Check access permissions */
