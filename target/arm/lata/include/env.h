@@ -58,6 +58,11 @@ static inline int env_offset_RMODE(void)
     return offsetof(CPUARMState, vfp.fp_status.float_rounding_mode);
 }
 
+static inline int env_offset_QC(void)
+{
+    return offsetof(CPUARMState, vfp.qc[0]);
+}
+
 static inline int env_offset_Exclusive(void)
 {
     return offsetof(CPUARMState,exclusive_addr);

@@ -69,6 +69,7 @@ void tr_init(void*);
 void tr_fini(void);
 
 extern const int arm_la_map[];
+extern const int arm_la_fmap[];
 extern __thread TRANSLATION_DATA *tr_data;
 extern __thread ENV *lsenv;
 extern bool lata_dump;

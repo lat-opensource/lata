@@ -262,36 +262,177 @@ static void lata_clean_data_tbi(DisasContext *s, IR2_OPND *dst, IR2_OPND *src, i
     if (tbi == 0)
     {
         /* Load unmodified address */
-        la_mov64(*dst, *src);
-    }
-    else if (!regime_has_2_ranges(s->mmu_idx))
-    {
-        /* Force tag byte to all zero */
+    } else {
+        /* lata only support user-mode, we don't need Sign-extend */
         la_bstrpick_d(*dst, *src, 56, 0);
     }
-    else
-    {
-        /* Sign-extend from bit 55.  */
-        la_slli_d(*dst, *src, 8);
-        la_srai_d(*dst, *dst, 8);
+}
 
-        switch (tbi)
-        {
-        case 1:
-            /* tbi0 but !tbi1: only use the extension if positive */
-            la_and(*dst, *dst, *src);
-            break;
-        case 2:
-            /* !tbi0 but tbi1: only use the extension if negative */
-            la_or(*dst, *dst, *src);
-            break;
-        case 3:
-            /* tbi0 and tbi1: always use the extension */
-            break;
-        default:
-            g_assert_not_reached();
-        }
+
+// check saturate
+static inline void gen_sat_q(IR2_OPND vreg, int size, int is_u)
+{
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND temp = ra_alloc_itemp();
+    IR2_OPND set_qc = ir2_opnd_new_type(IR2_OPND_LABEL);
+    IR2_OPND exit = ir2_opnd_new_type(IR2_OPND_LABEL);
+
+    uint64_t *upper;
+    uint64_t *lower;
+
+    static uint64_t s_upper[] = { INT8_MAX, INT16_MAX, INT32_MAX, INT64_MAX };
+    static uint64_t s_lower[] = { INT8_MIN, INT16_MIN, INT32_MIN, INT64_MIN };
+
+    static uint64_t u_upper[] = { UINT8_MAX, UINT16_MAX, UINT32_MAX,
+                                  UINT64_MAX };
+    static uint64_t u_lower[] = { 0, 0, 0, 0 };
+
+    if (!is_u)
+        upper = s_upper, lower = s_lower;
+    else
+        upper = u_upper, lower = u_lower;
+
+    li_d(temp, upper[size]);
+    la_vinsgr2vr_d(vtemp, temp, 0);
+
+    switch (size) {
+    case 0:
+        la_vreplvei_b(vtemp, vtemp, 0);
+        la_vseq_b(vtemp, vtemp, vreg);
+        break;
+    case 1:
+        la_vreplvei_h(vtemp, vtemp, 0);
+        la_vseq_h(vtemp, vtemp, vreg);
+        break;
+    case 2:
+        la_vreplvei_w(vtemp, vtemp, 0);
+        la_vseq_w(vtemp, vtemp, vreg);
+        break;
+    case 3:
+        la_vreplvei_d(vtemp, vtemp, 0);
+        la_vseq_d(vtemp, vtemp, vreg);
+        break;
+    default:
+        assert(0);
     }
+
+    la_vsetanyeqz_b(fcc1_ir2_opnd, vtemp);
+    la_bcnez(fcc1_ir2_opnd, set_qc);
+
+    li_d(temp, lower[size]);
+    la_vinsgr2vr_d(vtemp, temp, 0);
+
+    switch (size) {
+    case 0:
+        la_vreplvei_b(vtemp, vtemp, 0);
+        la_vseq_b(vtemp, vtemp, vreg);
+        break;
+    case 1:
+        la_vreplvei_h(vtemp, vtemp, 0);
+        la_vseq_h(vtemp, vtemp, vreg);
+        break;
+    case 2:
+        la_vreplvei_w(vtemp, vtemp, 0);
+        la_vseq_w(vtemp, vtemp, vreg);
+        break;
+    case 3:
+        la_vreplvei_d(vtemp, vtemp, 0);
+        la_vseq_d(vtemp, vtemp, vreg);
+        break;
+    default:
+        assert(0);
+    }
+
+    la_vsetanyeqz_b(fcc1_ir2_opnd, vtemp);
+    la_bcnez(fcc1_ir2_opnd, set_qc);
+
+    la_b(exit);
+
+    la_label(set_qc);
+
+    li_d(temp, 1);
+    la_st_w(temp, env_ir2_opnd, env_offset_QC());
+
+    la_label(exit);
+
+    free_alloc_gpr(temp);
+    free_alloc_fpr(vtemp);
+}
+
+static void lata_helper_addl_saturate_s64(DisasContext *ctx, IR2_OPND vreg_d, IR2_OPND vreg1,
+                                          IR2_OPND vreg2, int rd)
+{
+    IR2_OPND temp = ra_alloc_itemp();
+
+    // li_d(temp, ctx->base->pc_next);
+    // la_st_d(temp, env_ir2_opnd, env_offset_pc());
+
+    lata_gen_call_helper_prologue(tcg_ctx);
+
+    li_d(temp, (uint64_t)helper_neon_addl_saturate_s64);
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    la_vpickve2gr_d(a1_ir2_opnd, vreg1, 0);
+    la_vpickve2gr_d(a2_ir2_opnd, vreg2, 0);
+    la_jirl(ra_ir2_opnd, temp, 0);
+    la_vinsgr2vr_d(vreg_d, a0_ir2_opnd, 0);
+
+    li_d(temp, (uint64_t)helper_neon_addl_saturate_s64);
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    la_vpickve2gr_d(a1_ir2_opnd, vreg1, 1);
+    la_vpickve2gr_d(a2_ir2_opnd, vreg2, 1);
+    la_jirl(ra_ir2_opnd, temp, 0);
+    la_vinsgr2vr_d(vreg_d, a0_ir2_opnd, 1);
+
+    if (rd != -1)
+        la_vst(vreg_d, env_ir2_opnd, env_offset_fpr(rd));
+
+    lata_gen_call_helper_epilogue(tcg_ctx);
+
+    free_alloc_gpr(temp);
+}
+
+static void lata_helper_addl_saturate_s32(DisasContext *ctx, IR2_OPND vreg_d, IR2_OPND vreg1,
+                                          IR2_OPND vreg2, int rd)
+{
+    IR2_OPND temp = ra_alloc_itemp();
+
+    // li_d(temp, ctx->base->pc_next);
+    // la_st_d(temp, env_ir2_opnd, env_offset_pc());
+
+    lata_gen_call_helper_prologue(tcg_ctx);
+
+    li_d(temp, (uint64_t)helper_neon_addl_saturate_s32);
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    la_vpickve2gr_w(a1_ir2_opnd, vreg1, 0);
+    la_vpickve2gr_w(a2_ir2_opnd, vreg2, 0);
+    la_jirl(ra_ir2_opnd, temp, 0);
+    la_vinsgr2vr_w(vreg_d, a0_ir2_opnd, 0);
+
+    li_d(temp, (uint64_t)helper_neon_addl_saturate_s32);
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    la_vpickve2gr_w(a1_ir2_opnd, vreg1, 1);
+    la_vpickve2gr_w(a2_ir2_opnd, vreg2, 1);
+    la_jirl(ra_ir2_opnd, temp, 0);
+    la_vinsgr2vr_w(vreg_d, a0_ir2_opnd, 1);
+
+    li_d(temp, (uint64_t)helper_neon_addl_saturate_s32);
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    la_vpickve2gr_w(a1_ir2_opnd, vreg1, 2);
+    la_vpickve2gr_w(a2_ir2_opnd, vreg2, 2);
+    la_jirl(ra_ir2_opnd, temp, 0);
+    la_vinsgr2vr_w(vreg_d, a0_ir2_opnd, 2);
+
+    li_d(temp, (uint64_t)helper_neon_addl_saturate_s32);
+    la_mov64(a0_ir2_opnd, env_ir2_opnd);
+    la_vpickve2gr_w(a1_ir2_opnd, vreg1, 3);
+    la_vpickve2gr_w(a2_ir2_opnd, vreg2, 3);
+    la_jirl(ra_ir2_opnd, temp, 0);
+    la_vinsgr2vr_w(vreg_d, a0_ir2_opnd, 3);
+    if (rd != -1)
+        la_vst(vreg_d, env_ir2_opnd, env_offset_fpr(rd));
+
+    lata_gen_call_helper_epilogue(tcg_ctx);
+    free_alloc_gpr(temp);
 }
 
 static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
@@ -332,6 +473,61 @@ static void gen_goto_tb_indirect(DisasContext *s, uint32_t rn)
 
     if (indirect_jmp_opt_profile)
     {
+        la_ld_d(guest_pc, env_ir2_opnd, env_offset(jr_hit));
+        la_addi_d(guest_pc, guest_pc, 1);
+        la_st_d(guest_pc, env_ir2_opnd, env_offset(jr_hit));
+    }
+
+    la_jirl(zero_ir2_opnd, host_pc, 0);
+    la_label(exit);
+
+    free_alloc_gpr(guest_pc);
+    free_alloc_gpr(host_pc);
+#endif
+
+    la_st_d(reg_n, env_ir2_opnd, env_offset_pc());
+
+    /* do not link, but context_switch_native_to_bt_ret_0 will do this */
+    lata_gen_exit_tb_ret_0(s);
+
+    free_alloc_gpr(reg_n);
+}
+
+static void gen_goto_tb_indirect_blr(DisasContext *s, IR2_OPND reg_n)
+{
+
+#ifdef CONFIG_LATA_INDIRECT_JMP
+    IR2_OPND guest_pc = ra_alloc_itemp();
+    IR2_OPND host_pc = ra_alloc_itemp();
+    IR2_OPND exit = ir2_opnd_new_type(IR2_OPND_LABEL);
+
+    if (option_fam_jmp_cache) {
+        li_d(host_pc, (uint64_t)(current_cpu->env_ptr->pc_map_cache));
+        la_alsl_d(host_pc, reg_n, host_pc, 2);
+        la_ld_d(host_pc, host_pc, 0);
+        la_beqz(host_pc, exit);
+        la_jirl(zero_ir2_opnd, host_pc, 0);
+        la_label(exit);
+        la_st_d(reg_n, env_ir2_opnd, env_offset_pc());
+        lata_gen_exit_tb_ret_0(s);
+        return;
+    }
+
+    if (indirect_jmp_opt_profile) {
+        la_ld_d(guest_pc, env_ir2_opnd, env_offset(jr_cnt));
+        la_addi_d(guest_pc, guest_pc, 1);
+        la_st_d(guest_pc, env_ir2_opnd, env_offset(jr_cnt));
+    }
+
+    la_bstrpick_d(guest_pc, reg_n, LATA_PC_LOW_BIT + TB_JMP_CACHE_BITS - 1,
+                  LATA_PC_LOW_BIT);
+    li_d(host_pc, (uint64_t)(current_cpu->env_ptr->pc_map_cache));
+    la_alsl_d(host_pc, guest_pc, host_pc, 3);
+    la_ld_d(guest_pc, host_pc, 0); // guest pc
+    la_ld_d(host_pc, host_pc, 8); // host pc
+    la_bne(reg_n, guest_pc, exit);
+
+    if (indirect_jmp_opt_profile) {
         la_ld_d(guest_pc, env_ir2_opnd, env_offset(jr_hit));
         la_addi_d(guest_pc, guest_pc, 1);
         la_st_d(guest_pc, env_ir2_opnd, env_offset(jr_hit));
@@ -806,22 +1002,29 @@ static bool trans_BR(DisasContext *s)
 static bool trans_BLR(DisasContext *s)
 {
     arg_r *a = &(s->arg.f_r);
-    if (clearGprHigh)
-    {
-        for (int i = 0; i < 32; ++i)
-        {
-            if (arm_la_map[i] >= 0)
-            {
+
+    IR2_OPND reg_n;
+    IR2_OPND x30 = alloc_gpr_dst(30);
+
+    if (clearGprHigh) {
+        for (int i = 0; i < 32; ++i) {
+            if (arm_la_map[i] >= 0) {
                 clear_gpr_high(i);
             }
         }
     }
 
-    IR2_OPND x30 = alloc_gpr_dst(30);
+    if (a->rn != 30){
+        reg_n = alloc_gpr_src(a->rn);
+    } else {
+        reg_n = ra_alloc_itemp();
+        la_ori(reg_n, x30, 0);
+    }
+
     li_d(x30, s->base->pc_next); /* BL setting X30 to PC+4 */
     store_gpr_dst(30, x30);
 
-    gen_goto_tb_indirect(s, a->rn);
+    gen_goto_tb_indirect_blr(s, reg_n);
     // s->base->is_jmp = DISAS_NORETURN;
 
     return true;
@@ -994,7 +1197,7 @@ static bool trans_AUTIBSP(DisasContext *s)
 
 static bool trans_CLREX(DisasContext *s)
 {
-    assert(0);
+    return true;
 }
 
 static void lata_gen_mb(void)
@@ -2282,8 +2485,9 @@ static bool trans_LDP(DisasContext *s)
     IR2_OPND reg_t2 = alloc_gpr_dst(a->rt2);
     IR2_OPND temp = ra_alloc_itemp();
 
-    if (clearGprHigh && arm_la_map[a->rn] >= 0)
-    { /* all reg_n is 64-bit size*/
+    lata_clean_data_tbi(s, &reg_n, &reg_n, s->tbid);
+
+    if (clearGprHigh && arm_la_map[a->rn] >= 0) { /* all reg_n is 64-bit size*/
         clear_gpr_high(a->rn);
     }
 
@@ -2678,8 +2882,8 @@ static bool trans_STR_i(DisasContext *s)
     }
 
     lata_clean_data_tbi(s, &reg_n, &reg_n, s->tbid);
-    if (!a->w && offset)
-    { // postindex = false
+
+    if (!a->w && offset) { // postindex = false
         /* Unsigned offset立即数是uimm12位，
         la_addi_d立即数是imm12，需要将立即数加载到寄存器
         而Post-index，Pre-index立即数是imm9满足la_addi_d的立即数规范
@@ -2776,6 +2980,8 @@ static bool trans_LDR_i(DisasContext *s)
 
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND reg_t = alloc_gpr_dst(a->rt);
+
+    lata_clean_data_tbi(s, &reg_n, &reg_n, s->tbid);
 
     /*  # LDR (immediate)
         ## Post-index                       ## Pre-index                         ## Unsigned offset
@@ -3007,8 +3213,9 @@ static bool trans_LDR_v_i(DisasContext *s)
     IR2_OPND reg_n = alloc_gpr_src_sp(a->rn);
     IR2_OPND vreg_t = alloc_fpr_dst(a->rt);
 
-    if (clearGprHigh && arm_la_map[a->rn] >= 0)
-    { /* all reg_n is 64-bit size*/
+    lata_clean_data_tbi(s, &reg_n, &reg_n, s->tbid);
+
+    if (clearGprHigh && arm_la_map[a->rn] >= 0) { /* all reg_n is 64-bit size*/
         clear_gpr_high(a->rn);
     }
 
@@ -3093,6 +3300,8 @@ static bool trans_LDR(DisasContext *s)
     {
         return false;
     }
+
+    lata_clean_data_tbi(s, &reg_n, &reg_n, s->tbid);
 
     int extsize = extract32(a->opt, 0, 2);
     bool is_signed = extract32(a->opt, 2, 1);
@@ -3297,10 +3506,10 @@ static bool trans_STR(DisasContext *s)
         return false;
     }
 
-    if (is_signed)
-    {
-        switch (extsize)
-        {
+    lata_clean_data_tbi(s, &reg_n, &reg_n, s->tbid);
+
+    if (is_signed) {
+        switch (extsize) {
         case 0:
             la_ext_w_b(temp, reg_m);
             break;
@@ -3422,6 +3631,8 @@ static bool trans_LDR_v(DisasContext *s)
         return true;
     }
 
+    lata_clean_data_tbi(s, &reg_n, &reg_n, s->tbid);
+
     int extsize = extract32(a->opt, 0, 2);
     bool is_signed = extract32(a->opt, 2, 1);
     unsigned int shift = a->s ? a->sz : 0;
@@ -3484,7 +3695,7 @@ static bool trans_LDR_v(DisasContext *s)
             la_vinsgr2vr_w(vreg_t, temp, 0);
             break;
         case 3:
-            la_vldx(vreg_t, reg_n, reg_m);
+            la_fldx_d(vreg_t, reg_n, reg_m);
             la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
             break;
         case 4:
@@ -3527,7 +3738,7 @@ static bool trans_LDR_v(DisasContext *s)
             la_vinsgr2vr_w(vreg_t, temp, 0);
             break;
         case 3:
-            la_vldx(vreg_t, reg_n, temp);
+            la_fldx_d(vreg_t, reg_n, temp);
             la_vinsgr2vr_d(vreg_t, zero_ir2_opnd, 1);
             break;
         case 4:
@@ -3578,10 +3789,10 @@ static bool trans_STR_v(DisasContext *s)
         return true;
     }
 
-    if (is_signed)
-    {
-        switch (extsize)
-        {
+    lata_clean_data_tbi(s, &reg_n, &reg_n, s->tbid);
+    
+    if (is_signed) {
+        switch (extsize) {
         case 0:
             la_ext_w_b(temp, reg_m);
             break;
@@ -4649,6 +4860,7 @@ static bool trans_ST_single(DisasContext *s)
         default:
             break;
         }
+        free_alloc_fpr(vreg_d);
     }
 
     if (a->p)
@@ -4730,6 +4942,7 @@ static bool trans_LD_single(DisasContext *s)
             break;
         }
         store_fpr_dst(rt, vreg_d);
+        free_alloc_fpr(vreg_d);
     }
 
     if (a->p)
@@ -4762,7 +4975,7 @@ static bool trans_LD_single_repl(DisasContext *s)
 {
     arg_LD_single_repl *a = &(s->arg.f_decode_insn3232);
     IR2_OPND vreg_d, reg_n, reg_m;
-    int total; /* total bytes */
+    int xs, total, rt; /* total bytes */
     int esize;
 
     if (!a->p && a->rm != 0)
@@ -4788,31 +5001,31 @@ static bool trans_LD_single_repl(DisasContext *s)
         clear_gpr_high(a->rn);
     }
 
-    vreg_d = alloc_fpr_dst(a->rt);
-    switch (esize)
-    {
-    case 1:
-        la_vldrepl_b(vreg_d, reg_n, 0);
-        break;
-    case 2:
-        la_vldrepl_h(vreg_d, reg_n, 0);
-        break;
-    case 4:
-        la_vldrepl_w(vreg_d, reg_n, 0);
-        break;
-    case 8:
-        la_vldrepl_d(vreg_d, reg_n, 0);
-        break;
-    default:
-        break;
+    for (xs = 0, rt = a->rt; xs < a->selem; xs++, rt = (rt + 1) % 32) {
+        vreg_d = alloc_fpr_dst(rt);
+        switch (esize) {
+        case 1:
+            la_vldrepl_b(vreg_d, reg_n, xs);
+            break;
+        case 2:
+            la_vldrepl_h(vreg_d, reg_n, xs);
+            break;
+        case 4:
+            la_vldrepl_w(vreg_d, reg_n, xs);
+            break;
+        case 8:
+            la_vldrepl_d(vreg_d, reg_n, xs);
+            break;
+        default:
+            assert(0);
+        }
+        if (!a->q) {
+            /* 高64位清零 */
+            la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+        }
+        store_fpr_dst(rt, vreg_d);
+        free_alloc_fpr(vreg_d);
     }
-
-    if (!a->q)
-    {
-        /* 高64位清零 */
-        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
-    }
-    store_fpr_dst(a->rt, vreg_d);
 
     if (a->p)
     {
@@ -7207,14 +7420,18 @@ static void handle_div(DisasContext *s, bool is_signed, unsigned int sf,
             la_bstrpick_w(temp_n, reg_n, 31, 0);
             la_div_d(reg_d, temp_n, temp_m);
         }
-    }
-    else
-    {
-        la_div_du(reg_d, reg_n, reg_m);
+    } else {
+        if (sf) {
+            la_div_du(reg_d, reg_n, reg_m);
+        } else {
+            la_div_wu(reg_d, reg_n, reg_m);
+        }
     }
 
-    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh)
-    {
+    // arm : x / 0 = 0
+    la_maskeqz(reg_d, reg_d, reg_m);
+
+    if (rd != 31 && arm_la_map[rd] >= 0 && clearGprHigh) {
         set_w_write_flag(rd, sf);
     }
     else
@@ -7906,6 +8123,9 @@ static void handle_fp_1src_single(DisasContext *s, int opcode, int rd, int rn)
 {
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND temp = ra_alloc_itemp();
+    IR2_OPND vreg_temp = ra_alloc_ftemp();
+    IR2_OPND vreg_abs = ra_alloc_ftemp();
 
     switch (opcode)
     {
@@ -7925,8 +8145,12 @@ static void handle_fp_1src_single(DisasContext *s, int opcode, int rd, int rn)
         // gen_fpst = gen_helper_bfcvt;
         break;
     case 0x8: /* FRINTN */
+        la_vfrintrne_s(vreg_d, vreg_n);
+        goto done;
         break;
     case 0x9: /* FRINTP */
+        la_vfrintrp_s(vreg_d, vreg_n);
+        goto done;
         break;
     case 0xa: /* FRINTM */
         la_vfrintrm_s(vreg_d, vreg_n);
@@ -7937,11 +8161,18 @@ static void handle_fp_1src_single(DisasContext *s, int opcode, int rd, int rn)
         goto done;
         break;
     case 0xc: /* FRINTA */
-        // rmode = opcode & 7;
-        // gen_fpst = gen_helper_rints;
+        // res = sign(x) * floor(|x| + 0.5)
+        li_d(temp, 0x3f000000); // 0.5
+        la_movgr2fr_w(vreg_temp, temp);
+        la_fabs_s(vreg_abs, vreg_n);
+        la_fadd_s(vreg_abs, vreg_abs, vreg_temp);
+        la_vfrintrm_s(vreg_abs, vreg_abs);
+        la_fcopysign_s(vreg_d, vreg_abs, vreg_n);
+        goto done;
         break;
     case 0xe: /* FRINTX */
-        // gen_fpst = gen_helper_rints_exact;
+        la_vfrint_s(vreg_d, vreg_n);
+        goto done;
         break;
     case 0xf: /* FRINTI */
         // gen_fpst = gen_helper_rints;
@@ -7972,6 +8203,9 @@ done:
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
+    free_alloc_gpr(temp);
+    free_alloc_fpr(vreg_temp);
+    free_alloc_fpr(vreg_abs);
 }
 
 /* Floating-point data-processing (1 source) - double precision */
@@ -7979,6 +8213,9 @@ static void handle_fp_1src_double(DisasContext *s, int opcode, int rd, int rn)
 {
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND temp = ra_alloc_itemp();
+    IR2_OPND vreg_temp = ra_alloc_ftemp();
+    IR2_OPND vreg_abs = ra_alloc_ftemp();
 
     switch (opcode)
     {
@@ -7995,6 +8232,8 @@ static void handle_fp_1src_double(DisasContext *s, int opcode, int rd, int rn)
         la_fsqrt_d(vreg_d, vreg_n);
         goto done;
     case 0x8: /* FRINTN */
+        la_vfrintrne_d(vreg_d, vreg_n);
+        goto done;
         break;
     case 0x9: /* FRINTP */
         la_vfrintrp_d(vreg_d, vreg_n);
@@ -8009,11 +8248,18 @@ static void handle_fp_1src_double(DisasContext *s, int opcode, int rd, int rn)
         goto done;
         break;
     case 0xc: /* FRINTA */
-        // rmode = opcode & 7;
-        // gen_fpst = gen_helper_rintd;
+        // res = sign(x) * floor(|x| + 0.5)
+        li_d(temp, 0x3fe0000000000000); // 0.5
+        la_movgr2fr_d(vreg_temp, temp);
+        la_fabs_d(vreg_abs, vreg_n);
+        la_fadd_d(vreg_abs, vreg_abs, vreg_temp);
+        la_vfrintrm_d(vreg_abs, vreg_abs);
+        la_fcopysign_d(vreg_d, vreg_abs, vreg_n);
+        goto done;
         break;
     case 0xe: /* FRINTX */
-        // gen_fpst = gen_helper_rintd_exact;
+        la_vfrint_d(vreg_d, vreg_n);
+        goto done;
         break;
     case 0xf: /* FRINTI */
         // gen_fpst = gen_helper_rintd;
@@ -8045,6 +8291,9 @@ done:
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
+    free_alloc_gpr(temp);
+    free_alloc_fpr(vreg_temp);
+    free_alloc_fpr(vreg_abs);
 }
 
 static void handle_fp_fcvt(DisasContext *s, int opcode,
@@ -8083,15 +8332,13 @@ static void handle_fp_fcvt(DisasContext *s, int opcode,
         }
         break;
     }
-    case 0x3:
-    {
-        assert(0);
-        if (dtype == 0)
-        {
+    case 0x3: {
+        if (dtype == 0) {
+            la_vfcvtl_s_h(vreg_d, vreg_n);
+            la_vand_v(vreg_d, vreg_d, fsmask_ir2_opnd);
             /* Half to single */
-        }
-        else
-        {
+        } else {
+            assert(0);
             /* Half to double */
         }
         break;
@@ -8223,6 +8470,7 @@ static void handle_fp_2src_single(DisasContext *s, int opcode,
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vtemp, vtemp1;
 
     switch (opcode)
     {
@@ -8239,10 +8487,20 @@ static void handle_fp_2src_single(DisasContext *s, int opcode,
         la_fsub_s(vreg_d, vreg_n, vreg_m);
         break;
     case 0x4: /* FMAX */
-        assert(0);
-        break;
     case 0x5: /* FMIN */
-        assert(0);
+        vtemp = ra_alloc_ftemp();
+        vtemp1 = ra_alloc_ftemp();
+        if (opcode & 0x1) {
+            la_fmin_s(vtemp, vreg_n, vreg_m);
+        } else {
+            la_fmax_s(vtemp, vreg_n, vreg_m);
+        }
+        la_fcmp_cond_s(fcc0_ir2_opnd, vreg_n, vreg_m, FCMP_COND_CUN);
+        la_fcmp_cond_s(fcc1_ir2_opnd, vreg_n, vreg_n, FCMP_COND_CUN);
+        la_fsel(vtemp1, vreg_m, vreg_n, fcc1_ir2_opnd);
+        la_fsel(vreg_d, vtemp, vtemp1, fcc0_ir2_opnd);
+        free_alloc_fpr(vtemp);
+        free_alloc_fpr(vtemp1);
         break;
     case 0x6: /* FMAXNM */
         la_fmax_s(vreg_d, vreg_n, vreg_m);
@@ -8270,7 +8528,7 @@ static void handle_fp_2src_double(DisasContext *s, int opcode,
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
-    // IR2_OPND vtemp;
+    IR2_OPND vtemp, vtemp1;
 
     switch (opcode)
     {
@@ -8287,10 +8545,20 @@ static void handle_fp_2src_double(DisasContext *s, int opcode,
         la_fsub_d(vreg_d, vreg_n, vreg_m);
         break;
     case 0x4: /* FMAX */
-        assert(0);
-        break;
     case 0x5: /* FMIN */
-        assert(0);
+        vtemp = ra_alloc_ftemp();
+        vtemp1 = ra_alloc_ftemp();
+        if (opcode & 0x1) {
+            la_fmin_d(vtemp, vreg_n, vreg_m);
+        } else {
+            la_fmax_d(vtemp, vreg_n, vreg_m);
+        }
+        la_fcmp_cond_d(fcc0_ir2_opnd, vreg_n, vreg_m, FCMP_COND_CUN);
+        la_fcmp_cond_d(fcc1_ir2_opnd, vreg_n, vreg_n, FCMP_COND_CUN);
+        la_fsel(vtemp1, vreg_m, vreg_n, fcc1_ir2_opnd);
+        la_fsel(vreg_d, vtemp, vtemp1, fcc0_ir2_opnd);
+        free_alloc_fpr(vtemp);
+        free_alloc_fpr(vtemp1);
         break;
     case 0x6: /* FMAXNM */
         la_fmax_d(vreg_d, vreg_n, vreg_m);
@@ -10654,14 +10922,10 @@ static void disas_simd_scalar_pairwise(DisasContext *s, uint32_t insn)
         default:
             g_assert_not_reached();
         }
-    }
-    else
-    {
-        assert(0);
-        if (size == MO_16)
-        {
-            switch (opcode)
-            {
+    } else {
+        if (size == MO_16) {
+            assert(0);
+            switch (opcode) {
             case 0xc: /* FMAXNMP */
                 break;
             case 0xd: /* FADDP */
@@ -10675,27 +10939,29 @@ static void disas_simd_scalar_pairwise(DisasContext *s, uint32_t insn)
             default:
                 g_assert_not_reached();
             }
-        }
-        else
-        {
-            switch (opcode)
-            {
+        } else {
+            la_vreplvei_w(vtemp, vreg_n, 1);
+
+            switch (opcode) {
             case 0xc: /* FMAXNMP */
+                la_vfmax_s(vreg_d, vreg_n, vtemp);
                 break;
             case 0xd: /* FADDP */
+                la_vfadd_s(vreg_d, vtemp, vreg_n);
                 break;
             case 0xf: /* FMAXP */
-                break;
+                assert(0);
             case 0x2c: /* FMINNMP */
+                la_vfmin_s(vreg_d, vreg_n, vtemp);
                 break;
             case 0x2f: /* FMINP */
-                break;
+                assert(0);
             default:
                 g_assert_not_reached();
             }
+            la_vand_v(vreg_d, vreg_d, fsmask_ir2_opnd);
         }
 
-        la_vand_v(vreg_d, vreg_d, fsmask_ir2_opnd);
     }
 
     store_fpr_dst(rd, vreg_d);
@@ -10763,6 +11029,20 @@ static void handle_scalar_simd_shri(DisasContext *s,
         break;
 
     case 0x04: /* SRSHR / URSHR (rounding) */
+        if (is_u) {
+            /* Shift count the same size as element size produces zero.  */
+            if (shift == 8 << size) {
+                la_vandi_b(vreg_d, vtemp, 0);
+                break;
+            }
+            la_vsrlri_d(vreg_d, vtemp, shift);
+        } else {
+            /* Shift count the same size as element size produces all sign.  */
+            if (shift == 8 << size) {
+                shift -= 1;
+            }
+            la_vsrari_d(vreg_d, vtemp, shift);
+        }
         assert(0);
         break;
 
@@ -10785,8 +11065,6 @@ static void handle_scalar_simd_shli(DisasContext *s, bool insert,
                                     int immh, int immb, int opcode,
                                     int rn, int rd)
 {
-    assert(!insert);
-
     int size = 32 - clz32(immh) - 1;
     int immhb = immh << 3 | immb;
     int shift = immhb - (8 << size);
@@ -10804,14 +11082,27 @@ static void handle_scalar_simd_shli(DisasContext *s, bool insert,
 
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_mask = ra_alloc_ftemp();
+    IR2_OPND vreg_temp = ra_alloc_ftemp();
 
-    la_vslli_d(vreg_d, vreg_n, shift);
+    if (!insert) {
+        la_vslli_d(vreg_d, vreg_n, shift);
+    } else {
+        la_vfcmp_cond_d(vreg_mask, vreg_n, vreg_n, FCMP_COND_SEQ);
+        la_vsrli_d(vreg_mask, vreg_mask, 64 - shift);
+
+        la_vand_v(vreg_temp, vreg_d, vreg_mask);
+        la_vslli_d(vreg_d, vreg_n, shift);
+        la_vor_v(vreg_d, vreg_d, vreg_temp);
+    }
     /* 高64位清零 */
     la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
 
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_mask);
+    free_alloc_fpr(vreg_temp);
 }
 
 /* SQSHRN/SQSHRUN - Saturating (signed/unsigned) shift right with
@@ -10821,7 +11112,139 @@ static void handle_vec_simd_sqshrn(DisasContext *s, bool is_scalar, bool is_q,
                                    int immh, int immb, int opcode,
                                    int rn, int rd)
 {
-    assert(0);
+    int immhb = immh << 3 | immb;
+    int size = 32 - clz32(immh) - 1;
+    int esize = 8 << size;
+    int shift = (2 * esize) - immhb;
+    bool round = extract32(opcode, 0, 1);
+
+    assert(size < 4);
+
+    if (extract32(immh, 3, 1)) {
+        lata_unallocated_encoding(s);
+        return;
+    }
+
+    if (!fp_access_check(s)) {
+        return;
+    }
+
+    assert(!is_scalar);
+
+    IR2_OPND vreg_d = alloc_fpr_src(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vreg;
+
+    if(is_q) vreg = vtemp;
+    else vreg = vreg_d;
+
+    // TODO : need fix saturate
+    if (round) {
+        if (is_u_shift) {
+            switch (size) {
+            case 0:
+                la_vssrlrni_bu_h(vreg, vreg_n, shift);
+                break;
+            case 1:
+                la_vssrlrni_hu_w(vreg, vreg_n, shift);
+                break;
+            case 2:
+                la_vssrlrni_wu_d(vreg, vreg_n, shift);
+                break;
+            default:
+                assert(0);
+            }
+        } else {
+            if (!is_u_narrow) {
+                switch (size) {
+                case 0:
+                    la_vssrarni_b_h(vreg, vreg_n, shift);
+                    break;
+                case 1:
+                    la_vssrarni_h_w(vreg, vreg_n, shift);
+                    break;
+                case 2:
+                    la_vssrarni_w_d(vreg, vreg_n, shift);
+                    break;
+                default:
+                    assert(0);
+                }
+            } else {
+                assert(0);
+                switch (size) {
+                case 0:
+                    la_vssrarni_bu_h(vreg, vreg_n, shift);
+                    break;
+                case 1:
+                    la_vssrarni_hu_w(vreg, vreg_n, shift);
+                    break;
+                case 2:
+                    la_vssrarni_wu_d(vreg, vreg_n, shift);
+                    break;
+                default:
+                    assert(0);
+                }
+            }
+        }
+    } else {
+        if (is_u_shift) {
+            switch (size) {
+            case 0:
+                la_vssrlni_bu_h(vreg, vreg_n, shift);
+                break;
+            case 1:
+                la_vssrlni_hu_w(vreg, vreg_n, shift);
+                break;
+            case 2:
+                la_vssrlni_wu_d(vreg, vreg_n, shift);
+                break;
+            default:
+                assert(0);
+            }
+        } else {
+            if (!is_u_narrow) {
+                switch (size) {
+                case 0:
+                    la_vssrani_b_h(vreg, vreg_n, shift);
+                    break;
+                case 1:
+                    la_vssrani_h_w(vreg, vreg_n, shift);
+                    break;
+                case 2:
+                    la_vssrani_w_d(vreg, vreg_n, shift);
+                    break;
+                default:
+                    assert(0);
+                }
+            } else {
+                assert(0);
+                switch (size) {
+                case 0:
+                    la_vssrani_bu_h(vreg, vreg_n, shift);
+                    break;
+                case 1:
+                    la_vssrani_hu_w(vreg, vreg_n, shift);
+                    break;
+                case 2:
+                    la_vssrani_wu_d(vreg, vreg_n, shift);
+                    break;
+                default:
+                    assert(0);
+                }
+            }
+        }
+    }
+
+    if (is_q)
+        la_vpickev_d(vreg_d, vtemp, vreg_d);
+    else
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+
+    store_fpr_dst(rd, vreg_d);
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vtemp);
 }
 
 /* SQSHLU, UQSHL, SQSHL: saturating left shifts */
@@ -11054,14 +11477,43 @@ static void handle_3same_64(DisasContext *s, int opcode, bool u,
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vreg_m = alloc_fpr_src(rm);
+    IR2_OPND vreg_temp = ra_alloc_ftemp();
+    IR2_OPND vreg_temp1 = ra_alloc_ftemp();
+    IR2_OPND temp = ra_alloc_itemp();
+    IR2_OPND vleft = ra_alloc_ftemp();
+    IR2_OPND vright = ra_alloc_ftemp();
 
-    switch (opcode)
-    {
+    IR2_OPND label = ir2_opnd_new_type(IR2_OPND_LABEL);
+    IR2_OPND exit = ir2_opnd_new_type(IR2_OPND_LABEL);
+
+    switch (opcode) {
     case 0x1: /* SQADD */
         assert(0);
         break;
     case 0x5: /* SQSUB */
-        assert(0);
+        if (u) {
+            la_vssub_du(vreg_temp1, vreg_n, vreg_m);
+        } else {
+            la_vssub_d(vreg_temp1, vreg_n, vreg_m);
+        }
+        la_vinsgr2vr_d(vreg_temp1, zero_ir2_opnd, 1);
+
+        la_vsub_d(vreg_temp, vreg_n, vreg_m);
+        la_vinsgr2vr_d(vreg_temp, zero_ir2_opnd, 1);
+
+        la_vseq_d(vreg_temp, vreg_temp1, vreg_temp);
+        la_vsetanyeqz_b(fcc1_ir2_opnd, vreg_temp);
+        la_bcnez(fcc1_ir2_opnd, label);
+        la_b(exit);
+
+        la_label(label);
+        li_d(temp, 1);
+        la_st_w(temp, env_ir2_opnd, env_offset_QC());
+
+        la_label(exit);
+
+        la_vori_b(vreg_d, vreg_temp1, 0);
+
         break;
     case 0x6: /* CMGT, CMHI */
         assert(0);
@@ -11073,7 +11525,46 @@ static void handle_3same_64(DisasContext *s, int opcode, bool u,
         assert(0);
         break;
     case 0x8: /* SSHL, USHL */
-        assert(0);
+        /* 取元素中shift */
+        la_vslli_d(vleft, vreg_m, 56);
+        la_vsrli_d(vleft, vleft, 56);
+
+        /* 正数放vleft左移，负数取反后放vright右移，vreg_temp存放符号位*/
+        la_vslti_b(vreg_temp, vleft, 0);
+        la_vand_v(vright, vreg_temp, vleft);
+        la_vsub_b(vleft, vleft, vright);
+        la_vsigncov_b(vright, vreg_temp, vright);
+
+        /* ARM
+         * 移位量不做模运算，这里需要特殊处理，左移大于等于元素长度对应清零，右移大于等于元素长度shift-1*/
+        /* vslti的立即数限制5位，进行特殊处理，右移缩小2倍与16比较 */
+        la_vsll_d(vreg_d, vreg_n, vleft);
+        if (!u) {
+            la_vsra_d(vreg_d, vreg_d, vright);
+        } else {
+            la_vsrl_d(vreg_d, vreg_d, vright);
+        }
+        la_vsrli_b(vreg_temp, vleft, 2);
+        la_vslti_du(vleft, vreg_temp, 16);
+        la_vsrli_b(vright, vright, 2);
+        la_vslti_du(vright, vright, 16);
+
+        // la_vsll_d(vreg_temp, vreg_n, vleft);
+        la_vand_v(vreg_temp, vreg_d, vleft);
+
+        /* 正常右移 */
+        la_vand_v(vreg_temp, vreg_temp, vright);
+        /* 满位右移 */
+        la_vnori_b(vright, vright, 0);
+        if (!u) {
+            la_vsrai_d(vleft, vreg_n, 63);
+        } else {
+            la_vandi_b(vleft, vreg_n, 0);
+        }
+        la_vand_v(vleft, vright, vleft);
+        la_vadd_d(vreg_d, vreg_temp, vleft);
+
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
         break;
     case 0x9: /* SQSHL, UQSHL */
         assert(0);
@@ -11103,6 +11594,12 @@ static void handle_3same_64(DisasContext *s, int opcode, bool u,
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
     free_alloc_fpr(vreg_m);
+
+    free_alloc_fpr(vreg_temp);
+    free_alloc_fpr(vreg_temp1);
+    free_alloc_fpr(vleft);
+    free_alloc_fpr(vright);
+    free_alloc_gpr(temp);
 }
 
 static void handle_3same_float(DisasContext *s, int size, int elements,
@@ -11113,6 +11610,8 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vtemp = ra_alloc_ftemp();
     IR2_OPND vtemp1 = ra_alloc_ftemp();
+    IR2_OPND vtemp2 = ra_alloc_ftemp();
+    IR2_OPND vtemp3 = ra_alloc_ftemp();
 
     IR2_OPND vreg_d;
     if (fpopcode == 0x39 || fpopcode == 0x19)
@@ -11126,9 +11625,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
     if (size)
     {
         /* Double */
-
-        switch (fpopcode)
-        {
+        switch (fpopcode) {
         case 0x39: /* FMLS */
             la_vxor_v(vtemp, vtemp, vtemp);
             la_vfsub_d(vtemp, vtemp, vreg_n);
@@ -11150,7 +11647,11 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             la_vfcmp_cond_d(vreg_d, vreg_n, vreg_m, FCMP_COND_SEQ);
             break;
         case 0x1e: /* FMAX */
-            assert(0);
+            la_vfmax_d(vtemp, vreg_n, vreg_m);
+            la_vfcmp_cond_d(vtemp1, vreg_n, vreg_m, FCMP_COND_CUN);
+            la_vfcmp_cond_d(vtemp2, vreg_n, vreg_n, FCMP_COND_CUN);
+            la_vbitsel_v(vtemp3, vreg_m, vreg_n, vtemp2);
+            la_vbitsel_v(vreg_d, vtemp, vtemp3, vtemp1);
             break;
         case 0x1f: /* FRECPS */
             assert(0);
@@ -11162,7 +11663,11 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             la_vfsub_d(vreg_d, vreg_n, vreg_m);
             break;
         case 0x3e: /* FMIN */
-            assert(0);
+            la_vfmin_d(vtemp, vreg_n, vreg_m);
+            la_vfcmp_cond_d(vtemp1, vreg_n, vreg_m, FCMP_COND_CUN);
+            la_vfcmp_cond_d(vtemp2, vreg_n, vreg_n, FCMP_COND_CUN);
+            la_vbitsel_v(vtemp3, vreg_m, vreg_n, vtemp2);
+            la_vbitsel_v(vreg_d, vtemp, vtemp3, vtemp1);
             break;
         case 0x3f: /* FRSQRTS */
             assert(0);
@@ -11199,9 +11704,7 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
     else
     {
         /* Single */
-
-        switch (fpopcode)
-        {
+        switch (fpopcode) {
         case 0x39: /* FMLS */
             la_vxor_v(vtemp, vtemp, vtemp);
             la_vfsub_s(vtemp, vtemp, vreg_n);
@@ -11220,7 +11723,11 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             la_vfcmp_cond_s(vreg_d, vreg_n, vreg_m, FCMP_COND_SEQ);
             break;
         case 0x1e: /* FMAX */
-            assert(0);
+            la_vfmax_s(vtemp, vreg_n, vreg_m);
+            la_vfcmp_cond_s(vtemp1, vreg_n, vreg_m, FCMP_COND_CUN);
+            la_vfcmp_cond_s(vtemp2, vreg_n, vreg_n, FCMP_COND_CUN);
+            la_vbitsel_v(vtemp3, vreg_m, vreg_n, vtemp2);
+            la_vbitsel_v(vreg_d, vtemp, vtemp3, vtemp1);
             break;
         case 0x1f: /* FRECPS */
             assert(0);
@@ -11235,7 +11742,11 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
             la_vfsub_s(vreg_d, vreg_n, vreg_m);
             break;
         case 0x3e: /* FMIN */
-            assert(0);
+            la_vfmin_s(vtemp, vreg_n, vreg_m);
+            la_vfcmp_cond_s(vtemp1, vreg_n, vreg_m, FCMP_COND_CUN);
+            la_vfcmp_cond_s(vtemp2, vreg_n, vreg_n, FCMP_COND_CUN);
+            la_vbitsel_v(vtemp3, vreg_m, vreg_n, vtemp2);
+            la_vbitsel_v(vreg_d, vtemp, vtemp3, vtemp1);
             break;
         case 0x3f: /* FRSQRTS */
             assert(0);
@@ -11284,6 +11795,8 @@ static void handle_3same_float(DisasContext *s, int size, int elements,
     free_alloc_fpr(vreg_m);
     free_alloc_fpr(vtemp);
     free_alloc_fpr(vtemp1);
+    free_alloc_fpr(vtemp2);
+    free_alloc_fpr(vtemp3);
 }
 
 static void handle_3same_float_scalar(DisasContext *s, int size, int fpopcode,
@@ -11704,9 +12217,91 @@ static void handle_2misc_reciprocal(DisasContext *s, int opcode,
     assert(0);
 }
 
-static void handle_2misc_narrow(DisasContext *s, bool scalar,
-                                int opcode, bool u, bool is_q,
-                                int size, int rn, int rd)
+static void handle_fcvt(DisasContext *s, int opcode, bool is_u, int size,
+                        int rn, int rd)
+{
+    IR2_OPND vreg_d = alloc_fpr_src(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+
+    if (size == MO_64) {
+        switch (opcode) {
+        case 0x1a: /* FCVTNS */
+            assert(0);
+            break;
+        case 0x1b: /* FCVTMS */
+            assert(0);
+            break;
+        case 0x3a: /* FCVTPS */
+            assert(0);
+            break;
+        case 0x3b: /* FCVTZS */
+            assert(0);
+            break;
+        case 0x5a: /* FCVTNU */
+            assert(0);
+            break;
+        case 0x5b: /* FCVTMU */
+            assert(0);
+            break;
+        case 0x7a: /* FCVTPU */
+            assert(0);
+            break;
+        case 0x7b: /* FCVTZU */
+            assert(0);
+            break;
+        case 0x1c: /* FCVTAS */
+            assert(0);
+            break;
+        case 0x5c: /* FCVTAU */
+            assert(0);
+            break;
+        default:
+            assert(0);
+        }
+    } else {
+        switch (opcode) {
+        case 0x1a: /* FCVTNS */
+            assert(0);
+            break;
+        case 0x1b: /* FCVTMS */
+            assert(0);
+            break;
+        case 0x3a: /* FCVTPS */
+            assert(0);
+            break;
+        case 0x3b: /* FCVTZS */
+            la_vftintrz_w_s(vreg_d, vreg_n);
+            break;
+        case 0x5a: /* FCVTNU */
+            assert(0);
+            break;
+        case 0x5b: /* FCVTMU */
+            assert(0);
+            break;
+        case 0x7a: /* FCVTPU */
+            assert(0);
+            break;
+        case 0x7b: /* FCVTZU */
+            assert(0);
+            break;
+        case 0x1c: /* FCVTAS */
+            assert(0);
+            break;
+        case 0x5c: /* FCVTAU */
+            assert(0);
+            break;
+        default:
+            assert(0);
+        }
+    }
+
+
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+}
+
+static void handle_2misc_narrow(DisasContext *s, bool scalar, int opcode,
+                                bool u, bool is_q, int size, int rn, int rd)
 {
     /* Handle 2-reg-misc ops which are narrowing (so each 2*size element
      * in the source becomes a size element in the destination).
@@ -11714,61 +12309,122 @@ static void handle_2misc_narrow(DisasContext *s, bool scalar,
     IR2_OPND vreg_d = alloc_fpr_src(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vtemp1 = ra_alloc_ftemp();
+    IR2_OPND vmask = ra_alloc_ftemp();
     la_vandi_b(vtemp, vtemp, 0);
 
     switch (opcode)
     {
     case 0x12: /* XTN,XTN2, SQXTUN */
     {
-        if (!is_q)
-        {
-            switch (size)
-            {
+        if (u) {
+            assert(!is_q);
+            switch (size) {
             case 0:
-                la_vpickev_b(vreg_d, vtemp, vreg_n);
+                la_vslei_h(vmask, vreg_n, 0);
+                la_vnor_v(vmask, vmask, vmask);
+                la_vand_v(vmask, vmask, vreg_n);
+                la_vsat_hu(vtemp1, vmask, 7);
+                la_vpickev_b(vreg_d, vtemp, vtemp1);
                 break;
             case 1:
-                la_vpickev_h(vreg_d, vtemp, vreg_n);
+                la_vslei_w(vmask, vreg_n, 0);
+                la_vnor_v(vmask, vmask, vmask);
+                la_vand_v(vmask, vmask, vreg_n);
+                la_vsat_wu(vtemp1, vmask, 15);
+                la_vpickev_h(vreg_d, vtemp, vtemp1);
                 break;
             case 2:
-                la_vpickev_w(vreg_d, vtemp, vreg_n);
-                break;
-            case 3:
-                la_vpickev_d(vreg_d, vtemp, vreg_n);
+                la_vslei_d(vmask, vreg_n, 0);
+                la_vnor_v(vmask, vmask, vmask);
+                la_vand_v(vmask, vmask, vreg_n);
+                la_vsat_du(vtemp1, vmask, 31);
+                la_vpickev_w(vreg_d, vtemp, vtemp1);
                 break;
             default:
                 assert(0);
             }
-        }
-        else
-        {
-            switch (size)
-            {
-            case 0:
-                la_vpickev_b(vtemp, vtemp, vreg_n);
-                la_vpickev_d(vreg_d, vtemp, vreg_d);
-                break;
-            case 1:
-                la_vpickev_h(vtemp, vtemp, vreg_n);
-                la_vpickev_d(vreg_d, vtemp, vreg_d);
-                break;
-            case 2:
-                la_vpickev_w(vtemp, vtemp, vreg_n);
-                la_vpickev_d(vreg_d, vtemp, vreg_d);
-                break;
-            case 3:
-                la_vpickev_d(vtemp, vtemp, vreg_n);
-                la_vpickev_d(vreg_d, vtemp, vreg_d);
-                break;
-            default:
-                assert(0);
+        } else {
+            if (!is_q) {
+                switch (size) {
+                case 0:
+                    la_vpickev_b(vreg_d, vtemp, vreg_n);
+                    break;
+                case 1:
+                    la_vpickev_h(vreg_d, vtemp, vreg_n);
+                    break;
+                case 2:
+                    la_vpickev_w(vreg_d, vtemp, vreg_n);
+                    break;
+                case 3:
+                    la_vpickev_d(vreg_d, vtemp, vreg_n);
+                    break;
+                default:
+                    assert(0);
+                }
+            } else {
+                switch (size) {
+                case 0:
+                    la_vpickev_b(vtemp, vtemp, vreg_n);
+                    la_vpickev_d(vreg_d, vtemp, vreg_d);
+                    break;
+                case 1:
+                    la_vpickev_h(vtemp, vtemp, vreg_n);
+                    la_vpickev_d(vreg_d, vtemp, vreg_d);
+                    break;
+                case 2:
+                    la_vpickev_w(vtemp, vtemp, vreg_n);
+                    la_vpickev_d(vreg_d, vtemp, vreg_d);
+                    break;
+                case 3:
+                    la_vpickev_d(vtemp, vtemp, vreg_n);
+                    la_vpickev_d(vreg_d, vtemp, vreg_d);
+                    break;
+                default:
+                    assert(0);
+                }
             }
         }
         break;
     }
     case 0x14: /* SQXTN, UQXTN */
     {
-        assert(0);
+        assert(!is_q);
+        if (u) {
+            switch (size) {
+            case 0:
+                la_vsat_hu(vtemp1, vreg_n, 7);
+                la_vpickev_b(vreg_d, vtemp, vtemp1);
+                break;
+            case 1:
+                la_vsat_wu(vtemp1, vreg_n, 15);
+                la_vpickev_h(vreg_d, vtemp, vtemp1);
+                break;
+            case 2:
+                la_vsat_du(vtemp1, vreg_n, 31);
+                la_vpickev_w(vreg_d, vtemp, vtemp1);
+                break;
+            default:
+                assert(0);
+            }
+        } else {
+            switch (size) {
+            case 0:
+                la_vsat_h(vtemp1, vreg_n, 7);
+                la_vpickev_b(vreg_d, vtemp, vtemp1);
+                break;
+            case 1:
+                la_vsat_w(vtemp1, vreg_n, 15);
+                la_vpickev_h(vreg_d, vtemp, vtemp1);
+                break;
+            case 2:
+                la_vsat_d(vtemp1, vreg_n, 31);
+                la_vpickev_w(vreg_d, vtemp, vtemp1);
+                break;
+            default:
+                assert(0);
+            }
+        }
         break;
     }
     case 0x16: /* FCVTN, FCVTN2 */
@@ -11817,8 +12473,14 @@ static void handle_2misc_narrow(DisasContext *s, bool scalar,
         g_assert_not_reached();
     }
 
+    if (!is_q) {
+        /* 高64位清零 */
+        la_vinsgr2vr_d(vreg_d, zero_ir2_opnd, 1);
+    }
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vtemp);
+    free_alloc_fpr(vtemp1);
+    free_alloc_fpr(vmask);
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
 }
@@ -11937,9 +12599,8 @@ static void disas_simd_scalar_two_reg_misc(DisasContext *s, uint32_t insn)
         case 0x7b: /* FCVTZU */
         case 0x1c: /* FCVTAS */
         case 0x5c: /* FCVTAU */
-            /* TIEAWAY doesn't fit in the usual rounding mode encoding */
-            assert(0);
-            break;
+            handle_fcvt(s, opcode, u, size, rn, rd);
+            return;
         case 0x56: /* FCVTXN, FCVTXN2 */
             if (size == 2)
             {
@@ -11975,9 +12636,10 @@ static void handle_vec_simd_shri(DisasContext *s, bool is_q, bool is_u,
     int size = 32 - clz32(immh) - 1;
     int immhb = immh << 3 | immb;
     int shift = 2 * (8 << size) - immhb;
-    IR2_OPND vreg_d = alloc_fpr_dst(rd);
+    IR2_OPND vreg_d = alloc_fpr_src(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
     IR2_OPND vtemp = ra_alloc_ftemp();
+    IR2_OPND vtemp1 = ra_alloc_ftemp();
 
     if (extract32(immh, 3, 1) && !is_q)
     {
@@ -12000,7 +12662,57 @@ static void handle_vec_simd_shri(DisasContext *s, bool is_q, bool is_u,
     switch (opcode)
     {
     case 0x02: /* SSRA / USRA (accumulate) */
-        assert(0);
+        if (is_u) {
+            /* Shift count the same size as element size produces zero.  */
+            if (shift == 8 << size) {
+                break;
+            }
+            switch (size) {
+            case 0:
+                la_vsrli_b(vtemp1, vtemp, shift);
+                la_vadd_b(vreg_d, vtemp1, vreg_d);
+                break;
+            case 1:
+                la_vsrli_h(vtemp1, vtemp, shift);
+                la_vadd_h(vreg_d, vtemp1, vreg_d);
+                break;
+            case 2:
+                la_vsrli_w(vtemp1, vtemp, shift);
+                la_vadd_w(vreg_d, vtemp1, vreg_d);
+                break;
+            case 3:
+                la_vsrli_d(vtemp1, vtemp, shift);
+                la_vadd_d(vreg_d, vtemp1, vreg_d);
+                break;
+            default:
+                assert(0);
+            }
+        } else {
+            /* Shift count the same size as element size produces all sign.  */
+            if (shift == 8 << size) {
+                shift -= 1;
+            }
+            switch (size) {
+            case 0:
+                la_vsrai_b(vtemp1, vtemp, shift);
+                la_vadd_b(vreg_d, vtemp1, vreg_d);
+                break;
+            case 1:
+                la_vsrai_h(vtemp1, vtemp, shift);
+                la_vadd_h(vreg_d, vtemp1, vreg_d);
+                break;
+            case 2:
+                la_vsrai_w(vtemp1, vtemp, shift);
+                la_vadd_w(vreg_d, vtemp1, vreg_d);
+                break;
+            case 3:
+                la_vsrai_d(vtemp1, vtemp, shift);
+                la_vadd_d(vreg_d, vtemp1, vreg_d);
+                break;
+            default:
+                assert(0);
+            }
+        }
         break;
 
     case 0x08: /* SRI */
@@ -12062,7 +12774,50 @@ static void handle_vec_simd_shri(DisasContext *s, bool is_q, bool is_u,
         break;
 
     case 0x04: /* SRSHR / URSHR (rounding) */
-        assert(0);
+        if (is_u) {
+            /* Shift count the same size as element size produces zero.  */
+            if (shift == 8 << size) {
+                la_vandi_b(vreg_d, vtemp, 0);
+                break;
+            }
+            switch (size) {
+            case 0:
+                la_vsrlri_b(vreg_d, vtemp, shift);
+                break;
+            case 1:
+                la_vsrlri_h(vreg_d, vtemp, shift);
+                break;
+            case 2:
+                la_vsrlri_w(vreg_d, vtemp, shift);
+                break;
+            case 3:
+                la_vsrlri_d(vreg_d, vtemp, shift);
+                break;
+            default:
+                assert(0);
+            }
+        } else {
+            /* Shift count the same size as element size produces all sign.  */
+            if (shift == 8 << size) {
+                shift -= 1;
+            }
+            switch (size) {
+            case 0:
+                la_vsrari_b(vreg_d, vtemp, shift);
+                break;
+            case 1:
+                la_vsrari_h(vreg_d, vtemp, shift);
+                break;
+            case 2:
+                la_vsrari_w(vreg_d, vtemp, shift);
+                break;
+            case 3:
+                la_vsrari_d(vreg_d, vtemp, shift);
+                break;
+            default:
+                assert(0);
+            }
+        }
         break;
 
     case 0x06: /* SRSRA / URSRA (accum + rounding) */
@@ -12077,14 +12832,13 @@ static void handle_vec_simd_shri(DisasContext *s, bool is_q, bool is_u,
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
     free_alloc_fpr(vtemp);
+    free_alloc_fpr(vtemp1);
 }
 
 /* SHL/SLI - Vector shift left */
 static void handle_vec_simd_shli(DisasContext *s, bool is_q, bool insert,
                                  int immh, int immb, int opcode, int rn, int rd)
 {
-    assert(!insert);
-
     int size = 32 - clz32(immh) - 1;
     int immhb = immh << 3 | immb;
     int shift = immhb - (8 << size);
@@ -12100,23 +12854,53 @@ static void handle_vec_simd_shli(DisasContext *s, bool is_q, bool insert,
 
     IR2_OPND vreg_d = alloc_fpr_dst(rd);
     IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vreg_mask = ra_alloc_ftemp();
+    IR2_OPND vreg_temp = ra_alloc_ftemp();
 
-    switch (size)
-    {
-    case 0:
-        la_vslli_b(vreg_d, vreg_n, shift);
-        break;
-    case 1:
-        la_vslli_h(vreg_d, vreg_n, shift);
-        break;
-    case 2:
-        la_vslli_w(vreg_d, vreg_n, shift);
-        break;
-    case 3:
-        la_vslli_d(vreg_d, vreg_n, shift);
-        break;
-    default:
-        break;
+    if (!insert) {
+        switch (size) {
+        case 0:
+            la_vslli_b(vreg_d, vreg_n, shift);
+            break;
+        case 1:
+            la_vslli_h(vreg_d, vreg_n, shift);
+            break;
+        case 2:
+            la_vslli_w(vreg_d, vreg_n, shift);
+            break;
+        case 3:
+            la_vslli_d(vreg_d, vreg_n, shift);
+            break;
+        default:
+            break;
+        }
+    } else {
+        la_vfcmp_cond_d(vreg_mask, vreg_n, vreg_n, FCMP_COND_SEQ);
+        switch (size) {
+        case 0:
+            la_vsrli_b(vreg_mask, vreg_mask, 8 - shift);
+            la_vand_v(vreg_temp, vreg_d, vreg_mask);
+            la_vslli_b(vreg_d, vreg_n, shift);
+            break;
+        case 1:
+            la_vsrli_h(vreg_mask, vreg_mask, 16 - shift);
+            la_vand_v(vreg_temp, vreg_d, vreg_mask);
+            la_vslli_h(vreg_d, vreg_n, shift);
+            break;
+        case 2:
+            la_vsrli_w(vreg_mask, vreg_mask, 32 - shift);
+            la_vand_v(vreg_temp, vreg_d, vreg_mask);
+            la_vslli_w(vreg_d, vreg_n, shift);
+            break;
+        case 3:
+            la_vsrli_d(vreg_mask, vreg_mask, 64 - shift);
+            la_vand_v(vreg_temp, vreg_d, vreg_mask);
+            la_vslli_d(vreg_d, vreg_n, shift);
+            break;
+        default:
+            break;
+        }
+        la_vor_v(vreg_d, vreg_d, vreg_temp);
     }
 
     if (!is_q)
@@ -12127,6 +12911,8 @@ static void handle_vec_simd_shli(DisasContext *s, bool is_q, bool insert,
     store_fpr_dst(rd, vreg_d);
     free_alloc_fpr(vreg_d);
     free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vreg_mask);
+    free_alloc_fpr(vreg_temp);
 }
 
 /* USHLL/SSHLL - Vector shift left with widening */
@@ -12434,10 +13220,93 @@ static void handle_3rd_widening(DisasContext *s, int is_q, int is_u, int size,
         assert(0);
         break;
     case 0x8: /* SMLAL, SMLAL2 */
-        assert(0);
-        break;
     case 0xa: /* SMLSL, SMLSL2 */
-        assert(0);
+        vreg_d = alloc_fpr_src(rd);
+        if (!is_q) {
+            /* 低位统一移至偶数位后做偶数位的相乘并拓2倍宽 */
+            switch (size) {
+            case 0:
+                la_vilvl_b(vtemp, vzero, vreg_n);
+                la_vilvl_b(vtemp1, vzero, vreg_m);
+                if (is_sub) {
+                    la_vmulwev_h_b(vtemp, vtemp, vtemp1);
+                    la_vsub_h(vreg_d, vreg_d, vtemp);
+                } else
+                    la_vmaddwev_h_b(vreg_d, vtemp, vtemp1);
+                break;
+            case 1:
+                la_vilvl_h(vtemp, vzero, vreg_n);
+                la_vilvl_h(vtemp1, vzero, vreg_m);
+                if (is_sub) {
+                    la_vmulwev_w_h(vtemp, vtemp, vtemp1);
+                    la_vsub_w(vreg_d, vreg_d, vtemp);
+                } else
+                    la_vmaddwev_w_h(vreg_d, vtemp, vtemp1);
+                break;
+            case 2:
+                la_vilvl_w(vtemp, vzero, vreg_n);
+                la_vilvl_w(vtemp1, vzero, vreg_m);
+                if (is_sub) {
+                    la_vmulwev_d_w(vtemp, vtemp, vtemp1);
+                    la_vsub_d(vreg_d, vreg_d, vtemp);
+                } else
+                    la_vmaddwev_d_w(vreg_d, vtemp, vtemp1);
+                break;
+            case 3:
+                la_vilvl_d(vtemp, vzero, vreg_n);
+                la_vilvl_d(vtemp1, vzero, vreg_m);
+                if (is_sub) {
+                    la_vmulwev_h_b(vtemp, vtemp, vtemp1);
+                    la_vsub_q(vreg_d, vreg_d, vtemp);
+                } else
+                    la_vmaddwev_q_d(vreg_d, vtemp, vtemp1);
+                break;
+            default:
+                assert(0);
+            }
+        } else {
+            /* 高位统一移至偶数位后做偶数位的相乘并拓2倍宽 */
+            switch (size) {
+            case 0:
+                la_vilvh_b(vtemp, vzero, vreg_n);
+                la_vilvh_b(vtemp1, vzero, vreg_m);
+                if (is_sub) {
+                    la_vmulwev_h_b(vtemp, vtemp, vtemp1);
+                    la_vsub_h(vreg_d, vreg_d, vtemp);
+                } else
+                    la_vmaddwev_h_b(vreg_d, vtemp, vtemp1);
+                break;
+            case 1:
+                la_vilvh_h(vtemp, vzero, vreg_n);
+                la_vilvh_h(vtemp1, vzero, vreg_m);
+                if (is_sub) {
+                    la_vmulwev_w_h(vtemp, vtemp, vtemp1);
+                    la_vsub_w(vreg_d, vreg_d, vtemp);
+                } else
+                    la_vmaddwev_w_h(vreg_d, vtemp, vtemp1);
+                break;
+            case 2:
+                la_vilvh_w(vtemp, vzero, vreg_n);
+                la_vilvh_w(vtemp1, vzero, vreg_m);
+                if (is_sub) {
+                    la_vmulwev_d_w(vtemp, vtemp, vtemp1);
+                    la_vsub_d(vreg_d, vreg_d, vtemp);
+                } else
+                    la_vmaddwev_d_w(vreg_d, vtemp, vtemp1);
+                break;
+            case 3:
+                la_vilvh_d(vtemp, vzero, vreg_n);
+                la_vilvh_d(vtemp1, vzero, vreg_m);
+                if (is_sub) {
+                    la_vmulwev_h_b(vtemp, vtemp, vtemp1);
+                    la_vsub_q(vreg_d, vreg_d, vtemp);
+                } else
+                    la_vmaddwev_q_d(vreg_d, vtemp, vtemp1);
+                break;
+            default:
+                assert(0);
+            }
+        }
         break;
     case 0xc: /* SMULL, SMULL2 */
         vreg_d = alloc_fpr_dst(rd);
@@ -12501,13 +13370,117 @@ static void handle_3rd_widening(DisasContext *s, int is_q, int is_u, int size,
         }
         break;
     case 0x9: /* SQDMLAL, SQDMLAL2 */
-        assert(0);
+        vreg_d = alloc_fpr_src(rd);
+        if (!is_q) {
+            switch (size) {
+            case 1:
+                la_vilvl_h(vtemp, vzero, vreg_n);
+                la_vilvl_h(vtemp1, vzero, vreg_m);
+                la_vmulwev_w_h(vzero, vtemp, vtemp1);
+                lata_helper_addl_saturate_s32(s, vzero, vzero, vzero, -1);
+                lata_helper_addl_saturate_s32(s, vreg_d, vreg_d, vzero, rd);
+                break;
+            case 2:
+                la_vilvl_w(vtemp, vzero, vreg_n);
+                la_vilvl_w(vtemp1, vzero, vreg_m);
+                la_vmulwev_d_w(vzero, vtemp, vtemp1);
+                lata_helper_addl_saturate_s64(s, vzero, vzero, vzero, -1);
+                lata_helper_addl_saturate_s64(s, vreg_d, vreg_d, vzero, rd);
+                break;
+            default:
+                assert(0);
+            }
+
+        } else {
+            switch (size) {
+            case 1:
+                assert(0);
+                break;
+            case 2:
+                assert(0);
+                break;
+            default:
+                assert(0);
+            }
+        }
         break;
     case 0xb: /* SQDMLSL, SQDMLSL2 */
-        assert(0);
+        vreg_d = alloc_fpr_src(rd);
+        if (!is_q) {
+            switch (size) {
+            case 1:
+                la_vilvl_h(vtemp, vzero, vreg_n);
+                la_vilvl_h(vtemp1, vzero, vreg_m);
+                la_vmulwev_w_h(vzero, vtemp, vtemp1);
+                lata_helper_addl_saturate_s32(s, vzero, vzero, vzero, -1);
+                // la_vsadd_w(vzero, vzero, vzero);
+                // gen_sat_q(vzero, 1, false);
+                la_vneg_w(vzero, vzero);
+                lata_helper_addl_saturate_s32(s, vreg_d, vreg_d, vzero, rd);
+                // la_vsadd_w(vreg_d, vreg_d, vzero);
+                // gen_sat_q(vreg_d, 1, false);
+                break;
+            case 2:
+                la_vilvl_w(vtemp, vzero, vreg_n);
+                la_vilvl_w(vtemp1, vzero, vreg_m);
+                la_vmulwev_d_w(vzero, vtemp, vtemp1);
+                lata_helper_addl_saturate_s64(s, vzero, vzero, vzero, -1);
+                // la_vsadd_d(vzero, vzero, vzero);
+                // gen_sat_q(vreg_d, 2, false);
+                la_vneg_d(vzero, vzero);
+                lata_helper_addl_saturate_s64(s, vreg_d, vreg_d, vzero, rd);
+                // la_vsadd_d(vreg_d, vreg_d, vzero);
+                // gen_sat_q(vreg_d, 2, false);
+                break;
+            default:
+                assert(0);
+            }
+
+        } else {
+            switch (size) {
+            case 1:
+                assert(0);
+                break;
+            case 2:
+                assert(0);
+                break;
+            default:
+                assert(0);
+            }
+        }
         break;
     case 0xd: /* SQDMULL, SQDMULL2 */
-        assert(0);
+        vreg_d = alloc_fpr_dst(rd);
+        if (!is_q) {
+            switch (size) {
+            case 1:
+                la_vilvl_h(vtemp, vzero, vreg_n);
+                la_vilvl_h(vtemp1, vzero, vreg_m);
+                la_vmulwev_w_h(vzero, vtemp, vtemp1);
+                lata_helper_addl_saturate_s32(s, vreg_d, vzero, vzero, rd);
+                break;
+            case 2:
+                la_vilvl_w(vtemp, vzero, vreg_n);
+                la_vilvl_w(vtemp1, vzero, vreg_m);
+                la_vmulwev_d_w(vzero, vtemp, vtemp1);
+                lata_helper_addl_saturate_s64(s, vzero, vzero, vzero, rd);
+                break;
+            default:
+                assert(0);
+            }
+
+        } else {
+            switch (size) {
+            case 1:
+                assert(0);
+                break;
+            case 2:
+                assert(0);
+                break;
+            default:
+                assert(0);
+            }
+        }
         break;
     case 0x10: /* UADDL, UADDL2 */
     case 0x12: /* USUBL, USUBL2 */
@@ -13585,22 +14558,92 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
         vreg_d = alloc_fpr_dst(rd);
     }
     /* 分别执行左移和右移 */
-    IR2_OPND vtemp, vleft, vright;
-    if (opcode == 0x08)
-    {
+    IR2_OPND vtemp, vleft, vright, vtemp1, vzero;
+    IR2_OPND set_qc, exit;
+    IR2_OPND temp;
+    if (opcode == 0x08) {
         vtemp = ra_alloc_ftemp();
         vleft = ra_alloc_ftemp();
         vright = ra_alloc_ftemp();
+    } else if (opcode == 0x16) {
+        vtemp = ra_alloc_ftemp();
+        vtemp1 = ra_alloc_ftemp();
+        vzero = ra_alloc_ftemp();
+        la_vandi_b(vzero, vzero, 0);
+    } else if (opcode == 0x05) {
+        vtemp = ra_alloc_ftemp();
+        vtemp1 = ra_alloc_ftemp();
+        temp = ra_alloc_itemp();
+        set_qc = ir2_opnd_new_type(IR2_OPND_LABEL);
+        exit = ir2_opnd_new_type(IR2_OPND_LABEL);
     }
 
     switch (opcode)
     {
     case 0x01: /* SQADD, UQADD */
-        assert(0);
+        if (u) {
+          assert(0);
+        } else {
+          assert(0);
+        }
         return;
     case 0x05: /* SQSUB, UQSUB */
-        assert(0);
-        return;
+        if (u) {
+            switch (size) {
+            case 0:
+                la_vssub_bu(vtemp1, vreg_n, vreg_m);
+                la_vsub_b(vtemp, vreg_n, vreg_m);
+                break;
+            case 1:
+                la_vssub_hu(vtemp1, vreg_n, vreg_m);
+                la_vsub_h(vtemp, vreg_n, vreg_m);
+                break;
+            case 2:
+                la_vssub_wu(vtemp1, vreg_n, vreg_m);
+                la_vsub_w(vtemp, vreg_n, vreg_m);
+                break;
+            case 3:
+                la_vssub_du(vtemp1, vreg_n, vreg_m);
+                la_vsub_d(vtemp, vreg_n, vreg_m);
+                break;
+            default:
+                assert(0);
+            }
+        } else {
+            switch (size) {
+            case 0:
+                la_vssub_b(vtemp1, vreg_n, vreg_m);
+                la_vsub_b(vtemp, vreg_n, vreg_m);
+                break;
+            case 1:
+                la_vssub_h(vtemp1, vreg_n, vreg_m);
+                la_vsub_h(vtemp, vreg_n, vreg_m);
+                break;
+            case 2:
+                la_vssub_w(vtemp1, vreg_n, vreg_m);
+                la_vsub_w(vtemp, vreg_n, vreg_m);
+                break;
+            case 3:
+                la_vssub_d(vtemp1, vreg_n, vreg_m);
+                la_vsub_d(vtemp, vreg_n, vreg_m);
+                break;
+            default:
+                assert(0);
+            }
+        }
+        la_vseq_d(vtemp, vtemp1, vtemp);
+        la_vsetanyeqz_b(fcc1_ir2_opnd, vtemp);
+        la_bcnez(fcc1_ir2_opnd, set_qc);
+        la_b(exit);
+
+        la_label(set_qc);
+        li_d(temp, 1);
+        la_st_w(temp, env_ir2_opnd, env_offset_QC());
+
+        la_label(exit);
+
+        la_vori_b(vreg_d, vtemp1, 0);
+        goto do_gvec_end;
     case 0x08: /* SSHL, USHL */
         switch (size)
         {
@@ -13984,8 +15027,47 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
         }
         goto do_gvec_end;
     case 0x16: /* SQDMULH, SQRDMULH */
-        assert(0);
-        return;
+        // TODO : need handle saturate
+        if (u) {
+            switch (size) {
+            case 1:
+                la_vilvl_h(vtemp, vzero, vreg_n);
+                la_vilvl_h(vtemp1, vzero, vreg_m);
+                la_vmulwev_w_h(vreg_d, vtemp, vtemp1);
+                la_vsadd_w(vreg_d, vreg_d, vreg_d);
+                la_vssrarni_h_w(vreg_d, vreg_d, 16);
+                break;
+            case 2:
+                la_vilvl_w(vtemp, vzero, vreg_n);
+                la_vilvl_w(vtemp1, vzero, vreg_m);
+                la_vmulwev_d_w(vreg_d, vtemp, vtemp1);
+                la_vsadd_d(vreg_d, vreg_d, vreg_d);
+                la_vssrarni_w_d(vreg_d, vreg_d, 32);
+                break;
+            default:
+                assert(0);
+            }
+        } else {
+            switch (size) {
+            case 1:
+                la_vilvl_h(vtemp, vzero, vreg_n);
+                la_vilvl_h(vtemp1, vzero, vreg_m);
+                la_vmulwev_w_h(vreg_d, vtemp, vtemp1);
+                la_vsadd_w(vreg_d, vreg_d, vreg_d);
+                la_vssrani_h_w(vreg_d, vreg_d, 16);
+                break;
+            case 2:
+                la_vilvl_w(vtemp, vzero, vreg_n);
+                la_vilvl_w(vtemp1, vzero, vreg_m);
+                la_vmulwev_d_w(vreg_d, vtemp, vtemp1);
+                la_vsadd_d(vreg_d, vreg_d, vreg_d);
+                la_vssrani_w_d(vreg_d, vreg_d, 32);
+                break;
+            default:
+                assert(0);
+            }
+        }
+        goto do_gvec_end;
     case 0x11: /* CMEQ, CMTST */
         if (u)
         { /* CMEQ */
@@ -14128,17 +15210,43 @@ static void disas_simd_3same_int(DisasContext *s, uint32_t insn)
             free_alloc_fpr(vtemp);
             free_alloc_fpr(vleft);
             free_alloc_fpr(vright);
+        } else if (opcode == 0x16) {
+            free_alloc_fpr(vtemp);
+            free_alloc_fpr(vtemp1);
+            free_alloc_fpr(vzero);
+        } else if (opcode == 0x05) {
+            free_alloc_fpr(vtemp);
+            free_alloc_fpr(vtemp1);
+            free_alloc_gpr(temp);
         }
         return;
     }
 
-    if (size == 3)
-    {
+    if (size == 3) {
         assert(is_q);
-    }
-    else
-    {
-        assert(0);
+    } else {
+        switch (opcode) {
+        case 0x0: /* SHADD, UHADD */
+            assert(0);
+            break;
+        case 0x2: /* SRHADD, URHADD */
+            assert(0);
+            break;
+        case 0x4: /* SHSUB, UHSUB */
+            assert(0);
+            break;
+        case 0x9: /* SQSHL, UQSHL */
+            assert(0);
+            break;
+        case 0xa: /* SRSHL, URSHL */
+            assert(0);
+            break;
+        case 0xb: /* SQRSHL, UQRSHL */
+            assert(0);
+            break;
+        default:
+            g_assert_not_reached();
+        }
     }
 }
 
@@ -14446,7 +15554,44 @@ static void handle_2misc_pairwise(DisasContext *s, int opcode, bool u,
 
 static void handle_shll(DisasContext *s, bool is_q, int size, int rn, int rd)
 {
-    assert(0);
+    IR2_OPND vreg_d = alloc_fpr_src(rd);
+    IR2_OPND vreg_n = alloc_fpr_src(rn);
+    IR2_OPND vtemp = ra_alloc_ftemp();
+    la_vandi_b(vtemp, vtemp, 0);
+
+    if (!is_q) {
+        switch (size) {
+        case 0:
+            la_vilvl_b(vreg_d, vreg_n, vtemp);
+            break;
+        case 1:
+            la_vilvl_h(vreg_d, vreg_n, vtemp);
+            break;
+        case 2:
+            la_vilvl_w(vreg_d, vreg_n, vtemp);
+            break;
+        default:
+            assert(0);
+        }
+    } else {
+        switch (size) {
+        case 0:
+            la_vilvh_b(vreg_d, vreg_n, vtemp);
+            break;
+        case 1:
+            la_vilvh_h(vreg_d, vreg_n, vtemp);
+            break;
+        case 2:
+            la_vilvh_w(vreg_d, vreg_n, vtemp);
+            break;
+        default:
+            assert(0);
+        }
+    }
+
+    free_alloc_fpr(vreg_d);
+    free_alloc_fpr(vreg_n);
+    free_alloc_fpr(vtemp);
 }
 
 /* AdvSIMD two reg misc
@@ -15347,6 +16492,7 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
     IR2_OPND vreg_m = alloc_fpr_src(rm);
     IR2_OPND vtemp = ra_alloc_ftemp();
     IR2_OPND vtemp1 = ra_alloc_ftemp();
+    IR2_OPND vzero = ra_alloc_ftemp();
 
     switch (16 * u + opcode)
     {
@@ -15466,17 +16612,7 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
          * rely on the fact that 0 op 0 == 0 with no side effects.
          */
 
-        if (size == 1 && !is_scalar)
-        {
-            /* The simplest way to handle the 16x16 indexed ops is to duplicate
-             * the index into both halves of the 32 bit tcg_idx and then use
-             * the usual Neon helpers.
-             */
-            assert(0);
-        }
-
-        switch (16 * u + opcode)
-        {
+        switch (16 * u + opcode) {
         case 0x08: /* MUL */
         case 0x10: /* MLA */
         case 0x14: /* MLS */
@@ -15525,7 +16661,28 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
             assert(0);
             break;
         case 0x0c: /* SQDMULH */
-            assert(0);
+            // TODO : need handle saturate
+            vreg_d = alloc_fpr_src(rd);
+            switch (size) {
+            case 1:
+                la_vreplvei_h(vtemp1, vreg_m, index);
+                la_vilvl_h(vtemp, vzero, vreg_n);
+                la_vilvl_h(vtemp1, vzero, vtemp1);
+                la_vmulwev_w_h(vreg_d, vtemp, vtemp1);
+                la_vsadd_w(vreg_d, vreg_d, vreg_d);
+                la_vssrani_h_w(vreg_d, vreg_d, 16);
+                break;
+            case 2:
+                la_vreplvei_w(vtemp1, vreg_m, index);
+                la_vilvl_w(vtemp, vzero, vreg_n);
+                la_vilvl_w(vtemp1, vzero, vtemp1);
+                la_vmulwev_d_w(vreg_d, vtemp, vtemp1);
+                la_vsadd_d(vreg_d, vreg_d, vreg_d);
+                la_vssrani_w_d(vreg_d, vreg_d, 32);
+                break;
+            default:
+                g_assert_not_reached();
+            }
             break;
         case 0x0d: /* SQRDMULH */
             assert(0);
@@ -15549,7 +16706,125 @@ static void disas_simd_indexed(DisasContext *s, uint32_t insn)
     else
     {
         /* long ops: 16x16->32 or 32x32->64 */
-        assert(0);
+        int is_sub = extract32(opcode, 2, 1);
+        switch (opcode) {
+        case 0x2: /* SMLAL, SMLAL2, UMLAL, UMLAL2 */
+        case 0x6: /* SMLSL, SMLSL2, UMLSL, UMLSL2 */
+            vreg_d = alloc_fpr_src(rd);
+            if (u) {
+                if (!is_q) {
+                    switch (size) {
+                    case 1:
+                        la_vreplvei_h(vtemp1, vreg_m, index);
+                        la_vilvl_h(vtemp, vzero, vreg_n);
+                        la_vilvl_h(vtemp1, vzero, vtemp1);
+                        if (is_sub) {
+                            la_vmulwev_w_hu(vzero, vtemp, vtemp1);
+                            la_vsub_w(vreg_d, vreg_d, vzero);
+                        } else
+                            la_vmaddwev_w_hu(vreg_d, vtemp1, vtemp);
+                        break;
+                    case 2:
+                        la_vreplvei_w(vtemp1, vreg_m, index);
+                        la_vilvl_w(vtemp, vzero, vreg_n);
+                        la_vilvl_w(vtemp1, vzero, vtemp1);
+                        if (is_sub) {
+                            la_vmulwev_d_wu(vzero, vtemp, vtemp1);
+                            la_vsub_d(vreg_d, vreg_d, vzero);
+                        } else
+                            la_vmaddwev_d_wu(vreg_d, vtemp1, vtemp);
+                        break;
+                    default:
+                        assert(0);
+                    }
+                } else {
+                    switch (size) {
+                    case 1:
+                        la_vreplvei_h(vtemp1, vreg_m, index);
+                        la_vilvh_h(vtemp, vzero, vreg_n);
+                        la_vilvh_h(vtemp1, vzero, vtemp1);
+                        if (is_sub) {
+                            la_vmulwev_w_hu(vzero, vtemp, vtemp1);
+                            la_vsub_w(vreg_d, vreg_d, vzero);
+                        } else
+                            la_vmaddwev_w_hu(vreg_d, vtemp1, vtemp);
+                        break;
+                    case 2:
+                        la_vreplvei_w(vtemp1, vreg_m, index);
+                        la_vilvh_w(vtemp, vzero, vreg_n);
+                        la_vilvh_w(vtemp1, vzero, vtemp1);
+                        if (is_sub) {
+                            la_vmulwev_d_wu(vzero, vtemp, vtemp1);
+                            la_vsub_d(vreg_d, vreg_d, vzero);
+                        } else
+                            la_vmaddwev_d_wu(vreg_d, vtemp1, vtemp);
+                        break;
+                    default:
+                        assert(0);
+                    }
+                }
+            } else {
+                if (!is_q) {
+                    switch (size) {
+                    case 1:
+                        la_vreplvei_h(vtemp1, vreg_m, index);
+                        la_vilvl_h(vtemp, vzero, vreg_n);
+                        la_vilvl_h(vtemp1, vzero, vtemp1);
+                        if (is_sub) {
+                            la_vmulwev_w_h(vzero, vtemp, vtemp1);
+                            la_vsub_w(vreg_d, vreg_d, vzero);
+                        } else
+                            la_vmaddwev_w_h(vreg_d, vtemp1, vtemp);
+                        break;
+                    case 2:
+                        la_vreplvei_w(vtemp1, vreg_m, index);
+                        la_vilvl_w(vtemp, vzero, vreg_n);
+                        la_vilvl_w(vtemp1, vzero, vtemp1);
+                        if (is_sub) {
+                            la_vmulwev_d_w(vzero, vtemp, vtemp1);
+                            la_vsub_d(vreg_d, vreg_d, vzero);
+                        } else
+                            la_vmaddwev_d_w(vreg_d, vtemp1, vtemp);
+                        break;
+                    default:
+                        assert(0);
+                    }
+                } else {
+                    switch (size) {
+                    case 1:
+                        la_vreplvei_h(vtemp1, vreg_m, index);
+                        la_vilvh_h(vtemp, vzero, vreg_n);
+                        la_vilvh_h(vtemp1, vzero, vtemp1);
+                        if (is_sub) {
+                            la_vmulwev_w_h(vzero, vtemp, vtemp1);
+                            la_vsub_w(vreg_d, vreg_d, vzero);
+                        } else
+                            la_vmaddwev_w_h(vreg_d, vtemp1, vtemp);
+                        break;
+                    case 2:
+                        la_vreplvei_w(vtemp1, vreg_m, index);
+                        la_vilvh_w(vtemp, vzero, vreg_n);
+                        la_vilvh_w(vtemp1, vzero, vtemp1);
+                        if (is_sub) {
+                            la_vmulwev_d_w(vzero, vtemp, vtemp1);
+                            la_vsub_d(vreg_d, vreg_d, vzero);
+                        } else
+                            la_vmaddwev_d_w(vreg_d, vtemp1, vtemp);
+                        break;
+                    default:
+                        assert(0);
+                    }
+                }
+            }
+            break;
+        case 0x7: /* SQDMLSL, SQDMLSL2 */
+            /* fall through */
+        case 0x3: /* SQDMLAL, SQDMLAL2 */
+            assert(0);
+            break;
+        default:
+            assert(0);
+        }
     }
 do_gvec_end:
     if (!is_q)
@@ -15563,6 +16838,7 @@ do_gvec_end:
     free_alloc_fpr(vreg_m);
     free_alloc_fpr(vtemp);
     free_alloc_fpr(vtemp1);
+    free_alloc_fpr(vzero);
 }
 
 /* Crypto AES
