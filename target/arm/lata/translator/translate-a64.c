@@ -17299,18 +17299,20 @@ static void set_base_isjump(DisasContext *s)
     }
 }
 
+static DisasContext ir1_list[TCG_MAX_INSNS];
+static DisasContextBase db_rel;
+
 /*
     generate ir1_list
 */
 DisasContext *get_ir1_list(CPUState *cpu, TranslationBlock *tb, vaddr pc, int max_insns)
 {
-    DisasContext *ir1_list = (DisasContext *)mm_calloc(max_insns, sizeof(DisasContext));
     DisasContext *pir1 = NULL;
 
     uint32_t cflags = tb_cflags(tb);
 
     /* Initialize DisasContextBase */
-    DisasContextBase *db = (DisasContextBase *)malloc(sizeof(DisasContextBase));
+    DisasContextBase *db = &db_rel;
     db->tb = tb;
     db->pc_first = pc;
     db->pc_next = pc;
