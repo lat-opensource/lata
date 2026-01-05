@@ -6556,12 +6556,14 @@ static abi_long do_prctl(CPUArchState *env, abi_long option, abi_long arg2,
         if (arg3 || arg4 || arg5) {
             return -TARGET_EINVAL;
         }
-        return do_prctl_set_tagged_addr_ctrl(env, arg2);
+        return get_errno(prctl(option, arg2, arg3, arg4, arg5));
+        // return do_prctl_set_tagged_addr_ctrl(env, arg2);
     case PR_GET_TAGGED_ADDR_CTRL:
         if (arg2 || arg3 || arg4 || arg5) {
             return -TARGET_EINVAL;
         }
-        return do_prctl_get_tagged_addr_ctrl(env);
+        return get_errno(prctl(option, arg2, arg3, arg4, arg5));
+        // return do_prctl_get_tagged_addr_ctrl(env);
 
     case PR_GET_UNALIGN:
         return do_prctl_get_unalign(env, arg2);
