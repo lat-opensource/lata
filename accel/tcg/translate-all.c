@@ -301,7 +301,8 @@ static int setjmp_gen_code(CPUArchState *env, TranslationBlock *tb,
     tcg_func_start(tcg_ctx);
 
     tcg_ctx->cpu = env_cpu(env);
-    tcg_ctx->gen_insn_data = tcg_malloc(sizeof(uint64_t) * (*max_insns) * tcg_ctx->insn_start_words);
+    tcg_ctx->gen_insn_data =
+        tcg_malloc(sizeof(uint64_t) * (*max_insns) * tcg_ctx->insn_start_words);
 
 #ifdef CONFIG_LATA
     target_disasm(tb, max_insns, env_cpu(env));
